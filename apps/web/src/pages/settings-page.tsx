@@ -1,24 +1,33 @@
 import { useEffect, useState } from "react"
-import { Save } from "lucide-react"
+import { Plus, Save, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "../lib/api"
 import type { Settings } from "../lib/types"
 import { Divider } from "../components/tremor/divider"
 import { DropdownSelect } from "../components/tremor/dropdown-select"
-import { Button, Field, Input, Skeleton, Toggle } from "../components/ui"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/tremor/dialog"
+import { Button, Card, Checkbox, Field, Input, Skeleton, Toggle } from "../components/ui"
 
 export function SettingsPage() {
   const queryClient = useQueryClient()
   const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: api.settings })
   const [form, setForm] = useState<Settings | null>(null)
-  const [extensions, setExtensions] = useState("")
+  const [extensions, setExtensions] = useState<string[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!settingsQuery.data) return
     setForm(settingsQuery.data)
-    setExtensions(settingsQuery.data.extensions.join(", "))
+    setExtensions(settingsQuery.data.extensions)
   }, [settingsQuery.data])
 
   const save = useMutation({
@@ -39,7 +48,7 @@ export function SettingsPage() {
       }),
     onSuccess: (saved) => {
       setForm(saved)
-      setExtensions(saved.extensions.join(", "))
+      setExtensions(saved.extensions)
       setMessage("Settings saved.")
       setError(null)
       void queryClient.invalidateQueries({ queryKey: ["settings"] })
@@ -67,15 +76,11 @@ export function SettingsPage() {
   function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!form) return
-    const parsedExtensions = extensions
-      .split(",")
-      .map((item) => item.trim().toLowerCase().replace(/^\./, ""))
-      .filter(Boolean)
-    if (parsedExtensions.length === 0) {
+    if (extensions.length === 0) {
       setError("At least one extension is required.")
       return
     }
-    save.mutate({ ...form, extensions: parsedExtensions })
+    save.mutate({ ...form, extensions })
   }
 
   return (
@@ -98,9 +103,13 @@ export function SettingsPage() {
                 onChange={(event) => update("min_size_mb", Number(event.target.value))}
               />
             </Field>
-            <Field label="File extensions" hint="Comma separated. Dots are optional.">
-              <Input value={extensions} onChange={(event) => setExtensions(event.target.value)} />
-            </Field>
+            <ExtensionsPicker
+              value={extensions}
+              onChange={(next) => {
+                setExtensions(next)
+                setMessage(null)
+              }}
+            />
             <Field label="Poll interval (seconds)">
               <Input
                 type="number"
@@ -201,5 +210,224 @@ function SaveRow({
         <Save size={14} /> {pending ? "Saving…" : "Save changes"}
       </Button>
     </div>
+  )
+}
+
+const EXTENSION_GROUPS = [
+  {
+    label: "Video",
+    extensions: ["mkv", "mp4", "avi", "mov", "m4v", "webm", "ts", "m2ts"],
+  },
+  {
+    label: "Other",
+    extensions: ["wmv", "flv", "mpg", "mpeg", "3gp", "ogv"],
+  },
+]
+
+function ExtensionsPicker({
+  value,
+  onChange,
+}: {
+  value: string[]
+  onChange: (next: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [pending, setPending] = useState<string[]>(value)
+  const [custom, setCustom] = useState("")
+  const [customError, setCustomError] = useState<string | null>(null)
+
+  const start = () => {
+    setPending(value)
+    setCustom("")
+    setCustomError(null)
+    setOpen(true)
+  }
+
+  const toggle = (extension: string) => {
+    setPending((current) =>
+      current.includes(extension)
+        ? current.filter((item) => item !== extension)
+        : [...current, extension],
+    )
+  }
+
+  const addCustom = () => {
+    const next = custom
+      .split(",")
+      .map((item) => item.trim().toLowerCase().replace(/^\./, ""))
+      .filter(Boolean)
+    if (!next.length) return
+    if (next.some((item) => !/^[a-z0-9]+$/.test(item))) {
+      setCustomError("Use letters and numbers only.")
+      return
+    }
+    setPending((current) => [...new Set([...current, ...next])])
+    setCustom("")
+    setCustomError(null)
+  }
+
+  const apply = () => {
+    onChange(pending)
+    setOpen(false)
+  }
+
+  return (
+    <>
+      <Card className="overflow-hidden p-0">
+        <div className="px-4 pb-4 pt-4">
+          <div className="text-sm font-medium text-gray-900">File extensions</div>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Choose which file types the scanner should pick up.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {value.length ? (
+              value.map((extension) => (
+                <span
+                  key={extension}
+                  className="rounded border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-[11px] text-gray-700"
+                >
+                  {extension}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs text-gray-400">No extensions selected.</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-2">
+          <span className="text-xs text-gray-500">
+            {value.length} format{value.length === 1 ? "" : "s"} selected
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={start}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+          >
+            Edit extensions
+          </Button>
+        </div>
+      </Card>
+
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next)
+          if (!next) {
+            setCustom("")
+            setCustomError(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl p-0">
+          <DialogHeader className="border-b border-gray-200 px-5 py-4">
+            <DialogTitle className="text-base">File extensions</DialogTitle>
+            <DialogDescription className="text-sm">
+              Choose which file types the scanner should pick up.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] space-y-5 overflow-y-auto px-5 py-4">
+            {EXTENSION_GROUPS.map((group) => (
+              <div key={group.label}>
+                <div className="text-xs font-medium text-gray-500">{group.label}</div>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                  {group.extensions.map((extension) => {
+                    const id = `extension-${extension}`
+                    return (
+                      <div key={extension} className="flex items-center gap-2">
+                        <Checkbox
+                          id={id}
+                          checked={pending.includes(extension)}
+                          onCheckedChange={() => toggle(extension)}
+                        />
+                        <label
+                          htmlFor={id}
+                          className="cursor-pointer font-mono text-xs text-gray-700"
+                        >
+                          {extension}
+                        </label>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="border-t border-gray-200 pt-4">
+              <label htmlFor="custom-extension" className="text-xs font-medium text-gray-500">
+                Add custom extension
+              </label>
+              <div className="mt-2 flex items-start gap-2">
+                <Input
+                  id="custom-extension"
+                  value={custom}
+                  onChange={(event) => {
+                    setCustom(event.target.value)
+                    setCustomError(null)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault()
+                      addCustom()
+                    }
+                  }}
+                  placeholder="e.g. mkv, mp4"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addCustom}
+                  disabled={!custom.trim()}
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  Add
+                </Button>
+              </div>
+              {customError ? (
+                <p className="mt-1.5 text-xs text-red-700">{customError}</p>
+              ) : null}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-medium text-gray-500">Selected</div>
+                <span className="text-xs text-gray-500">{pending.length}</span>
+              </div>
+              {pending.length ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {pending.map((extension) => (
+                    <button
+                      key={extension}
+                      type="button"
+                      onClick={() => toggle(extension)}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-700 transition hover:bg-gray-50"
+                    >
+                      {extension}
+                      <X className="size-3 text-gray-400" aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-gray-400">No extensions selected.</p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-gray-200 bg-gray-50 px-5 py-3">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={apply} disabled={pending.length === 0}>
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

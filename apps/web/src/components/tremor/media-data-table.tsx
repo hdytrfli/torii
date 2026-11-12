@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { createParser, parseAsString, useQueryStates } from "nuqs"
 import {
   flexRender,
@@ -18,9 +19,9 @@ import {
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronUp, Plus, SlidersHorizontal } from "lucide-react"
 import type { Job } from "../../lib/types"
-import { cn, episodeLabel } from "../../lib/format"
+import { basename, cn, episodeLabel, statusLabel } from "../../lib/format"
 import { BulkBar } from "../bulk-bar"
-import { Button, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
+import { Button, Card, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "./popover"
 import {
   Table,
@@ -383,6 +384,36 @@ export function MediaDataTable({
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize })
+  const [hovered, setHovered] = useState<{ job: Job; x: number; y: number } | null>(null)
+  const hoverTimer = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current)
+    }
+  }, [])
+
+  const clearHover = () => {
+    if (hoverTimer.current !== null) {
+      window.clearTimeout(hoverTimer.current)
+      hoverTimer.current = null
+    }
+    setHovered(null)
+  }
+
+  const scheduleHover = (job: Job, rect: DOMRect) => {
+    if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current)
+    hoverTimer.current = window.setTimeout(() => {
+      const width = 384
+      const height = 180
+      const left = Math.max(16, Math.min(rect.left + 24, window.innerWidth - width - 16))
+      const top =
+        rect.bottom + 8 + height > window.innerHeight
+          ? Math.max(16, rect.top - height - 8)
+          : rect.bottom + 8
+      setHovered({ job, x: left, y: top })
+    }, 350)
+  }
 
   const parsers = useMemo(
     () => ({
@@ -662,6 +693,10 @@ export function MediaDataTable({
                 <TableRow
                   key={row.id}
                   onClick={() => row.toggleSelected(!row.getIsSelected())}
+                  onMouseEnter={(event) =>
+                    scheduleHover(row.original, event.currentTarget.getBoundingClientRect())
+                  }
+                  onMouseLeave={clearHover}
                   className="group select-none hover:bg-gray-50"
                 >
                   {row.getVisibleCells().map((cell, index) => (
@@ -714,6 +749,40 @@ export function MediaDataTable({
           table.setPageIndex(page)
         }}
       />
+
+      {hovered
+        ? createPortal(
+            <div
+              className="pointer-events-none fixed z-[60]"
+              style={{ left: hovered.x, top: hovered.y }}
+            >
+              <Card className="w-96 min-w-0 overflow-hidden p-0 shadow-lg">
+                <div className="space-y-3 p-4">
+                  <div>
+                    <div className="text-[11px] font-medium text-gray-500">
+                      Original filename
+                    </div>
+                    <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+                      {basename(hovered.job.source_path) || hovered.job.source_path}
+                    </p>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-medium text-gray-500">
+                      Target path
+                    </div>
+                    <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+                      {hovered.job.target_path || "Not calculated yet"}
+                    </p>
+                  </div>
+                </div>
+                <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
+                  {mediaTypeLabel(hovered.job.media_type)} · {statusLabel(hovered.job.status)}
+                </div>
+              </Card>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }
