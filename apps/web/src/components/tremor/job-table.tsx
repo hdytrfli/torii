@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import type { Group, Job } from "../../lib/types"
 import { jobMeta, pct } from "../../lib/format"
 import { Checkbox, SourceBadge, StatusBadge } from "../ui"
+import { cn } from "../../lib/format"
 import {
   Table,
   TableBody,
@@ -101,7 +102,14 @@ export function GroupedJobTable({
           </TableBody>
         </Table>
       </div>
-      <TablePagination page={page} pages={pages} total={groups.length} pageSize={pageSize} onPage={setPage} />
+      <TablePagination
+        page={page}
+        pages={pages}
+        total={groups.length}
+        pageSize={pageSize}
+        selectedCount={selected?.size ?? 0}
+        onPage={setPage}
+      />
     </div>
   )
 }
@@ -121,7 +129,7 @@ function SingleJobRow({
 }) {
   return (
     <TableRow
-      className="cursor-pointer hover:bg-gray-50"
+      className={cn("cursor-pointer hover:bg-gray-50", selected?.has(job.id) && "bg-gray-50")}
       onClick={() => onOpen?.(job)}
     >
       {!readOnly ? (
@@ -172,13 +180,14 @@ function GroupRows({
   return (
     <>
       <TableRow
-        className="cursor-pointer bg-gray-100 hover:bg-gray-200/70"
+        className={cn("cursor-pointer hover:bg-gray-50", someSelected && "bg-gray-50")}
         onClick={onToggleExpanded}
         aria-expanded={isOpen}
         title={isOpen ? "Collapse group" : "Expand group"}
       >
         {!readOnly ? (
-          <TableCell onClick={(event) => event.stopPropagation()}>
+          <TableCell className="relative" onClick={(event) => event.stopPropagation()}>
+            {someSelected ? <span className="absolute inset-y-0 left-0 w-0.5 bg-gray-900" /> : null}
             <Checkbox
               checked={someSelected && !allSelected ? "indeterminate" : allSelected}
               onCheckedChange={(value) => onToggleGroup?.(group, value === true)}
@@ -198,11 +207,12 @@ function GroupRows({
         ? group.jobs.map((job) => (
             <TableRow
               key={job.id}
-              className="cursor-pointer hover:bg-gray-50"
+              className={cn("cursor-pointer hover:bg-gray-50", selected?.has(job.id) && "bg-gray-50")}
               onClick={() => onOpen?.(job)}
             >
               {!readOnly ? (
-                <TableCell onClick={(event) => event.stopPropagation()}>
+                <TableCell className="relative" onClick={(event) => event.stopPropagation()}>
+                  {selected?.has(job.id) ? <span className="absolute inset-y-0 left-0 w-0.5 bg-gray-900" /> : null}
                   <Checkbox
                     checked={selected?.has(job.id) ?? false}
                     onCheckedChange={() => onToggle?.(job.id)}

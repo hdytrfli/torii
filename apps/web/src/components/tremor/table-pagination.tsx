@@ -6,12 +6,14 @@ export function TablePagination({
   pages,
   total,
   pageSize,
+  selectedCount = 0,
   onPage,
 }: {
   page: number
   pages: number
   total: number
   pageSize: number
+  selectedCount?: number
   onPage: (page: number) => void
 }) {
   const first = total === 0 ? 0 : page * pageSize + 1
@@ -26,9 +28,12 @@ export function TablePagination({
 
   return (
     <div className="flex items-center justify-between">
-      <p className="hidden text-sm tabular-nums text-gray-500 sm:block">
-        Showing <span className="font-medium text-gray-900">{first}-{last}</span> of{" "}
-        <span className="font-medium text-gray-900">{total}</span>
+      <p className="text-sm tabular-nums text-gray-500">
+        {selectedCount} of {total} row(s) selected.
+        <span className="ml-4 hidden sm:inline">
+          Showing <span className="font-medium text-gray-900">{first}-{last}</span> of{" "}
+          <span className="font-medium text-gray-900">{total}</span>
+        </span>
       </p>
       <div className="flex items-center gap-x-1.5">
         {buttons.map((button) => (
