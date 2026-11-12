@@ -115,10 +115,6 @@ episodes. Use `{episode_tag}` if that happens.
 apply:
   action: move
 
-  # only used when action is copy
-  copy:
-    delete_source: false
-
   # runs after any successful apply
   cleanup_empty_dirs: true
 
@@ -126,25 +122,16 @@ apply:
   automation:
     auto_apply: false
     auto_apply_confidence: 0.85
-
-  # calculate the target without touching files
-  dry_run: false
 ```
 
 The block is grouped by when each option applies.
 
 **Action**
 
-- `action: move`: source disappears; target gets the data. No extra options.
-- `action: copy`: source stays; target gets a second copy. Only this action
-  reads `copy.delete_source`.
+- `action: move`: source disappears; target gets the data.
+- `action: copy`: source stays; target gets a second copy.
 - `action: hardlink`: source stays; target shares the same data blocks. The
-  download and library paths must be on the same filesystem. No extra options.
-
-**Copy only**
-
-- `copy.delete_source`: if true, delete the source after the copy succeeds.
-  This makes copy behave like a controlled move.
+  download and library paths must be on the same filesystem.
 
 **After any successful apply**
 
@@ -158,13 +145,6 @@ The block is grouped by when each option applies.
   Existing review jobs that meet the threshold are picked up on the next scan.
 - `automation.auto_apply_confidence`: number from `0` to `1`. Only used when
   `auto_apply` is true. Higher means fewer automatic moves.
-
-**Preview**
-
-- `dry_run`: when true, calculate and report the target without modifying
-  files.
-
-`copy.delete_source` and `dry_run` are config-only options in the current UI.
 
 The service never overwrites an existing target. A conflict returns the job to
 review with an error. Matching subtitle and sidecar `.nfo` files follow the

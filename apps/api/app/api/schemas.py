@@ -35,13 +35,11 @@ class SettingsBody(BaseModel):
     movie_template: str
     tv_template: str
     action: Literal["move", "copy", "hardlink"]
-    delete_source: bool
     cleanup_empty_dirs: bool
     auto_apply: bool
     auto_apply_confidence: float = Field(ge=0, le=1)
     poll_interval: int = Field(ge=1)
     stable_seconds: int = Field(ge=0)
-    dry_run: bool
 
 
 class UserCreateBody(BaseModel):

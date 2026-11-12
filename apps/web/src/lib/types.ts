@@ -68,13 +68,11 @@ export interface Settings {
   movie_template: string
   tv_template: string
   action: "move" | "copy" | "hardlink"
-  delete_source: boolean
   cleanup_empty_dirs: boolean
   auto_apply: boolean
   auto_apply_confidence: number
   poll_interval: number
   stable_seconds: number
-  dry_run: boolean
   movie_preview: string
   tv_preview: string
 }

@@ -30,15 +30,13 @@ def _parsed(job: dict[str, Any]) -> SimpleNamespace | None:
         return None
 
 
-def _apply_file(src: Path, target: Path, action: str, delete_source: bool) -> None:
+def _apply_file(src: Path, target: Path, action: str) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
 
     if action == "move":
         shutil.move(str(src), str(target))
     elif action == "copy":
         shutil.copy2(src, target)
-        if delete_source:
-            src.unlink(missing_ok=True)
     elif action == "hardlink":
         os.link(src, target)
     else:
@@ -155,16 +153,13 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
     if chosen_action not in {"move", "copy", "hardlink"}:
         return False, f"Unknown action: {chosen_action}", None
 
-    if settings.dry_run:
-        return True, f"Dry run: would {chosen_action} to {target}", target
-
     sidecars = _sidecars(source)
     try:
-        _apply_file(source, target, chosen_action, settings.delete_source)
+        _apply_file(source, target, chosen_action)
         for sidecar in sidecars:
             sidecar_target = target.with_name(f"{target.stem}{sidecar.suffix}")
             if not sidecar_target.exists():
-                _apply_file(sidecar, sidecar_target, chosen_action, settings.delete_source)
+                _apply_file(sidecar, sidecar_target, chosen_action)
     except OSError as exc:
         db.update_job(job["id"], status="needs_review", error=str(exc))
         return False, f"File operation failed: {exc}", None

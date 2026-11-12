@@ -182,13 +182,12 @@ def _load_cached(path: str) -> dict[str, Any]:
     apply = _mapping(
         data["apply"],
         "apply",
-        {"action", "copy", "cleanup_empty_dirs", "automation", "dry_run"},
+        {"action", "cleanup_empty_dirs", "automation"},
     )
     action = _text(apply["action"], "apply.action").lower()
     if action not in ACTIONS:
         raise ConfigError(f"apply.action must be one of {', '.join(sorted(ACTIONS))}")
 
-    copy_options = _mapping(apply["copy"], "apply.copy", {"delete_source"})
     automation = _mapping(
         apply["automation"],
         "apply.automation",
@@ -202,9 +201,6 @@ def _load_cached(path: str) -> dict[str, Any]:
 
     apply = {
         "action": action,
-        "copy": {
-            "delete_source": _boolean(copy_options["delete_source"], "apply.copy.delete_source"),
-        },
         "cleanup_empty_dirs": _boolean(
             apply["cleanup_empty_dirs"], "apply.cleanup_empty_dirs"
         ),
@@ -212,7 +208,6 @@ def _load_cached(path: str) -> dict[str, Any]:
             "auto_apply": _boolean(automation["auto_apply"], "apply.automation.auto_apply"),
             "auto_apply_confidence": confidence,
         },
-        "dry_run": _boolean(apply["dry_run"], "apply.dry_run"),
     }
 
     return {

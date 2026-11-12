@@ -32,13 +32,11 @@ def defaults() -> dict[str, str]:
         "movie_template": layout["movie"],
         "tv_template": layout["shows"],
         "action": apply["action"],
-        "delete_source": str(apply["copy"]["delete_source"]).lower(),
         "cleanup_empty_dirs": str(apply["cleanup_empty_dirs"]).lower(),
         "auto_apply": str(apply["automation"]["auto_apply"]).lower(),
         "auto_apply_confidence": str(apply["automation"]["auto_apply_confidence"]),
         "poll_interval": str(scan["poll_interval"]),
         "stable_seconds": str(scan["stable_seconds"]),
-        "dry_run": str(apply["dry_run"]).lower(),
     }
 
 
@@ -84,13 +82,11 @@ class Settings:
     movie_template: str
     tv_template: str
     action: str
-    delete_source: bool
     cleanup_empty_dirs: bool
     auto_apply: bool
     auto_apply_confidence: float
     poll_interval: int
     stable_seconds: int
-    dry_run: bool
 
     @property
     def extension_set(self) -> set[str]:
@@ -141,7 +137,6 @@ def _settings_from_raw(raw: dict[str, str]) -> Settings:
         movie_template=movie_template,
         tv_template=tv_template,
         action=action,
-        delete_source=_bool(raw.get("delete_source"), _bool(base["delete_source"])),
         cleanup_empty_dirs=_bool(
             raw.get("cleanup_empty_dirs"), _bool(base["cleanup_empty_dirs"])
         ),
@@ -152,7 +147,6 @@ def _settings_from_raw(raw: dict[str, str]) -> Settings:
         ),
         poll_interval=max(1, _int(raw, "poll_interval", int(base["poll_interval"]))),
         stable_seconds=max(0, _int(raw, "stable_seconds", int(base["stable_seconds"]))),
-        dry_run=_bool(raw.get("dry_run"), _bool(base["dry_run"])),
     )
 
 
@@ -186,13 +180,11 @@ def save(db, form: dict[str, str]) -> Settings:
         "movie_template": movie_template,
         "tv_template": tv_template,
         "action": action,
-        "delete_source": str(_bool(form.get("delete_source"))).lower(),
         "cleanup_empty_dirs": str(_bool(form.get("cleanup_empty_dirs"))).lower(),
         "auto_apply": str(_bool(form.get("auto_apply"))).lower(),
         "auto_apply_confidence": str(confidence),
         "poll_interval": str(poll_interval),
         "stable_seconds": str(stable_seconds),
-        "dry_run": str(_bool(form.get("dry_run"))).lower(),
     }
     db.set_settings(values)
     return load(db)

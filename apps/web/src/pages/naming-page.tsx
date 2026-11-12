@@ -32,13 +32,11 @@ export function NamingPage() {
         movie_template: movie,
         tv_template: shows,
         action: settings.action,
-        delete_source: settings.delete_source,
         cleanup_empty_dirs: settings.cleanup_empty_dirs,
         auto_apply: settings.auto_apply,
         auto_apply_confidence: settings.auto_apply_confidence,
         poll_interval: settings.poll_interval,
         stable_seconds: settings.stable_seconds,
-        dry_run: settings.dry_run,
       })
     },
     onSuccess: (saved) => {

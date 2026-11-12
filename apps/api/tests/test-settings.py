@@ -16,7 +16,6 @@ def test_settings_roundtrip(tmp_path: Path):
         "movie_template": "{title} ({year})/{title} ({year})",
         "tv_template": "{folder}/Season {season:02d}/{title} - {episode_tag}",
         "action": "copy",
-        "delete_source": "on",
         "cleanup_empty_dirs": "on",
         "auto_apply": "on",
         "auto_apply_confidence": "0.9",
@@ -27,7 +26,6 @@ def test_settings_roundtrip(tmp_path: Path):
     assert saved.min_size_mb == 0
     assert saved.extensions == ("mkv", "mp4")
     assert saved.action == "copy"
-    assert saved.delete_source is True
     assert saved.auto_apply is True
     assert saved.poll_interval == 30
 

@@ -51,13 +51,11 @@ def settings_payload() -> dict[str, Any]:
         "movie_template": current.movie_template,
         "tv_template": current.tv_template,
         "action": current.action,
-        "delete_source": current.delete_source,
         "cleanup_empty_dirs": current.cleanup_empty_dirs,
         "auto_apply": current.auto_apply,
         "auto_apply_confidence": current.auto_apply_confidence,
         "poll_interval": current.poll_interval,
         "stable_seconds": current.stable_seconds,
-        "dry_run": current.dry_run,
         "movie_preview": settings_mod.preview(current.movie_template),
         "tv_preview": settings_mod.preview(current.tv_template),
     }

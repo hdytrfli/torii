@@ -35,10 +35,6 @@ layout:
 apply:
   action: move
 
-  # only used when action is copy
-  copy:
-    delete_source: false
-
   # runs after any successful apply
   cleanup_empty_dirs: true
 
@@ -46,6 +42,3 @@ apply:
   automation:
     auto_apply: false
     auto_apply_confidence: 0.85
-
-  # calculate the target without touching files
-  dry_run: false

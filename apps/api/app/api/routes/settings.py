@@ -23,10 +23,8 @@ def update_settings(request: Request, body: SettingsBody):
     form = {
         **data,
         "extensions": ",".join(data["extensions"]),
-        "delete_source": str(data["delete_source"]).lower(),
         "cleanup_empty_dirs": str(data["cleanup_empty_dirs"]).lower(),
         "auto_apply": str(data["auto_apply"]).lower(),
-        "dry_run": str(data["dry_run"]).lower(),
     }
     try:
         settings_mod.save(deps.db, form)

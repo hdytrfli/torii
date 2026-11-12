@@ -38,13 +38,11 @@ export function SettingsPage() {
         movie_template: data.movie_template,
         tv_template: data.tv_template,
         action: data.action,
-        delete_source: data.delete_source,
         cleanup_empty_dirs: data.cleanup_empty_dirs,
         auto_apply: data.auto_apply,
         auto_apply_confidence: data.auto_apply_confidence,
         poll_interval: data.poll_interval,
         stable_seconds: data.stable_seconds,
-        dry_run: data.dry_run,
       }),
     onSuccess: (saved) => {
       setForm(saved)
