@@ -12,7 +12,7 @@ from typing import Any
 
 import httpx
 
-from ..domain import naming
+from ..domain import lifecycle, naming
 from ..domain.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -138,12 +138,27 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
               action: str | None = None) -> tuple[bool, str, Path | None]:
     source = Path(job["source_path"])
     if not source.exists():
+        lifecycle.release(db, int(job["id"]))
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "source_missing",
+            "Source file no longer exists.",
+            status="failed",
+        )
         return False, "Source file no longer exists.", None
 
     try:
         target = _target_for_job(cfg, settings, job, title, year, media_type, season, episode)
     except ValueError as exc:
+        lifecycle.block(db, int(job["id"]), "invalid_layout", str(exc))
         return False, str(exc), None
+
+    owner = db.get_target_reservation(str(target))
+    if owner is not None and int(owner["job_id"]) != int(job["id"]):
+        message = f"Duplicate target with {owner['source_path']}"
+        lifecycle.block(db, int(job["id"]), "duplicate_target", message)
+        return False, message, None
 
     duplicate = db.get_job_by_target(str(target), exclude_id=int(job["id"]))
     if duplicate:
@@ -152,22 +167,41 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
         )
         if not duplicate_is_marked:
             message = f"Duplicate target with {Path(duplicate['source_path']).name}"
-            db.update_job(
-                job["id"],
-                status="needs_review",
-                error=message,
-                auto_apply_eligible=0,
-            )
+            lifecycle.block(db, int(job["id"]), "duplicate_target", message)
             return False, message, None
 
+    if owner is None and not db.reserve_target(int(job["id"]), str(target)):
+        owner = db.get_target_reservation(str(target))
+        message = (
+            f"Duplicate target with {owner['source_path']}"
+            if owner
+            else "Duplicate target with another job"
+        )
+        lifecycle.block(db, int(job["id"]), "duplicate_target", message)
+        return False, message, None
+
     if target.exists():
-        db.update_job(job["id"], status="needs_review", error=f"Target exists: {target}")
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "target_exists",
+            f"Target already exists: {target}",
+        )
         return False, f"Target already exists: {target}", None
 
     chosen_action = (action or settings.action).lower()
     if chosen_action not in {"move", "copy", "hardlink"}:
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "invalid_action",
+            f"Unknown action: {chosen_action}",
+        )
         return False, f"Unknown action: {chosen_action}", None
 
+    operation_id = db.create_operation(
+        int(job["id"]), chosen_action, str(source), str(target)
+    )
     sidecars = _sidecars(source)
     try:
         _apply_file(source, target, chosen_action)
@@ -175,8 +209,15 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
             sidecar_target = target.with_name(f"{target.stem}{sidecar.suffix}")
             if not sidecar_target.exists():
                 _apply_file(sidecar, sidecar_target, chosen_action)
+        db.update_operation(operation_id, "committed")
     except OSError as exc:
-        db.update_job(job["id"], status="needs_review", error=str(exc))
+        db.update_operation(operation_id, "failed")
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "operation_failed",
+            f"File operation failed: {exc}",
+        )
         return False, f"File operation failed: {exc}", None
 
     rename_source = job.get("source") or "guessit"
@@ -200,6 +241,7 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
         season=season,
         episode=episode,
         error=None,
+        blocked_reason=None,
         reason="Approved.",
     )
 
@@ -226,11 +268,20 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
         return False, "Only applied jobs can be undone."
     target = Path(job.get("target_path") or "")
     source = Path(job["source_path"])
+    operation = db.latest_operation(int(job["id"]))
 
     if target.exists() and not target.is_file():
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "permission_denied",
+            "Target is not a file; refusing to touch it.",
+            status="moved",
+        )
         return False, "Target is not a file; refusing to touch it."
 
     if not target.is_file():
+        lifecycle.release(db, int(job["id"]))
         if source.is_file():
             stat = source.stat()
             db.update_job(
@@ -240,22 +291,31 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
                 source_size=stat.st_size,
                 source_mtime=stat.st_mtime,
                 error=None,
+                blocked_reason=None,
                 reason="Undo: target was already missing; source retained.",
                 auto_apply_eligible=0,
             )
             return True, "Target was already missing; source retained."
-        db.update_job(
-            job["id"],
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "source_missing",
+            "Source and target files are missing.",
             status="failed",
-            target_path=None,
-            error="Source and target files are missing.",
-            auto_apply_eligible=0,
         )
+        db.update_job(job["id"], target_path=None)
         return False, "Source and target files are missing."
 
     if not any(
         _is_relative(target, root) for root in cfg.library_dirs
     ):
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "permission_denied",
+            "Target is outside the library; refusing to touch it.",
+            status="moved",
+        )
         return False, "Target is outside the library; refusing to touch it."
 
     sidecars = _sidecars(target)
@@ -276,6 +336,13 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
                     shutil.move(str(sidecar), str(sidecar_source))
             message = "Target moved back to the source path."
     except OSError as exc:
+        lifecycle.block(
+            db,
+            int(job["id"]),
+            "operation_failed",
+            f"Undo failed: {exc}",
+            status="moved",
+        )
         return False, f"Undo failed: {exc}"
 
     if settings.cleanup_empty_dirs:
@@ -283,6 +350,9 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
         if root is not None:
             _cleanup_empty(target.parent, root)
 
+    if operation:
+        db.update_operation(int(operation["id"]), "reversed")
+    lifecycle.release(db, int(job["id"]))
     stat = source.stat()
     db.update_job(
         job["id"],
@@ -291,6 +361,7 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
         source_size=stat.st_size,
         source_mtime=stat.st_mtime,
         error=None,
+        blocked_reason=None,
         reason=f"Undo: {message}",
         auto_apply_eligible=0,
     )

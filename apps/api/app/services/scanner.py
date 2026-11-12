@@ -5,7 +5,7 @@ import threading
 import time
 from pathlib import Path
 
-from ..domain import pipeline
+from ..domain import lifecycle, pipeline
 from ..domain import settings as settings_mod
 from . import apply
 from .providers import JellyfinProvider, LLM
@@ -165,19 +165,8 @@ class Scanner:
         if not job:
             return False
 
-        duplicate = None
-        if job.get("target_path"):
-            duplicate = self.db.get_job_by_target(
-                job["target_path"], exclude_id=int(job["id"])
-            )
-        if duplicate:
-            self.db.update_job(
-                job["id"],
-                status="needs_review",
-                error=f"Duplicate target with {Path(duplicate['source_path']).name}",
-                auto_apply_eligible=0,
-            )
-            job = self.db.get_job(int(job["id"])) or job
+        lifecycle.set_target(self.db, int(job["id"]), job.get("target_path"))
+        job = self.db.get_job(int(job["id"])) or job
 
         if settings.auto_apply and job.get("status") == "ready":
             self._apply_auto(settings, job, path)
@@ -186,75 +175,88 @@ class Scanner:
 
     def _reconcile_jobs(self) -> None:
         jobs = self.db.list_jobs(limit=1000)
-        targets: dict[str, dict] = {}
-        duplicate_ids: set[int] = set()
-        for job in sorted(jobs, key=lambda item: item["id"]):
-            if job.get("status") in {"rejected", "failed"}:
-                continue
+        ordered = sorted(
+            jobs, key=lambda item: (item.get("status") != "moved", item["id"])
+        )
+        for job in ordered:
+            job_id = int(job["id"])
+            status = job.get("status")
             target_path = job.get("target_path")
-            if not target_path:
+            if status in {"rejected", "failed"} or not target_path:
+                self.db.release_target(job_id)
                 continue
-            primary = targets.get(target_path)
-            if primary is None:
-                targets[target_path] = job
+            owner = self.db.get_target_reservation(target_path)
+            if owner is not None and int(owner["job_id"]) != job_id:
+                message = f"Duplicate target with {owner['source_path']}"
+                if (
+                    job.get("blocked_reason") != "duplicate_target"
+                    or job.get("error") != message
+                ):
+                    if status == "moved":
+                        self.db.update_job(
+                            job_id,
+                            blocked_reason="duplicate_target",
+                            error=message,
+                            auto_apply_eligible=0,
+                        )
+                    else:
+                        lifecycle.block(
+                            self.db, job_id, "duplicate_target", message
+                        )
                 continue
-            duplicate_error = f"Duplicate target with {Path(primary['source_path']).name}"
-            if job.get("status") == "needs_review" and job.get("error") == duplicate_error:
-                duplicate_ids.add(int(job["id"]))
-                continue
-            self.db.update_job(
-                job["id"],
-                status="needs_review",
-                error=duplicate_error,
-                auto_apply_eligible=0,
-            )
-            duplicate_ids.add(int(job["id"]))
-
-        for job in jobs:
-            if (
-                str(job.get("error") or "").startswith("Duplicate target with ")
-                and int(job["id"]) not in duplicate_ids
-                and job.get("status") == "needs_review"
-            ):
-                self.db.update_job(
-                    job["id"],
-                    error=None,
-                    auto_apply_eligible=0,
+            if owner is None and not self.db.reserve_target(job_id, target_path):
+                owner = self.db.get_target_reservation(target_path)
+                message = (
+                    f"Duplicate target with {owner['source_path']}"
+                    if owner
+                    else "Duplicate target with another job"
                 )
+                lifecycle.block(self.db, job_id, "duplicate_target", message)
+                continue
+            if job.get("blocked_reason") == "duplicate_target":
+                lifecycle.clear_block(self.db, job_id, "duplicate_target")
 
         for job in jobs:
             status = job.get("status")
+            job_id = int(job["id"])
             if status == "rejected":
                 continue
             source = Path(job["source_path"])
             if status == "moved":
                 target = Path(job["target_path"] or "")
                 if job.get("target_path") and not target.exists():
-                    self.db.update_job(
-                        job["id"],
-                        error="Target file is missing.",
-                        auto_apply_eligible=0,
-                    )
+                    if (
+                        job.get("blocked_reason") != "target_missing"
+                        or job.get("error") != "Target file is missing."
+                    ):
+                        self.db.update_job(
+                            job_id,
+                            blocked_reason="target_missing",
+                            error="Target file is missing.",
+                            auto_apply_eligible=0,
+                        )
                 continue
             if status not in {"analyzing", "needs_review", "ready", "failed"}:
                 continue
             if source.exists():
                 continue
-            if status == "failed" and job.get("error") == "Source file is missing.":
+            if status == "failed" and job.get("blocked_reason") == "source_missing":
                 continue
-            self.db.update_job(
-                job["id"],
+            self.db.release_target(job_id)
+            lifecycle.block(
+                self.db,
+                job_id,
+                "source_missing",
+                "Source file is missing.",
                 status="failed",
-                target_path=None,
-                error="Source file is missing.",
-                auto_apply_eligible=0,
             )
+            self.db.update_job(job_id, target_path=None)
 
     def _auto_apply_existing(self, settings: settings_mod.Settings) -> None:
         for job in self.db.list_jobs(limit=1000):
             if job.get("status") not in {"needs_review", "ready"}:
                 continue
-            if not job.get("auto_apply_eligible", 1):
+            if not job.get("auto_apply_eligible", 1) or job.get("blocked_reason"):
                 continue
             if job.get("error") or not job.get("title"):
                 continue

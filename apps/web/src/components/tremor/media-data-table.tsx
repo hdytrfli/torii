@@ -19,6 +19,7 @@ import {
 import { ChevronDown, ChevronUp, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
 import type { Job } from "../../lib/types"
 import { basename, cn, episodeLabel, statusLabel } from "../../lib/format"
+import { blockedReasonLabel, isReviewable } from "../../lib/job-state"
 import { BulkBar } from "../bulk-bar"
 import { Button, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
 import { HoverPopover } from "./hover-popover"
@@ -532,9 +533,9 @@ export function MediaDataTable({
               {job.title ?? job.source_path}
               {job.error ? (
                 <span
-                  title={job.error}
+                  title={blockedReasonLabel(job.blocked_reason) ?? job.error}
                   className="ml-1.5 inline-block size-1.5 rounded-full bg-red-500 align-middle"
-                  aria-label={job.error}
+                  aria-label={blockedReasonLabel(job.blocked_reason) ?? job.error}
                 />
               ) : null}
             </button>
@@ -683,11 +684,7 @@ export function MediaDataTable({
     () => jobs.filter((job) => selected?.has(job.id)),
     [jobs, selected],
   )
-  const reviewable =
-    selectedJobs.length > 0 &&
-    selectedJobs.every(
-      (job) => job.status === "needs_review" || job.status === "ready",
-    )
+  const reviewable = selectedJobs.length > 0 && selectedJobs.every(isReviewable)
   const movable =
     selectedJobs.length > 0 && selectedJobs.every((job) => job.status === "moved")
 
@@ -754,6 +751,9 @@ export function MediaDataTable({
                       <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
                         {mediaTypeLabel(row.original.media_type)} ·{" "}
                         {statusLabel(row.original.status)}
+                        {row.original.blocked_reason
+                          ? ` · ${blockedReasonLabel(row.original.blocked_reason)}`
+                          : ""}
                       </div>
                     </>
                   }

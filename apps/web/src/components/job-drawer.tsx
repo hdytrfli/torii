@@ -3,6 +3,7 @@ import { Astroid, Check, RefreshCw, Undo2, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { pct, providerLabel, sourceLabel } from "../lib/format"
+import { blockedReasonLabel, isReviewable } from "../lib/job-state"
 import { Badge, Button, Card, Field, Input, SourceBadge, StatusBadge } from "./ui"
 import { DropdownSelect } from "./tremor/dropdown-select"
 import {
@@ -123,7 +124,9 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
   })
 
   const editable = job?.status !== "moved"
-  const reviewable = job?.status === "needs_review" || job?.status === "ready"
+  const reviewable = job ? isReviewable(job) : false
+  const rejectable =
+    job != null && job.status !== "moved" && job.status !== "rejected"
 
   return (
     <Drawer open onOpenChange={(open) => { if (!open) onClose() }}>
@@ -281,9 +284,14 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                   </>
                 ) : null}
 
-                {error ? (
+                {job.blocked_reason || job.error || error ? (
                   <div className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger">
-                    {error}
+                    {job.blocked_reason ? (
+                      <div className="font-medium">
+                        {blockedReasonLabel(job.blocked_reason)}
+                      </div>
+                    ) : null}
+                    {error ?? job.error}
                   </div>
                 ) : null}
               </div>
@@ -357,9 +365,16 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                   </Button>
                 </>
               ) : (
-                <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
-                  <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
-                </Button>
+                <>
+                  <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
+                    <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
+                  </Button>
+                  {rejectable ? (
+                    <Button variant="danger" onClick={() => reject.mutate()} disabled={reject.isPending}>
+                      <X size={14} /> Reject
+                    </Button>
+                  ) : null}
+                </>
               )}
             </DrawerFooter>
           </>

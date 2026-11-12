@@ -18,6 +18,7 @@ export interface Job {
   reason: string | null
   target_path: string | null
   error: string | null
+  blocked_reason?: string | null
   auto_apply_eligible?: number
   updated_at: string
   candidates_json: Candidate[] | null

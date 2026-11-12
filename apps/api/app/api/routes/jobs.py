@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from ...core import auth
-from ...domain import guess, pipeline
+from ...domain import guess, lifecycle, pipeline
 from ...domain import settings as settings_mod
 from ...services import apply
 from ...services.providers import Candidate
@@ -161,10 +161,13 @@ def identify(request: Request, job_id: int, body: IdentifyBody):
         group_key=group_key,
         group_type=group_type,
         candidates_json=json.dumps(candidates, ensure_ascii=False),
-        target_path=target,
-        error=error,
         auto_apply_eligible=0,
     )
+    if error:
+        lifecycle.block(deps.db, job_id, "invalid_layout", error)
+    else:
+        lifecycle.clear_block(deps.db, job_id)
+        lifecycle.set_target(deps.db, job_id, target)
     return deps.db.job_json(deps.db.get_job(job_id) or job)
 
 
@@ -222,11 +225,14 @@ def ask_ai(request: Request, job_id: int):
         reason=decision.get("reason") or "AI requested manually.",
         group_key=group_key,
         group_type=group_type,
-        target_path=target,
-        error=error,
         llm_json=json.dumps(decision, ensure_ascii=False),
         auto_apply_eligible=0,
     )
+    if error:
+        lifecycle.block(deps.db, job_id, "invalid_layout", error)
+    else:
+        lifecycle.clear_block(deps.db, job_id)
+        lifecycle.set_target(deps.db, job_id, target)
     return deps.db.job_json(deps.db.get_job(job_id) or job)
 
 
@@ -250,13 +256,7 @@ def reject(request: Request, job_id: int):
         raise HTTPException(status_code=404, detail="Job not found")
     if job.get("status") == "moved":
         raise HTTPException(status_code=400, detail="Undo applied jobs before rejecting them.")
-    deps.db.update_job(
-        job_id,
-        status="rejected",
-        reason="Rejected.",
-        error=None,
-        auto_apply_eligible=0,
-    )
+    lifecycle.reject(deps.db, job_id)
     return {"ok": True}
 
 
@@ -292,6 +292,14 @@ def retry(request: Request, job_id: int):
         deps.llm,
         forced_kind="tv" if job.get("media_type") == "tv" else "movie",
     )
+    if updated:
+        if updated.get("error"):
+            lifecycle.block(
+                deps.db, job_id, "invalid_layout", updated["error"]
+            )
+        else:
+            lifecycle.set_target(deps.db, job_id, updated.get("target_path"))
+        updated = deps.db.get_job(job_id) or updated
     return {"ok": True, "job": deps.db.job_json(updated)}
 
 
@@ -315,13 +323,7 @@ def bulk(request: Request, body: BulkBody):
                     }
                 )
                 continue
-            deps.db.update_job(
-                job_id,
-                status="rejected",
-                reason="Rejected.",
-                error=None,
-                auto_apply_eligible=0,
-            )
+            lifecycle.reject(deps.db, job_id)
             results.append({"id": job_id, "ok": True, "message": "Rejected"})
             continue
         if body.action == "undo":

@@ -27,6 +27,7 @@ JOB_FIELDS = {
     "llm_json",
     "target_path",
     "error",
+    "blocked_reason",
     "auto_apply_eligible",
     "updated_at",
 }
@@ -53,12 +54,32 @@ CREATE TABLE IF NOT EXISTS jobs (
     llm_json TEXT,
     target_path TEXT,
     error TEXT,
+    blocked_reason TEXT,
     auto_apply_eligible INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs(status);
+
+CREATE TABLE IF NOT EXISTS target_reservations (
+    target_path TEXT PRIMARY KEY,
+    job_id INTEGER NOT NULL UNIQUE REFERENCES jobs(id) ON DELETE CASCADE,
+    reserved_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS job_operations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    source_path TEXT NOT NULL,
+    target_path TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS job_operations_job_idx ON job_operations(job_id);
 
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
@@ -126,6 +147,8 @@ class DB:
                 conn.execute(
                     "ALTER TABLE jobs ADD COLUMN auto_apply_eligible INTEGER NOT NULL DEFAULT 1"
                 )
+            if "blocked_reason" not in columns:
+                conn.execute("ALTER TABLE jobs ADD COLUMN blocked_reason TEXT")
 
     # settings ---------------------------------------------------------
 
@@ -280,6 +303,69 @@ class DB:
     def delete_job(self, job_id: int) -> None:
         with self._connect() as conn:
             conn.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+
+    # target reservations and apply journal ----------------------------
+
+    def get_target_reservation(self, target_path: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT r.*, j.source_path AS source_path "
+                "FROM target_reservations r JOIN jobs j ON j.id = r.job_id "
+                "WHERE r.target_path = ?",
+                (target_path,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def reserve_target(self, job_id: int, target_path: str) -> bool:
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM target_reservations WHERE job_id = ? AND target_path != ?",
+                (job_id, target_path),
+            )
+            try:
+                conn.execute(
+                    "INSERT INTO target_reservations "
+                    "(target_path, job_id, reserved_at) VALUES (?, ?, ?)",
+                    (target_path, job_id, now()),
+                )
+            except sqlite3.IntegrityError:
+                return False
+        return True
+
+    def release_target(self, job_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "DELETE FROM target_reservations WHERE job_id = ?", (job_id,)
+            )
+
+    def create_operation(
+        self, job_id: int, kind: str, source_path: str, target_path: str
+    ) -> int:
+        timestamp = now()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO job_operations "
+                "(job_id, kind, source_path, target_path, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, 'planned', ?, ?)",
+                (job_id, kind, source_path, target_path, timestamp, timestamp),
+            )
+            return int(cursor.lastrowid)
+
+    def update_operation(self, operation_id: int, status: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE job_operations SET status = ?, updated_at = ? WHERE id = ?",
+                (status, now(), operation_id),
+            )
+
+    def latest_operation(self, job_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM job_operations WHERE job_id = ? "
+                "ORDER BY id DESC LIMIT 1",
+                (job_id,),
+            ).fetchone()
+        return dict(row) if row else None
 
     def list_jobs(self, status: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
         query = "SELECT * FROM jobs"

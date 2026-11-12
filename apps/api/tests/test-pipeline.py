@@ -69,6 +69,48 @@ def test_analyze_and_move(tmp_path: Path):
     assert target is not None and target.exists()
     assert not source.exists()
     assert db.get_job(job["id"])["status"] == "moved"
+    operation = db.latest_operation(job["id"])
+    assert operation is not None
+    assert operation["kind"] == "move"
+    assert operation["status"] == "committed"
+    assert db.get_target_reservation(str(target))["job_id"] == job["id"]
+
+
+def test_undo_reverses_operation_and_releases_target(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    cfg.movie_library_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Undo.Me.2024.mkv"
+    source.write_bytes(b"x")
+    db = DB(tmp_path / "state.db")
+    settings = settings_mod.load(db)
+    job = pipeline.analyze(
+        cfg,
+        settings,
+        db,
+        source,
+        JellyfinProvider(None, None),
+        LLM(None, None, None),
+    )
+    ok, message, target = apply.apply_job(
+        cfg, settings, db, job,
+        job["title"], job["year"], job["media_type"],
+        job["season"], job["episode"],
+    )
+    assert ok, message
+    assert target is not None
+    applied = db.get_job(job["id"]) or {}
+
+    ok, message = apply.undo_job(cfg, settings, db, applied)
+
+    assert ok, message
+    restored = db.get_job(job["id"]) or {}
+    assert restored["status"] == "needs_review"
+    assert restored["target_path"] is None
+    assert db.get_target_reservation(str(target)) is None
+    operation = db.latest_operation(job["id"])
+    assert operation is not None
+    assert operation["status"] == "reversed"
 
 
 def test_undo_with_missing_target_returns_job_to_review(tmp_path: Path):
@@ -217,7 +259,9 @@ def test_scanner_marks_duplicate_targets(tmp_path: Path):
     assert db.get_job(first_id)["error"] is None
     duplicate = db.get_job(second_id)
     assert duplicate["error"].startswith("Duplicate target with ")
+    assert duplicate["blocked_reason"] == "duplicate_target"
     assert duplicate["auto_apply_eligible"] == 0
+    assert db.get_target_reservation(target)["job_id"] == first_id
 
 
 def test_scanner_marks_missing_sources(tmp_path: Path):

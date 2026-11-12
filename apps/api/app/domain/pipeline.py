@@ -226,6 +226,7 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
         "llm_json": json.dumps(decision, ensure_ascii=False) if decision else None,
         "target_path": str(target) if target else None,
         "error": target_error,
+        "blocked_reason": "invalid_layout" if target_error else None,
         "status": status,
     }
 
