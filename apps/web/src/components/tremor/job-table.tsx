@@ -172,7 +172,7 @@ function GroupRows({
   return (
     <>
       <TableRow
-        className="cursor-pointer border-y border-gray-300 bg-gray-100 hover:bg-gray-200/70"
+        className="cursor-pointer bg-gray-100 hover:bg-gray-200/70"
         onClick={onToggleExpanded}
         aria-expanded={isOpen}
         title={isOpen ? "Collapse group" : "Expand group"}
