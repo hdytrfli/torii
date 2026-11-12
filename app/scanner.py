@@ -61,19 +61,22 @@ class Scanner:
             settings = settings_mod.load(self.db)
 
         with self._lock:
-            if not self.cfg.watch_dir.exists():
-                return 0
-
             processed = 0
             seen: set[str] = set()
 
-            for path in self._iter_files(settings):
-                key = str(path)
-                seen.add(key)
-                if not self._stable(path, settings):
+            for root, forced_kind in (
+                (self.cfg.movie_watch_dir, "movie"),
+                (self.cfg.show_watch_dir, "tv"),
+            ):
+                if not root.exists():
                     continue
-                if self._process(path, settings):
-                    processed += 1
+                for path in self._iter_files(settings, root):
+                    key = str(path)
+                    seen.add(key)
+                    if not self._stable(path, settings):
+                        continue
+                    if self._process(path, settings, forced_kind):
+                        processed += 1
 
             for key in list(self._pending):
                 if key not in seen:
@@ -81,8 +84,7 @@ class Scanner:
 
             return processed
 
-    def _iter_files(self, settings: settings_mod.Settings):
-        root = self.cfg.watch_dir
+    def _iter_files(self, settings: settings_mod.Settings, root: Path):
         for path in root.rglob("*"):
             if not path.is_file():
                 continue
@@ -125,7 +127,7 @@ class Scanner:
         self._pending[key] = (stat.st_size, stat.st_mtime, now)
         return False
 
-    def _process(self, path: Path, settings: settings_mod.Settings) -> bool:
+    def _process(self, path: Path, settings: settings_mod.Settings, forced_kind: str) -> bool:
         try:
             stat = path.stat()
         except OSError:
@@ -142,7 +144,15 @@ class Scanner:
             }:
                 return False
 
-        job = pipeline.analyze(self.cfg, settings, self.db, path, self.jellyfin, self.llm)
+        job = pipeline.analyze(
+            self.cfg,
+            settings,
+            self.db,
+            path,
+            self.jellyfin,
+            self.llm,
+            forced_kind=forced_kind,
+        )
         if not job:
             return False
 

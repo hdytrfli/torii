@@ -1,0 +1,51 @@
+paths:
+  state: /data
+  watch:
+    movies: /downloads/movies
+    shows: /downloads/shows
+  library:
+    movies: /library/movies
+    shows: /library/shows
+
+server:
+  port: 8000
+  host: 0.0.0.0
+  log_level: INFO
+
+session_days: 30
+
+scan:
+  min_size_mb: 0
+  extensions:
+    - mkv
+    - mp4
+    - avi
+    - mov
+    - m4v
+    - webm
+    - ts
+    - m2ts
+  poll_interval: 5
+  stable_seconds: 0
+
+layout:
+  movie: "{title} ({year})/{title}"
+  shows: "{title} ({year})/Season {season}/{title} - Season {season} Episode {episode}"
+
+apply:
+  action: move
+
+  # only used when action is copy
+  copy:
+    delete_source: false
+
+  # runs after any successful apply
+  cleanup_empty_dirs: true
+
+  # unattended decisions
+  automation:
+    auto_apply: false
+    auto_apply_confidence: 0.85
+
+  # calculate the target without touching files
+  dry_run: false

@@ -65,6 +65,8 @@ def build_values(
 
 def render(base: Path, template: str, values: dict[str, Any]) -> Path:
     raw = template.format(**values)
+    if not values.get("year"):
+        raw = raw.replace(" ()", "")
     parts = [part for part in Path(raw).parts if part not in ("", ".")]
     if not parts or any(part == ".." for part in parts):
         raise ValueError("Layout produced an invalid path.")
@@ -81,36 +83,34 @@ def render(base: Path, template: str, values: dict[str, Any]) -> Path:
     return target
 
 
-def target_for_movie(library: Path, template: str, title: str, year: int | None,
+def target_for_movie(movie_library: Path, template: str, title: str, year: int | None,
                      ext: str, parsed: Parsed | None = None) -> Path:
-    base = library / "movies"
     values = build_values(title, year, None, None, ext, parsed)
-    return render(base, template, values)
+    return render(movie_library, template, values)
 
 
-def target_for_show(library: Path, template: str, title: str, year: int | None,
+def target_for_show(show_library: Path, template: str, title: str, year: int | None,
                     season: int | None, episode: int | None, ext: str,
                     parsed: Parsed | None = None) -> Path:
     if season is None or episode is None:
         raise ValueError("Season and episode are required for shows.")
 
-    base = library / "shows"
     values = build_values(title, year, season, episode, ext, parsed)
-    return render(base, template, values)
+    return render(show_library, template, values)
 
 
-def preview_movie(library: Path, template: str, title: str, year: int | None,
+def preview_movie(movie_library: Path, template: str, title: str, year: int | None,
                   ext: str = "mkv", parsed: Parsed | None = None) -> str:
     try:
-        return str(target_for_movie(library, template, title, year, ext, parsed))
+        return str(target_for_movie(movie_library, template, title, year, ext, parsed))
     except ValueError as exc:
         return f"Invalid layout: {exc}"
 
 
-def preview_show(library: Path, template: str, title: str, year: int | None,
+def preview_show(show_library: Path, template: str, title: str, year: int | None,
                  season: int | None, episode: int | None, ext: str = "mkv",
                  parsed: Parsed | None = None) -> str:
     try:
-        return str(target_for_show(library, template, title, year, season, episode, ext, parsed))
+        return str(target_for_show(show_library, template, title, year, season, episode, ext, parsed))
     except ValueError as exc:
         return f"Invalid layout: {exc}"

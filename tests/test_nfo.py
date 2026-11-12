@@ -8,8 +8,10 @@ from app.providers import JellyfinProvider, LLM
 
 def make_config(tmp_path: Path) -> Config:
     return Config(
-        watch_dir=tmp_path / "watch",
-        library_dir=tmp_path / "library",
+        movie_watch_dir=tmp_path / "watch" / "movies",
+        show_watch_dir=tmp_path / "watch" / "shows",
+        movie_library_dir=tmp_path / "library" / "movies",
+        show_library_dir=tmp_path / "library" / "shows",
         state_dir=tmp_path / "state",
         host="127.0.0.1",
         port=8000,
@@ -62,10 +64,10 @@ def test_read_episode_nfo(tmp_path: Path):
 
 def test_pipeline_prefers_local_nfo(tmp_path: Path):
     cfg = make_config(tmp_path)
-    cfg.watch_dir.mkdir()
-    source = cfg.watch_dir / "Wrong.Name.1999.mkv"
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Wrong.Name.1999.mkv"
     source.touch()
-    (cfg.watch_dir / "movie.nfo").write_text(
+    (cfg.movie_watch_dir / "movie.nfo").write_text(
         "<movie><title>Spirited Away</title><year>2001</year>"
         '<uniqueid type="tmdb">129</uniqueid></movie>',
         encoding="utf-8",

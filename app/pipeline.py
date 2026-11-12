@@ -10,8 +10,13 @@ from . import guess, naming, nfo, providers, settings as settings_mod
 logger = logging.getLogger(__name__)
 
 
+MIN_PROVIDER_SCORE = 75.0
+
+
 def _candidate_best(candidates: list[providers.Candidate]) -> providers.Candidate | None:
-    return candidates[0] if candidates else None
+    if candidates and candidates[0].score >= MIN_PROVIDER_SCORE:
+        return candidates[0]
+    return None
 
 
 def _int(value: Any) -> int | None:
@@ -36,7 +41,8 @@ def _confidence(parsed: guess.Parsed, best: providers.Candidate | None,
 
 
 def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
-            jellyfin: providers.JellyfinProvider, llm: providers.LLM) -> dict[str, Any]:
+            jellyfin: providers.JellyfinProvider, llm: providers.LLM,
+            forced_kind: str | None = None) -> dict[str, Any]:
     parsed = guess.parse(path)
     local = nfo.read(path)
     nfo_candidate = None
@@ -64,10 +70,17 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
                 year=local.get("year"),
                 overview=f"Local metadata from {local['path']}",
                 image=None,
-                kind=local.get("kind") or parsed.kind,
+                kind=forced_kind or local.get("kind") or parsed.kind,
                 score=100.0,
                 raw={"path": local["path"], "provider_ids": ids},
             )
+
+    if forced_kind in {"movie", "tv"}:
+        parsed.kind = forced_kind
+        if forced_kind == "movie":
+            parsed.season = None
+            parsed.episode = None
+            parsed.episode_end = None
 
     candidates = jellyfin.search(parsed.title, parsed.year, parsed.kind)
     if nfo_candidate is not None:
@@ -99,8 +112,9 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
             )
             if refreshed:
                 candidates = refreshed
-                best = candidates[0]
-                confidence = max(confidence, best.score / 100.0)
+                best = _candidate_best(candidates)
+                if best is not None:
+                    confidence = max(confidence, best.score / 100.0)
 
     if best is not None and llm.enabled and len(candidates) > 1:
         margin = candidates[0].score - candidates[1].score
@@ -117,19 +131,24 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
         or parsed.kind
     if media_type not in {"movie", "tv"}:
         media_type = parsed.kind
+    if forced_kind in {"movie", "tv"}:
+        media_type = forced_kind
 
     season = parsed.season
     episode = parsed.episode
     if decision:
         season = _int(decision.get("season")) or season
         episode = _int(decision.get("episode")) or episode
+    if forced_kind == "movie":
+        season = None
+        episode = None
 
     target = None
     target_error = None
     try:
         if media_type == "tv":
             target = naming.target_for_show(
-                cfg.library_dir,
+                cfg.show_library_dir,
                 settings.tv_template,
                 title,
                 int(year) if year else None,
@@ -140,7 +159,7 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
             )
         else:
             target = naming.target_for_movie(
-                cfg.library_dir,
+                cfg.movie_library_dir,
                 settings.movie_template,
                 title,
                 int(year) if year else None,

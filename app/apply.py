@@ -52,7 +52,7 @@ def _target_for_job(cfg, settings: Settings, job: dict[str, Any],
     parsed = _parsed(job)
     if media_type == "tv":
         return naming.target_for_show(
-            cfg.library_dir,
+            cfg.show_library_dir,
             settings.tv_template,
             title,
             year,
@@ -62,7 +62,7 @@ def _target_for_job(cfg, settings: Settings, job: dict[str, Any],
             parsed,
         )
     return naming.target_for_movie(
-        cfg.library_dir,
+        cfg.movie_library_dir,
         settings.movie_template,
         title,
         year,
@@ -86,6 +86,17 @@ def _sidecars(src: Path) -> list[Path]:
         if path.is_file() and path.suffix.lower() in SIDECAR_SUFFIXES:
             result.append(path)
     return result
+
+
+def _watch_root(cfg, source: Path) -> Path:
+    resolved = source.resolve()
+    for root in cfg.watch_dirs:
+        try:
+            if resolved.is_relative_to(root.resolve()):
+                return root
+        except OSError:
+            continue
+    return source.parent
 
 
 def _cleanup_empty(start: Path, stop: Path) -> None:
@@ -172,7 +183,7 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
     )
 
     if settings.cleanup_empty_dirs:
-        _cleanup_empty(source.parent, cfg.watch_dir)
+        _cleanup_empty(source.parent, _watch_root(cfg, source))
 
     _notify(cfg.notify_url, "Media renamed", f"{source.name} -> {target}")
     _post_action(cfg.post_action_cmd, {

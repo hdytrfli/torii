@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-cfg = Config.from_env()
+cfg = Config.load()
 db = DB(cfg.db_path)
 jellyfin = JellyfinProvider(cfg.jellyfin_url, cfg.jellyfin_api_key)
 llm = LLM(cfg.llm_base_url, cfg.llm_api_key, cfg.llm_model)
@@ -42,7 +42,7 @@ OPEN_PATHS = {"/login", "/setup", "/api/login", "/api/health"}
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    for directory in (cfg.watch_dir, cfg.library_dir, cfg.state_dir):
+    for directory in (*cfg.watch_dirs, *cfg.library_dirs, cfg.state_dir):
         directory.mkdir(parents=True, exist_ok=True)
     db.purge_expired_sessions()
     scanner.start()
@@ -50,7 +50,7 @@ async def lifespan(_: FastAPI):
     scanner.stop()
 
 
-app = FastAPI(title="media-renamer", lifespan=lifespan)
+app = FastAPI(title="torii", lifespan=lifespan)
 app.mount(
     "/static",
     StaticFiles(directory=str(Path(__file__).resolve().parent / "static")),

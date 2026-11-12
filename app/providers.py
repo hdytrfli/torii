@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -38,23 +39,47 @@ class Candidate:
         }
 
 
+STOPWORDS = {"the", "a", "an"}
+
+
+def _normalize_title(value: str) -> str:
+    text = re.sub(r"[^a-z0-9 ]+", " ", value.casefold())
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _score(query: str, year: int | None, candidate: Candidate, index: int) -> float:
-    query_lower = query.casefold()
-    title_lower = candidate.title.casefold()
-    score = max(
-        fuzz.token_set_ratio(query_lower, title_lower),
-        fuzz.partial_ratio(query_lower, title_lower) * 0.9,
-    )
+    query_lower = _normalize_title(query)
+    title_lower = _normalize_title(candidate.title)
+    if not query_lower or not title_lower:
+        return 0.0
+
+    if query_lower == title_lower:
+        score = 100.0
+    else:
+        score = max(
+            fuzz.ratio(query_lower, title_lower),
+            fuzz.token_sort_ratio(query_lower, title_lower) * 0.95,
+            fuzz.partial_ratio(query_lower, title_lower) * 0.70,
+        )
+
+        query_tokens = set(query_lower.split()) - STOPWORDS
+        title_tokens = set(title_lower.split()) - STOPWORDS
+        coverage = (
+            len(query_tokens & title_tokens) / len(query_tokens)
+            if query_tokens
+            else 0.0
+        )
+        score *= 0.75 + 0.25 * coverage
 
     if year and candidate.year:
         if year == candidate.year:
-            score += 15
+            score += 10
         elif abs(year - candidate.year) <= 1:
-            score += 8
+            score += 5
         else:
-            score -= 20
+            score -= 15
 
-    score += max(0.0, 5.0 - index * 1.5)
+    score += max(0.0, 3.0 - index * 0.8)
     return max(0.0, min(100.0, score))
 
 
@@ -83,7 +108,9 @@ class JellyfinProvider:
                 response = client.post(
                     f"{self.base_url}/Items/RemoteSearch/{endpoint}",
                     json=payload,
-                    headers={"X-Emby-Token": self.api_key or ""},
+                    headers={
+                        "Authorization": f'MediaBrowser Token="{self.api_key or ""}"',
+                    },
                 )
             if response.status_code >= 400:
                 logger.warning("Jellyfin search failed: %s %s", response.status_code, response.text[:200])

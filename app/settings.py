@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from string import Formatter
+
+from . import deployment
 
 ACTIONS = {"move", "copy", "hardlink"}
 PLACEHOLDERS = {
@@ -20,25 +21,24 @@ PLACEHOLDERS = {
 }
 
 
-def _env(name: str, default: str) -> str:
-    value = os.getenv(name)
-    return value if value not in (None, "") else default
-
-
 def defaults() -> dict[str, str]:
+    data = deployment.load()
+    scan = data["scan"]
+    layout = data["layout"]
+    apply = data["apply"]
     return {
-        "min_size_mb": _env("MIN_SIZE_MB", "100"),
-        "extensions": _env("EXTENSIONS", "mkv,mp4,avi,mov,m4v,webm,ts,m2ts"),
-        "movie_template": _env("MOVIE_TEMPLATE", "{folder}/{folder}"),
-        "tv_template": _env("TV_TEMPLATE", "{folder}/Season {season:02d}/{title} - {episode_tag}"),
-        "action": _env("ACTION", "move"),
-        "delete_source": _env("DELETE_SOURCE", "false"),
-        "cleanup_empty_dirs": _env("CLEANUP_EMPTY_DIRS", "true"),
-        "auto_apply": _env("AUTO_APPLY", "false"),
-        "auto_apply_confidence": _env("AUTO_APPLY_CONFIDENCE", "0.85"),
-        "poll_interval": _env("POLL_INTERVAL", "60"),
-        "stable_seconds": _env("STABLE_SECONDS", "120"),
-        "dry_run": _env("DRY_RUN", "false"),
+        "min_size_mb": str(scan["min_size_mb"]),
+        "extensions": ",".join(scan["extensions"]),
+        "movie_template": layout["movie"],
+        "tv_template": layout["shows"],
+        "action": apply["action"],
+        "delete_source": str(apply["copy"]["delete_source"]).lower(),
+        "cleanup_empty_dirs": str(apply["cleanup_empty_dirs"]).lower(),
+        "auto_apply": str(apply["automation"]["auto_apply"]).lower(),
+        "auto_apply_confidence": str(apply["automation"]["auto_apply_confidence"]),
+        "poll_interval": str(scan["poll_interval"]),
+        "stable_seconds": str(scan["stable_seconds"]),
+        "dry_run": str(apply["dry_run"]).lower(),
     }
 
 

@@ -1,18 +1,26 @@
 services:
-  renamer:
+  torii:
     build: .
-    image: media-renamer:latest
-    container_name: media-renamer
+    image: torii:latest
+    container_name: torii
     restart: unless-stopped
     init: true
     env_file: .env
-    environment:
-      WATCH_DIR: /downloads
-      LIBRARY_DIR: /library
-      STATE_DIR: /data
     ports:
       - "127.0.0.1:8090:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
     volumes:
-      - ${WATCH_HOST:-/mnt/atlas/downloads}:/downloads
-      - ${LIBRARY_HOST:-/mnt/atlas/media}:/library
-      - ./data:/data
+      - ./temp/downloads/movies:/downloads/movies
+      - ./temp/downloads/shows:/downloads/shows
+      - ./temp/library/movies:/library/movies
+      - ./temp/library/shows:/library/shows
+      - .:/data

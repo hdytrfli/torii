@@ -3,24 +3,32 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
+
+from . import deployment
 
 
-def _env(name: str, default: str | None = None) -> str | None:
+def _secret(name: str) -> str | None:
     value = os.getenv(name)
-    return value if value not in (None, "") else default
+    return value if value not in (None, "") else None
 
 
-def _bool(name: str, default: bool) -> bool:
-    value = _env(name)
+def _optional_url(name: str) -> str | None:
+    value = _secret(name)
     if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
+        return None
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError(f"{name} must be an http(s) URL")
+    return value.rstrip("/")
 
 
 @dataclass(frozen=True)
 class Config:
-    watch_dir: Path
-    library_dir: Path
+    movie_watch_dir: Path
+    show_watch_dir: Path
+    movie_library_dir: Path
+    show_library_dir: Path
     state_dir: Path
     host: str
     port: int
@@ -36,23 +44,38 @@ class Config:
 
     @property
     def db_path(self) -> Path:
-        return self.state_dir / "media-renamer.db"
+        return self.state_dir / "torii.db"
+
+    @property
+    def watch_dirs(self) -> tuple[Path, Path]:
+        return self.movie_watch_dir, self.show_watch_dir
+
+    @property
+    def library_dirs(self) -> tuple[Path, Path]:
+        return self.movie_library_dir, self.show_library_dir
 
     @classmethod
-    def from_env(cls) -> Config:
+    def load(cls) -> Config:
+        data = deployment.load()
+        llm_base_url = _optional_url("LLM_BASE_URL")
+        llm_model = _secret("LLM_MODEL")
+        if llm_base_url and not llm_model:
+            raise ValueError("LLM_MODEL is required when LLM_BASE_URL is set")
         return cls(
-            watch_dir=Path(_env("WATCH_DIR", "/downloads") or "/downloads"),
-            library_dir=Path(_env("LIBRARY_DIR", "/library") or "/library"),
-            state_dir=Path(_env("STATE_DIR", "/data") or "/data"),
-            host=_env("HOST", "0.0.0.0") or "0.0.0.0",
-            port=int(_env("PORT", "8000") or "8000"),
-            log_level=(_env("LOG_LEVEL", "INFO") or "INFO").upper(),
-            session_days=max(1, int(_env("SESSION_DAYS", "30") or "30")),
-            jellyfin_url=(_env("JELLYFIN_URL") or "").rstrip("/") or None,
-            jellyfin_api_key=_env("JELLYFIN_API_KEY"),
-            llm_base_url=_env("LLM_BASE_URL"),
-            llm_api_key=_env("LLM_API_KEY"),
-            llm_model=_env("LLM_MODEL"),
-            notify_url=_env("NOTIFY_URL"),
-            post_action_cmd=_env("POST_ACTION_CMD"),
+            movie_watch_dir=Path(data["paths"]["watch"]["movies"]),
+            show_watch_dir=Path(data["paths"]["watch"]["shows"]),
+            movie_library_dir=Path(data["paths"]["library"]["movies"]),
+            show_library_dir=Path(data["paths"]["library"]["shows"]),
+            state_dir=Path(data["paths"]["state"]),
+            host=data["server"]["host"],
+            port=int(data["server"]["port"]),
+            log_level=data["server"]["log_level"],
+            session_days=int(data["session_days"]),
+            jellyfin_url=_optional_url("JELLYFIN_URL"),
+            jellyfin_api_key=_secret("JELLYFIN_API_KEY"),
+            llm_base_url=llm_base_url,
+            llm_api_key=_secret("LLM_API_KEY"),
+            llm_model=llm_model,
+            notify_url=_secret("NOTIFY_URL"),
+            post_action_cmd=_secret("POST_ACTION_CMD"),
         )

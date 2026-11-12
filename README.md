@@ -1,4 +1,4 @@
-# media-renamer
+# torii
 
 Self-hosted service for turning manually curated downloads into a clean Jellyfin
 library.
@@ -23,23 +23,31 @@ See [SPEC.md](./SPEC.md) for the design and the later phases.
 - Stores jobs and settings in SQLite.
 - Exposes the same operations over JSON for a future mobile client.
 
-## Run locally
+## Run
 
 ```bash
-python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r requirements-dev.txt
-
-export WATCH_DIR="C:/Users/ESI/Downloads/Temporary"
-export LIBRARY_DIR="C:/Users/ESI/Downloads/Temporary-library"
-export STATE_DIR="C:/Users/ESI/Downloads/Temporary-state"
-export MIN_SIZE_MB=0
-export STABLE_SECONDS=0
-
-.venv/Scripts/python.exe -m uvicorn app.web:app --host 127.0.0.1 --port 8090
+cp .env.example .env
+# fill in Jellyfin and AI provider details
+docker compose up -d --build
 ```
 
 Open `http://127.0.0.1:8090`. On a new database, the first visit asks you to
 create the initial administrator account.
+
+Behavioral settings live in `config.yaml`. `.env` contains only the Jellyfin
+and AI provider details. Compose mounts `./temp/downloads/movies` and `./temp/downloads/shows`, the
+matching `./temp/library` folders, and the project root at `/data`. The SQLite
+database is `torii.db` in the project root.
+
+Validate both layers before starting:
+
+```bash
+python -m app.main --check-config
+docker compose config --quiet
+```
+
+See [docs/configuration.md](./docs/configuration.md) for the `apply` rules,
+naming layouts, and every YAML section.
 
 The scanner runs in the background. `Scan now` triggers it immediately.
 `python -m app.main --once` runs one scan and exits.
@@ -51,8 +59,8 @@ The scanner runs in the background. `Scan now` triggers it immediately.
 - Every user can change their own password at `/account`.
 - Passwords are hashed with `scrypt`; sessions are random server-side tokens.
 - UI sessions use an HttpOnly, SameSite=Lax cookie plus CSRF tokens on forms.
-- Sessions expire after `SESSION_DAYS` (default 30). Changing a password signs
-  out the user’s other sessions.
+- Sessions expire after `session_days` in `config.yaml` (default 30). Changing a password signs
+  out the userâ€™s other sessions.
 
 The setup page is only available while the database has no users.
 
@@ -61,12 +69,12 @@ The setup page is only available while the database has no users.
 Renaming does not read the video, so empty files are enough:
 
 ```bash
-: > "Temporary/Spirited.Away.2001.1080p.BluRay.x264-GROUP.mkv"
-: > "Temporary/Show.Name.S02E05.1080p.WEB.H264-GROUP.mkv"
+: > "temp/downloads/movies/Spirited.Away.2001.1080p.BluRay.x264-GROUP.mkv"
+: > "temp/downloads/shows/Show.Name.S02E05.1080p.WEB.H264-GROUP.mkv"
 ```
 
-Set `MIN_SIZE_MB=0` while testing with empty files. In production, keep a real
-threshold so samples and junk are ignored.
+Set `scan.min_size_mb: 0` in `config.yaml` while testing with empty files. In
+production, keep a real threshold so samples and junk are ignored.
 
 ## Settings
 
@@ -87,16 +95,35 @@ Layout placeholders:
 {quality} {source} {codec} {group} {ext}
 ```
 
-Movie layouts are relative to `LIBRARY_DIR/movies`, show layouts to
-`LIBRARY_DIR/shows`.
+Movie layouts are relative to `paths.library.movies`, show layouts to
+`paths.library.shows`.
+
+The current layouts are:
+
+```text
+Movie: {title} ({year})/{title}
+Show:  {title} ({year})/Season {season}/{title} - Season {season} Episode {episode}
+```
+
+Both parent folders use `Title (Year)`. `{title}` is the name without the year,
+and `{season}` / `{episode}` are unpadded. The extension is appended
+automatically. If a year is missing, the empty `()` is stripped.
+
+Jellyfin generally expects `S01E01`-style episode tags. This layout may not be
+detected as an episode by Jellyfin; use `{episode_tag}` if that becomes a
+problem.
 
 ## Docker
 
 ```bash
 cp .env.example .env
-# edit WATCH_HOST and LIBRARY_HOST
+# edit the Jellyfin and AI provider details
 docker compose up -d --build
 ```
+
+The default mounts are `./temp/downloads/movies`, `./temp/downloads/shows`,
+`./temp/library/movies`, and `./temp/library/shows`. For the atlas deployment,
+edit the volume sources in `compose.yaml`.
 
 Open the UI and create the first administrator. The compose file publishes on
 `127.0.0.1:8090`. Put it behind NetBird, Cloudflare Tunnel with Access, or a
@@ -123,13 +150,19 @@ Local `.nfo` files are read first: a sidecar named after the video, or
 year is enough to force the exact item. Sidecar `.nfo` files move with the
 video; folder-level files are read in place.
 
-Optional LLM fallback uses any OpenAI-compatible endpoint:
+Optional LLM fallback uses any OpenAI-compatible endpoint. The current setup uses
+OpenCode inference with DeepSeek:
 
 ```
-LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-LLM_API_KEY=...
-LLM_MODEL=gemini-2.5-flash
+LLM_BASE_URL=https://opencode.ai/inference/openai/v1
+LLM_API_KEY=oc_sk_...
+LLM_MODEL=deepseek-v4.1-flash
 ```
+
+The OpenCode key needs **Models: Request** permission. A key with only
+**Models: Read** can list models but returns `permission_error` when called.
+Free-tier chat models require the OpenCode client itself; direct calls need a
+paid model or OpenCode Go.
 
 ## API
 
