@@ -32,7 +32,7 @@ export function MediaChartCard({
         className="mt-6 h-32"
         data={data}
         index="date"
-        colors={["gray", "lightGray"]}
+        colors={["blue", "gray"]}
         startEndOnly
         valueFormatter={(number: number) => Intl.NumberFormat("us").format(number)}
         showYAxis={false}

@@ -51,6 +51,7 @@
 
   html {
     background: var(--color-canvas);
+    scrollbar-gutter: stable;
   }
 
   body {

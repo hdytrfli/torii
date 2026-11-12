@@ -52,15 +52,15 @@ export function GroupedJobTable({
   return (
     <div className="mt-8 space-y-3">
       <div className="relative overflow-hidden overflow-x-auto">
-        <Table>
+        <Table className="table-fixed">
           <TableHead>
             <TableRow>
-              {!readOnly ? <TableHeaderCell className="w-8" /> : null}
-              <TableHeaderCell>Group / File</TableHeaderCell>
-              <TableHeaderCell>Type</TableHeaderCell>
-              <TableHeaderCell>Source</TableHeaderCell>
-              <TableHeaderCell>Match</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
+              {!readOnly ? <TableHeaderCell className="w-10" /> : null}
+              <TableHeaderCell className="w-[46%]">Group / File</TableHeaderCell>
+              <TableHeaderCell className="w-24">Type</TableHeaderCell>
+              <TableHeaderCell className="w-36">Source</TableHeaderCell>
+              <TableHeaderCell className="w-20">Match</TableHeaderCell>
+              <TableHeaderCell className="w-32">Status</TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>

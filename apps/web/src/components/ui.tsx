@@ -21,12 +21,12 @@ export function AssessedBadge({
 }) {
   const dot =
     level === "high"
-      ? "bg-gray-900"
+      ? "bg-red-500"
       : level === "medium"
-        ? "bg-gray-500"
+        ? "bg-emerald-500"
         : level === "low"
-          ? "bg-gray-300"
-          : "bg-gray-200"
+          ? "bg-yellow-500"
+          : "bg-gray-400"
   return (
     <Badge variant="neutral" className="gap-1.5 font-normal capitalize text-gray-700">
       <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />
@@ -37,19 +37,17 @@ export function AssessedBadge({
 
 export function StatusBadge({ status }: { status: string }) {
   const level =
-    status === "needs_review"
-      ? "high"
-      : status === "ready"
-        ? "medium"
-        : status === "failed" || status === "rejected"
-          ? "high"
-          : "low"
+    status === "ready"
+      ? "medium"
+      : status === "needs_review"
+        ? "low"
+        : "none"
   return <AssessedBadge label={statusLabel(status)} level={level} />
 }
 
 export function SourceBadge({ source }: { source: Source }) {
   const level =
-    source === "jellyfin" ? "high" : source === "nfo" ? "medium" : source === "llm" ? "low" : "medium"
+    source === "jellyfin" ? "medium" : source === "nfo" ? "high" : source === "llm" ? "low" : "none"
   return <AssessedBadge label={sourceLabel(source)} level={level} />
 }
 
