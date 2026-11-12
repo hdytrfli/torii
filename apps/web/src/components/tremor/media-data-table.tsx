@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { createParser, parseAsString, useQueryStates } from "nuqs"
 import {
   flexRender,
   getCoreRowModel,
@@ -13,6 +14,7 @@ import {
   type RowSelectionState,
   type SortingState,
   type Table as TanStackTable,
+  type Updater,
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronUp, MoreHorizontal, Plus, SlidersHorizontal } from "lucide-react"
 import type { Job } from "../../lib/types"
@@ -258,17 +260,19 @@ function ViewOptions({ table }: { table: TanStackTable<Job> }) {
   )
 }
 
-function Filterbar({ table }: { table: TanStackTable<Job> }) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const isFiltered = table.getState().columnFilters.length > 0
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      table.getColumn("search")?.setFilterValue(searchTerm || undefined)
-    }, 300)
-    return () => window.clearTimeout(timeout)
-  }, [searchTerm, table])
-
+function Filterbar({
+  table,
+  searchTerm,
+  onSearchChange,
+  onClear,
+  isFiltered,
+}: {
+  table: TanStackTable<Job>
+  searchTerm: string
+  onSearchChange: (value: string) => void
+  onClear: () => void
+  isFiltered: boolean
+}) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-x-6">
       <div className="flex w-full flex-col gap-2 sm:w-fit sm:flex-row sm:items-center">
@@ -291,17 +295,11 @@ function Filterbar({ table }: { table: TanStackTable<Job> }) {
           type="search"
           placeholder="Search files..."
           value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          onChange={(event) => onSearchChange(event.target.value)}
           className="w-full sm:max-w-[250px]"
         />
         {isFiltered ? (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              table.resetColumnFilters()
-              setSearchTerm("")
-            }}
-          >
+          <Button variant="secondary" onClick={onClear}>
             Clear filters
           </Button>
         ) : null}
@@ -362,6 +360,27 @@ function JobRowActions({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void 
   )
 }
 
+function parseAsCommaList(defaultValue: string[] = []) {
+  return createParser<string[]>({
+    parse(value) {
+      if (!value) return null
+      if (value === "all") return []
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    },
+    serialize(value) {
+      return value.length ? value.join(",") : "all"
+    },
+  }).withDefault(defaultValue)
+}
+
+function filterValues(filters: ColumnFiltersState, id: string) {
+  const value = filters.find((filter) => filter.id === id)?.value
+  return Array.isArray(value) ? value.map(String) : []
+}
+
 export function MediaDataTable({
   jobs,
   selected,
@@ -386,12 +405,59 @@ export function MediaDataTable({
   pageSize?: number
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() =>
-    defaultStatus && defaultStatus !== "all"
-      ? [{ id: "status", value: [defaultStatus] }]
-      : [],
-  )
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize })
+
+  const parsers = useMemo(
+    () => ({
+      status: parseAsCommaList(
+        defaultStatus && defaultStatus !== "all" ? [defaultStatus] : [],
+      ),
+      source: parseAsCommaList(),
+      type: parseAsCommaList(),
+      q: parseAsString.withDefault(""),
+    }),
+    [defaultStatus],
+  )
+  const [query, setQuery] = useQueryStates(parsers, {
+    history: "replace",
+    scroll: false,
+  })
+
+  const columnFilters = useMemo<ColumnFiltersState>(() => {
+    const filters: ColumnFiltersState = []
+    if (query.status.length) filters.push({ id: "status", value: query.status })
+    if (query.source.length) filters.push({ id: "source", value: query.source })
+    if (query.type.length) filters.push({ id: "type", value: query.type })
+    return filters
+  }, [query.status, query.source, query.type])
+
+  const searchTerm = query.q
+
+  const updateFilters = (updater: Updater<ColumnFiltersState>) => {
+    const next = typeof updater === "function" ? updater(columnFilters) : updater
+    setPagination((current) => ({ ...current, pageIndex: 0 }))
+    void setQuery({
+      status: filterValues(next, "status"),
+      source: filterValues(next, "source"),
+      type: filterValues(next, "type"),
+    })
+  }
+
+  const updateSearch = (value: string) => {
+    setPagination((current) => ({ ...current, pageIndex: 0 }))
+    void setQuery({ q: value })
+  }
+
+  const clearFilters = () => {
+    setPagination((current) => ({ ...current, pageIndex: 0 }))
+    void setQuery({ status: [], source: [], type: [], q: "" })
+  }
+
+  const isFiltered =
+    query.status.length > 0 ||
+    query.source.length > 0 ||
+    query.type.length > 0 ||
+    query.q !== ""
 
   const rowSelection = useMemo<RowSelectionState>(() => {
     const state: RowSelectionState = {}
@@ -510,13 +576,6 @@ export function MediaDataTable({
         meta: { displayName: "Status" },
       },
       {
-        id: "search",
-        accessorFn: (row) => `${row.title ?? ""} ${row.source_path}`,
-        enableSorting: false,
-        enableHiding: false,
-        meta: { displayName: "Search" },
-      },
-      {
         id: "edit",
         header: "Actions",
         cell: ({ row }) => <JobRowActions job={row.original} onOpen={onOpen} />,
@@ -534,11 +593,9 @@ export function MediaDataTable({
     state: {
       sorting,
       columnFilters,
+      globalFilter: searchTerm,
       rowSelection,
       pagination,
-    },
-    initialState: {
-      columnVisibility: { search: false },
     },
     enableRowSelection: true,
     getRowId: (row) => String(row.id),
@@ -546,8 +603,15 @@ export function MediaDataTable({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: (row, _columnId, value) => {
+      const needle = String(value ?? "").toLowerCase()
+      if (!needle) return true
+      return `${row.original.title ?? ""} ${row.original.source_path}`
+        .toLowerCase()
+        .includes(needle)
+    },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: updateFilters,
     onPaginationChange: setPagination,
     onRowSelectionChange: (updater) => {
       const next = typeof updater === "function" ? updater(rowSelection) : updater
@@ -575,7 +639,13 @@ export function MediaDataTable({
 
   return (
     <div className="space-y-3">
-      <Filterbar table={table} />
+      <Filterbar
+        table={table}
+        searchTerm={searchTerm}
+        onSearchChange={updateSearch}
+        onClear={clearFilters}
+        isFiltered={isFiltered}
+      />
 
       <div className="relative overflow-hidden overflow-x-auto">
         <Table>

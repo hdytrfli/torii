@@ -1,6 +1,7 @@
 import { lazy } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7"
 import { AppShell } from "./components/app-shell"
 import { AppLoading } from "./components/loading"
 import { AuthProvider, useAuth } from "./lib/auth"
@@ -45,7 +46,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <AppRoutes />
+          <NuqsAdapter>
+            <AppRoutes />
+          </NuqsAdapter>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
