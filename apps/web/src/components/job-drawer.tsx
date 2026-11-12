@@ -5,6 +5,14 @@ import { api } from "../lib/api"
 import { pct, sourceLabel } from "../lib/format"
 import { Badge, Button, Field, Input, SourceBadge } from "./ui"
 import { DropdownSelect } from "./tremor/dropdown-select"
+import {
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "./tremor/drawer"
 
 export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => void }) {
   const queryClient = useQueryClient()
@@ -49,10 +57,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
   useEffect(() => {
     if (!job || !title) return
     const timer = window.setTimeout(() => {
-      api
-        .preview(job.id, payload)
-        .then((result) => setTarget(result.target))
-        .catch(() => undefined)
+      api.preview(job.id, payload).then((result) => setTarget(result.target)).catch(() => undefined)
     }, 250)
     return () => window.clearTimeout(timer)
   }, [job, title, payload])
@@ -73,7 +78,6 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     },
     onError: (err: Error) => setError(err.message),
   })
-
   const identify = useMutation({
     mutationFn: () => api.identify(jobId, provider, externalId, mediaType),
     onSuccess: (updated) => {
@@ -83,7 +87,6 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     },
     onError: (err: Error) => setError(err.message),
   })
-
   const undo = useMutation({
     mutationFn: () => api.undo(jobId),
     onSuccess: (result) => {
@@ -93,7 +96,6 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     },
     onError: (err: Error) => setError(err.message),
   })
-
   const askAi = useMutation({
     mutationFn: () => api.askAi(jobId),
     onSuccess: (updated) => {
@@ -103,7 +105,6 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     },
     onError: (err: Error) => setError(err.message),
   })
-
   const reject = useMutation({
     mutationFn: () => api.reject(jobId),
     onSuccess: () => {
@@ -112,7 +113,6 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     },
     onError: (err: Error) => setError(err.message),
   })
-
   const retry = useMutation({
     mutationFn: () => api.retry(jobId),
     onSuccess: () => {
@@ -122,236 +122,221 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     onError: (err: Error) => setError(err.message),
   })
 
+  const editable = job?.status !== "moved"
+  const reviewable = job?.status === "needs_review" || job?.status === "ready"
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button
-        className="absolute inset-0 bg-ink/20 backdrop-blur-[1px]"
-        aria-label="Close drawer"
-        onClick={onClose}
-      />
-      <aside className="relative h-full w-full max-w-xl overflow-y-auto border-l border-line bg-surface shadow-card">
+    <Drawer open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DrawerContent className="sm:max-w-4xl">
         {!job ? (
-          <div className="p-6 text-sm text-ink-muted">Loading job…</div>
+          <DrawerBody className="text-sm text-gray-500">Loading job…</DrawerBody>
         ) : (
           <>
-            <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-surface px-5 py-4">
-              <div className="min-w-0">
-                <div className="truncate text-base font-semibold text-ink">
-                  {job.title || "Untitled"}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
-                  <Badge>{job.media_type ?? "movie"}</Badge>
-                  <SourceBadge source={job.source} />
-                  <span>{pct(job.confidence)} confidence</span>
-                </div>
-                <div className="mt-1 truncate font-mono text-xs text-ink-muted">
+            <DrawerHeader>
+              <DrawerTitle>
+                {job.title || "Untitled"}
+                <span className="mt-1 block truncate font-mono text-xs font-normal text-gray-500">
                   {job.source_path}
-                </div>
+                </span>
+              </DrawerTitle>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+                <Badge>{job.media_type ?? "movie"}</Badge>
+                <SourceBadge source={job.source} />
+                <span>{pct(job.confidence)} confidence</span>
+                <span>{job.status.replaceAll("_", " ")}</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X size={16} />
-              </Button>
-            </header>
+            </DrawerHeader>
 
-            <div className="flex flex-col gap-4 p-5">
-              {job.reason ? (
-                <p className="text-xs text-ink-muted">
-                  Matched with {sourceLabel(job.source)}: {job.reason}
-                </p>
-              ) : null}
-
-              {job.status === "moved" ? (
-                <div className="space-y-1">
-                  <div className="text-xs font-medium text-gray-500">Applied target</div>
-                  <p className="mt-1 break-all font-mono text-xs text-gray-700">{job.target_path ?? "-"}</p>
-                  <p className="mt-2 text-xs text-gray-500">
-                    This job is read-only. Undo restores the source or removes the copy/link.
+            <DrawerBody className="-mx-6 grid min-w-0 gap-8 overflow-y-auto border-t border-gray-200 px-6 md:grid-cols-[minmax(0,1fr)_20rem]">
+              <div className="min-w-0 space-y-5">
+                {job.reason ? (
+                  <p className="text-xs text-gray-500">
+                    Matched with {sourceLabel(job.source)}: {job.reason}
                   </p>
-                </div>
-              ) : null}
+                ) : null}
 
-              {job.status !== "moved" && job.candidates_json && job.candidates_json.length > 0 ? (
-                <section>
-                  <div className="mb-2 text-xs font-medium text-gray-500">
-                    Provider candidates
+                {job.status === "moved" ? (
+                  <div className="space-y-1">
+                    <div className="text-xs font-medium text-gray-500">Applied target</div>
+                    <p className="break-all font-mono text-xs text-gray-700">{job.target_path ?? "-"}</p>
+                    <p className="text-xs text-gray-500">
+                      This job is read-only. Undo restores the source or removes the copy/link.
+                    </p>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    {job.candidates_json.map((candidate, index) => (
-                      <button
-                        key={`${candidate.provider}-${candidate.provider_id}-${index}`}
-                        type="button"
-                        onClick={() => {
-                          setTitle(candidate.title)
-                          setYear(candidate.year == null ? "" : String(candidate.year))
-                          setMediaType(candidate.kind === "tv" ? "tv" : "movie")
-                        }}
-                        className="rounded-control border border-line bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-muted"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-medium text-ink">
-                            {candidate.title} {candidate.year ? `(${candidate.year})` : ""}
-                          </span>
-                          <Badge variant="default">{pct(candidate.score / 100)}</Badge>
-                        </div>
-                        {candidate.overview ? (
-                          <p className="mt-1 line-clamp-2 text-[11px] text-ink-muted">
-                            {candidate.overview}
-                          </p>
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
+                ) : null}
 
-              {job.status !== "moved" ? (
-                <>
-              <section className="space-y-2">
-                <div className="text-xs font-medium text-gray-500">
-                  Identify by provider ID
-                </div>
-                <div className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-2">
-                  <DropdownSelect
-                    value={provider}
-                    onChange={setProvider}
-                    options={[
-                      { value: "tmdb", label: "TMDb" },
-                      { value: "imdb", label: "IMDb" },
-                      { value: "tvdb", label: "TVDB" },
-                    ]}
-                  />
-                  <Input
-                    value={externalId}
-                    onChange={(event) => setExternalId(event.target.value)}
-                    placeholder={provider === "imdb" ? "tt0245429" : "129"}
-                  />
-                  <Button
-                    variant="secondary"
-                    onClick={() => identify.mutate()}
-                    disabled={identify.isPending || !externalId.trim()}
-                  >
-                    Apply
-                  </Button>
-                </div>
-                <p className="mt-2 text-[10.5px] text-ink-muted">
-                  Resolved through Jellyfin, so no extra TMDb/TVDB key is needed.
-                </p>
-              </section>
-
-              <section className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <Field label="Title">
-                    <Input value={title} onChange={(event) => setTitle(event.target.value)} />
-                  </Field>
-                </div>
-                <Field label="Year">
-                  <Input
-                    inputMode="numeric"
-                    value={year}
-                    onChange={(event) => setYear(event.target.value.replace(/\D/g, ""))}
-                  />
-                </Field>
-                <Field label="Type">
-                  <DropdownSelect
-                    value={mediaType}
-                    onChange={(value) => {
-                      setMediaType(value)
-                      if (value === "movie") {
-                        setSeason("")
-                        setEpisode("")
-                      }
-                    }}
-                    options={[
-                      { value: "movie", label: "Movie" },
-                      { value: "tv", label: "Show" },
-                    ]}
-                  />
-                </Field>
-                {mediaType === "tv" ? (
+                {editable ? (
                   <>
-                    <Field label="Season">
-                      <Input
-                        inputMode="numeric"
-                        value={season}
-                        onChange={(event) => setSeason(event.target.value.replace(/\D/g, ""))}
-                      />
-                    </Field>
-                    <Field label="Episode">
-                      <Input
-                        inputMode="numeric"
-                        value={episode}
-                        onChange={(event) => setEpisode(event.target.value.replace(/\D/g, ""))}
-                      />
-                    </Field>
+                    <section className="space-y-2">
+                      <div className="text-xs font-medium text-gray-500">Identify by provider ID</div>
+                      <div className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-2">
+                        <DropdownSelect
+                          value={provider}
+                          onChange={setProvider}
+                          options={[
+                            { value: "tmdb", label: "TMDb" },
+                            { value: "imdb", label: "IMDb" },
+                            { value: "tvdb", label: "TVDB" },
+                          ]}
+                        />
+                        <Input
+                          value={externalId}
+                          onChange={(event) => setExternalId(event.target.value)}
+                          placeholder={provider === "imdb" ? "tt0245429" : "129"}
+                        />
+                        <Button
+                          variant="secondary"
+                          onClick={() => identify.mutate()}
+                          disabled={identify.isPending || !externalId.trim()}
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                      <p className="text-[10.5px] text-gray-500">
+                        Resolved through Jellyfin, so no extra TMDb/TVDB key is needed.
+                      </p>
+                    </section>
+
+                    <section className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2">
+                        <Field label="Title">
+                          <Input value={title} onChange={(event) => setTitle(event.target.value)} />
+                        </Field>
+                      </div>
+                      <Field label="Year">
+                        <Input
+                          inputMode="numeric"
+                          value={year}
+                          onChange={(event) => setYear(event.target.value.replace(/\D/g, ""))}
+                        />
+                      </Field>
+                      <Field label="Type">
+                        <DropdownSelect
+                          value={mediaType}
+                          onChange={(value) => {
+                            setMediaType(value)
+                            if (value === "movie") {
+                              setSeason("")
+                              setEpisode("")
+                            }
+                          }}
+                          options={[
+                            { value: "movie", label: "Movie" },
+                            { value: "tv", label: "Show" },
+                          ]}
+                        />
+                      </Field>
+                      {mediaType === "tv" ? (
+                        <>
+                          <Field label="Season">
+                            <Input
+                              inputMode="numeric"
+                              value={season}
+                              onChange={(event) => setSeason(event.target.value.replace(/\D/g, ""))}
+                            />
+                          </Field>
+                          <Field label="Episode">
+                            <Input
+                              inputMode="numeric"
+                              value={episode}
+                              onChange={(event) => setEpisode(event.target.value.replace(/\D/g, ""))}
+                            />
+                          </Field>
+                        </>
+                      ) : null}
+                      <div className="col-span-2">
+                        <Field label="Action">
+                          <DropdownSelect
+                            value={action}
+                            onChange={setAction}
+                            options={[
+                              { value: "move", label: "Move" },
+                              { value: "copy", label: "Copy" },
+                              { value: "hardlink", label: "Hardlink" },
+                            ]}
+                          />
+                        </Field>
+                      </div>
+                    </section>
+
+                    <div>
+                      <div className="mb-1 text-xs font-medium text-gray-500">Target</div>
+                      <div className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-xs text-gray-700">
+                        {target || "-"}
+                      </div>
+                    </div>
                   </>
                 ) : null}
-                <div className="col-span-2">
-                  <Field label="Action">
-                    <DropdownSelect
-                      value={action}
-                      onChange={setAction}
-                      options={[
-                        { value: "move", label: "Move" },
-                        { value: "copy", label: "Copy" },
-                        { value: "hardlink", label: "Hardlink" },
-                      ]}
-                    />
-                  </Field>
-                </div>
-              </section>
 
-              <div>
-                <div className="mb-1 text-xs font-medium text-gray-500">
-                  Target
-                </div>
-                <div className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-xs text-ink">
-                  {target || "—"}
-                </div>
+                {error ? (
+                  <div className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger">
+                    {error}
+                  </div>
+                ) : null}
               </div>
 
-                </>
-              ) : null}
+              <aside className="min-w-0 space-y-4">
+                {job.status !== "moved" && job.candidates_json && job.candidates_json.length > 0 ? (
+                  <section>
+                    <div className="mb-2 text-xs font-medium text-gray-500">Provider candidates</div>
+                    <div className="flex flex-col gap-2">
+                      {job.candidates_json.map((candidate, index) => (
+                        <button
+                          key={`${candidate.provider}-${candidate.provider_id}-${index}`}
+                          type="button"
+                          onClick={() => {
+                            setTitle(candidate.title)
+                            setYear(candidate.year == null ? "" : String(candidate.year))
+                            setMediaType(candidate.kind === "tv" ? "tv" : "movie")
+                          }}
+                          className="rounded-control border border-line bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-muted"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-medium text-gray-900">
+                              {candidate.title} {candidate.year ? `(${candidate.year})` : ""}
+                            </span>
+                            <Badge variant="default">{pct(candidate.score / 100)}</Badge>
+                          </div>
+                          {candidate.overview ? (
+                            <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">{candidate.overview}</p>
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+              </aside>
+            </DrawerBody>
 
-              {error ? (
-                <div className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger">
-                  {error}
-                </div>
-              ) : null}
-
-              <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
-                {job.status === "moved" ? (
-                  <Button variant="secondary" onClick={() => undo.mutate()} disabled={undo.isPending}>
-                    <Undo2 size={14} /> Undo apply
+            <DrawerFooter>
+              {job.status === "moved" ? (
+                <Button variant="secondary" onClick={() => undo.mutate()} disabled={undo.isPending}>
+                  <Undo2 size={14} /> Undo apply
+                </Button>
+              ) : reviewable ? (
+                <>
+                  <Button onClick={() => approve.mutate()} disabled={approve.isPending || !title}>
+                    <Check size={14} /> Approve
                   </Button>
-                ) : job.status === "needs_review" || job.status === "ready" ? (
-                  <>
-                    <Button onClick={() => approve.mutate()} disabled={approve.isPending || !title}>
-                      <Check size={14} /> Approve
-                    </Button>
-                    <Button variant="secondary" onClick={() => askAi.mutate()} disabled={askAi.isPending}>
-                      <Sparkles size={14} /> Ask AI
-                    </Button>
-                    <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
-                      <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
-                    </Button>
-                    <Button variant="danger" onClick={() => reject.mutate()} disabled={reject.isPending}>
-                      <X size={14} /> Reject
-                    </Button>
-                  </>
-                ) : (
+                  <Button variant="secondary" onClick={() => askAi.mutate()} disabled={askAi.isPending}>
+                    <Sparkles size={14} /> Ask AI
+                  </Button>
                   <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
                     <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
                   </Button>
-                )}
-                <span className="ml-auto text-[10.5px] text-gray-500">
-                  {job.status.replaceAll("_", " ")}
-                </span>
-              </div>
-
-            </div>
+                  <Button variant="danger" onClick={() => reject.mutate()} disabled={reject.isPending}>
+                    <X size={14} /> Reject
+                  </Button>
+                </>
+              ) : (
+                <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
+                  <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
+                </Button>
+              )}
+            </DrawerFooter>
           </>
         )}
-      </aside>
-    </div>
+      </DrawerContent>
+    </Drawer>
   )
 }

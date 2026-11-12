@@ -53,7 +53,7 @@ export function GroupedJobTable({
       <div className="relative overflow-hidden overflow-x-auto">
         <Table className="table-fixed">
           <TableHead>
-            <TableRow>
+            <TableRow className="border-y border-gray-200">
               {!readOnly ? <TableHeaderCell className="w-10" /> : null}
               <TableHeaderCell className="w-[46%]">Group / File</TableHeaderCell>
               <TableHeaderCell className="w-24">Type</TableHeaderCell>
