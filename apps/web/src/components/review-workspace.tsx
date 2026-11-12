@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import type { Group } from "../lib/types"
 import { BulkBar } from "./bulk-bar"
-import { GroupedJobTable } from "./tremor/job-table"
+import { MediaDataTable } from "./tremor/media-data-table"
 import { JobDrawer } from "./job-drawer"
 import { EmptyState, Skeleton } from "./ui"
 import { TabNavigation, TabNavigationLink } from "./tremor/tab-navigation"
@@ -24,7 +24,6 @@ export function ReviewWorkspace({
   initialStatus?: string
 }) {
   const [status, setStatus] = useState(initialStatus)
-  const [search, setSearch] = useState("")
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [openJob, setOpenJob] = useState<number | null>(null)
   const queryClient = useQueryClient()
@@ -53,18 +52,7 @@ export function ReviewWorkspace({
     setSelected(new Set())
   }, [status])
 
-  const groups = useMemo(() => {
-    const all = groupsQuery.data ?? []
-    const needle = search.trim().toLowerCase()
-    const filtered = needle
-      ? all.filter(
-          (group) =>
-            group.label.toLowerCase().includes(needle) ||
-            group.jobs.some((job) => (job.title ?? "").toLowerCase().includes(needle)),
-        )
-      : all
-    return compact ? filtered.slice(0, 3) : filtered
-  }, [groupsQuery.data, search, compact])
+  const groups = groupsQuery.data ?? []
 
   const toggle = (id: number) => {
     setSelected((current) => {
@@ -122,14 +110,12 @@ export function ReviewWorkspace({
           }
         />
       ) : (
-        <GroupedJobTable
+        <MediaDataTable
           groups={groups}
           selected={selected}
           onToggle={toggle}
           onToggleGroup={toggleGroup}
           onOpen={(job) => setOpenJob(job.id)}
-          search={search}
-          onSearch={setSearch}
         />
       )}
 
