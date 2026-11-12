@@ -94,7 +94,7 @@ class Scanner:
                 continue
             if path.suffix.lower().lstrip(".") not in settings.extension_set:
                 continue
-            if path.name.endswith((".part", ".tmp")) or path.name.endswith(".!qB"):
+            if path.name.lower().endswith((".part", ".tmp", ".!qb", ".!ut")):
                 continue
             try:
                 if path.stat().st_size < settings.min_size_mb * 1024 * 1024:

@@ -14,6 +14,13 @@ def _candidate_best(candidates: list[providers.Candidate]) -> providers.Candidat
     return candidates[0] if candidates else None
 
 
+def _int(value: Any) -> int | None:
+    try:
+        return int(value) if value is not None and str(value).strip() else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _confidence(parsed: guess.Parsed, best: providers.Candidate | None,
                 candidates: list[providers.Candidate]) -> float:
     confidence = parsed.confidence * 0.8
@@ -46,7 +53,7 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
                 decision_kind = parsed.kind
             refreshed = jellyfin.search(
                 decision_title,
-                int(decision_year) if decision_year else None,
+                _int(decision_year),
                 decision_kind,
             )
             if refreshed:
@@ -73,11 +80,8 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
     season = parsed.season
     episode = parsed.episode
     if decision:
-        try:
-            season = int(decision["season"]) if decision.get("season") is not None else season
-            episode = int(decision["episode"]) if decision.get("episode") is not None else episode
-        except (TypeError, ValueError):
-            pass
+        season = _int(decision.get("season")) or season
+        episode = _int(decision.get("episode")) or episode
 
     target = None
     target_error = None

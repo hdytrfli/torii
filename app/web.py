@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from . import apply, naming, pipeline
+from . import apply, pipeline
 from . import settings as settings_mod
 from .config import Config
 from .db import DB

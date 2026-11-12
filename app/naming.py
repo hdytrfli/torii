@@ -39,8 +39,14 @@ def build_values(
     season_value = int(season) if season is not None else 1
     episode_value = int(episode) if episode is not None else 1
     episode_tag = f"S{season_value:02d}E{episode_value:02d}"
-    if parsed and parsed.episode_end and parsed.episode_end > episode_value:
-        episode_tag += f"-E{parsed.episode_end:02d}"
+    episode_end = getattr(parsed, "episode_end", None) if parsed else None
+    if episode_end and episode_end > episode_value:
+        episode_tag += f"-E{episode_end:02d}"
+
+    quality = getattr(parsed, "quality", None) if parsed else None
+    source = getattr(parsed, "source", None) if parsed else None
+    codec = getattr(parsed, "codec", None) if parsed else None
+    group = getattr(parsed, "group", None) if parsed else None
 
     return {
         "title": title,
@@ -49,10 +55,10 @@ def build_values(
         "season": season_value,
         "episode": episode_value,
         "episode_tag": episode_tag,
-        "quality": sanitize(parsed.quality, "") if parsed and parsed.quality else "",
-        "source": sanitize(parsed.source, "") if parsed and parsed.source else "",
-        "codec": sanitize(parsed.codec, "") if parsed and parsed.codec else "",
-        "group": sanitize(parsed.group, "") if parsed and parsed.group else "",
+        "quality": sanitize(quality, "") if quality else "",
+        "source": sanitize(source, "") if source else "",
+        "codec": sanitize(codec, "") if codec else "",
+        "group": sanitize(group, "") if group else "",
         "ext": ext.lower().lstrip("."),
     }
 
@@ -65,7 +71,8 @@ def render(base: Path, template: str, values: dict[str, Any]) -> Path:
 
     safe_parts = [sanitize(part) for part in parts]
     target = base.joinpath(*safe_parts)
-    target = target.with_name(f"{target.name}.{values['ext']}")
+    if "{ext}" not in template:
+        target = target.with_name(f"{target.name}.{values['ext']}")
 
     base_resolved = base.resolve()
     target_resolved = target.resolve(strict=False)
