@@ -16,12 +16,11 @@ import {
   type Table as TanStackTable,
   type Updater,
 } from "@tanstack/react-table"
-import { ChevronDown, ChevronUp, MoreHorizontal, Plus, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, ChevronUp, Plus, SlidersHorizontal } from "lucide-react"
 import type { Job } from "../../lib/types"
 import { cn, episodeLabel } from "../../lib/format"
 import { BulkBar } from "../bulk-bar"
 import { Button, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "./popover"
 import {
   Table,
@@ -338,28 +337,6 @@ function MatchIndicator({ value }: { value: number }) {
   )
 }
 
-function JobRowActions({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="group aspect-square p-1.5 hover:border hover:border-gray-300 data-[state=open]:border-gray-300 data-[state=open]:bg-gray-50"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <MoreHorizontal
-            className="size-4 shrink-0 text-gray-500 group-hover:text-gray-700 group-data-[state=open]:text-gray-700"
-            aria-hidden="true"
-          />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-40">
-        <DropdownMenuItem onClick={() => onOpen?.(job)}>Open</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 function parseAsCommaList(defaultValue: string[] = []) {
   return createParser<string[]>({
     parse(value) {
@@ -523,7 +500,9 @@ export function MediaDataTable({
         id: "type",
         accessorFn: (row) => row.media_type ?? "movie",
         header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
-        cell: ({ row }) => <span>{mediaTypeLabel(row.original.media_type)}</span>,
+        cell: ({ row }) => (
+          <span className="text-xs">{mediaTypeLabel(row.original.media_type)}</span>
+        ),
         filterFn: arrayFilter,
         enableSorting: true,
         meta: { displayName: "Type" },
@@ -538,10 +517,10 @@ export function MediaDataTable({
           const year = row.original.year
           const episode = episodeLabel(row.original)
           if (!year && !episode) {
-            return <span className="text-gray-400">—</span>
+            return <span className="text-xs text-gray-400">—</span>
           }
           return (
-            <span className="tabular-nums text-gray-600">
+            <span className="text-xs tabular-nums text-gray-600">
               {[year, episode].filter(Boolean).join(" · ")}
             </span>
           )
@@ -578,7 +557,18 @@ export function MediaDataTable({
       {
         id: "edit",
         header: "Actions",
-        cell: ({ row }) => <JobRowActions job={row.original} onOpen={onOpen} />,
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation()
+              onOpen?.(row.original)
+            }}
+          >
+            Open
+          </Button>
+        ),
         enableSorting: false,
         enableHiding: false,
         meta: { className: "text-right", displayName: "Actions" },

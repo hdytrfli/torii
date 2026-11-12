@@ -1,4 +1,16 @@
-import { ChevronDown, Home, Landmark, ListChecks, LogOut, Settings, Tags, Users } from "lucide-react"
+import {
+  ChevronDown,
+  CircleAlert,
+  CircleCheck,
+  FolderCheck,
+  Home,
+  Landmark,
+  ListChecks,
+  LogOut,
+  Settings,
+  Tags,
+  Users,
+} from "lucide-react"
 import { Suspense, useEffect } from "react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../lib/auth"
@@ -21,7 +33,9 @@ const navigation = [
 ]
 
 const shortcuts = [
-  { name: "Review queue", href: "/queue", icon: ListChecks },
+  { name: "Needs review", href: "/queue?status=needs_review", icon: CircleAlert },
+  { name: "Ready to apply", href: "/queue?status=ready", icon: CircleCheck },
+  { name: "Applied", href: "/queue?status=moved", icon: FolderCheck },
   { name: "Add new user", href: "/settings/users", icon: Users, admin: true },
   { name: "Naming layouts", href: "/naming", icon: Tags },
 ]

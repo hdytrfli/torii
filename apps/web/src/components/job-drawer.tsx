@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Check, RefreshCw, Sparkles, Undo2, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
-import { pct, sourceLabel } from "../lib/format"
-import { Badge, Button, Card, Field, Input, SourceBadge } from "./ui"
+import { pct, providerLabel, sourceLabel } from "../lib/format"
+import { Badge, Button, Card, Field, Input, SourceBadge, StatusBadge } from "./ui"
 import { DropdownSelect } from "./tremor/dropdown-select"
 import {
   Drawer,
@@ -133,21 +133,23 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
         ) : (
           <>
             <DrawerHeader>
-              <DrawerTitle>
-                {job.title || "Untitled"}
-                <span className="mt-1 block truncate font-mono text-xs font-normal text-gray-500">
-                  {job.source_path}
-                </span>
-              </DrawerTitle>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
-                <Badge>{job.media_type ?? "movie"}</Badge>
-                <SourceBadge source={job.source} />
-                <span>{pct(job.confidence)} confidence</span>
-                <span>{job.status.replaceAll("_", " ")}</span>
-              </div>
+              <DrawerTitle>{job.title || "Untitled"}</DrawerTitle>
             </DrawerHeader>
 
-            <DrawerBody className="-mx-6 grid min-w-0 gap-8 overflow-y-auto border-t border-gray-200 px-6 md:grid-cols-[minmax(0,1fr)_20rem]">
+            <DrawerBody className="-mx-6 overflow-y-auto border-t border-gray-200 px-6">
+              <div className="mb-6 space-y-2 border-b border-gray-200 pb-4">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                  <Badge>{job.media_type === "tv" ? "Shows" : "Movie"}</Badge>
+                  <SourceBadge source={job.source} />
+                  <StatusBadge status={job.status} />
+                  <span>{pct(job.confidence)} confidence</span>
+                </div>
+                <p className="break-all font-mono text-[11px] text-gray-500">
+                  {job.source_path}
+                </p>
+              </div>
+
+              <div className="grid min-w-0 gap-8 md:grid-cols-[minmax(0,1fr)_20rem]">
               <div className="min-w-0 space-y-5">
                 {job.reason ? (
                   <p className="text-xs text-gray-500">
@@ -299,8 +301,8 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                             ) : null}
                           </div>
                           <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-2">
-                            <span className="text-[10px] uppercase text-gray-500">
-                              {candidate.provider}
+                            <span className="text-[11px] text-gray-500">
+                              {providerLabel(candidate.provider)}
                             </span>
                             <Button
                               variant="ghost"
@@ -320,6 +322,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                   </section>
                 ) : null}
               </aside>
+              </div>
             </DrawerBody>
 
             <DrawerFooter>

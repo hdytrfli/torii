@@ -18,6 +18,23 @@ export function sourceLabel(source: Source) {
   return source ? SOURCE_LABELS[source] ?? source : "Unknown"
 }
 
+export const PROVIDER_LABELS: Record<string, string> = {
+  jellyfin: "Jellyfin",
+  tmdb: "TMDb",
+  imdb: "IMDb",
+  tvdb: "TVDB",
+  ai: "AI",
+  llm: "AI",
+  guessit: "Filename",
+  nfo: "NFO",
+  manual: "Manual",
+}
+
+export function providerLabel(provider: string | null | undefined) {
+  if (!provider) return "Unknown"
+  return PROVIDER_LABELS[provider.toLowerCase()] ?? provider
+}
+
 export function sourceTone(source: Source) {
   switch (source) {
     case "jellyfin":
