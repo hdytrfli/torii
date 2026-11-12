@@ -16,12 +16,21 @@ import {
   type Table as TanStackTable,
   type Updater,
 } from "@tanstack/react-table"
-import { ChevronDown, ChevronUp, Plus, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, ChevronUp, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
 import type { Job } from "../../lib/types"
 import { basename, cn, episodeLabel, statusLabel } from "../../lib/format"
 import { BulkBar } from "../bulk-bar"
 import { Button, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
 import { HoverPopover } from "./hover-popover"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "./popover"
 import {
   Table,
@@ -379,6 +388,7 @@ export function MediaDataTable({
   onApprove,
   onReject,
   onUndo,
+  onDeleteJob,
   busy = false,
   defaultStatus = "needs_review",
   pageSize = 20,
@@ -390,12 +400,30 @@ export function MediaDataTable({
   onApprove?: (ids: number[]) => void
   onReject?: (ids: number[]) => void
   onUndo?: (ids: number[]) => void
+  onDeleteJob?: (job: Job) => Promise<void>
   busy?: boolean
   defaultStatus?: string
   pageSize?: number
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize })
+  const [deleteCandidate, setDeleteCandidate] = useState<Job | null>(null)
+  const [deletePending, setDeletePending] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const confirmDelete = async () => {
+    if (!deleteCandidate || !onDeleteJob) return
+    setDeletePending(true)
+    setDeleteError(null)
+    try {
+      await onDeleteJob(deleteCandidate)
+      setDeleteCandidate(null)
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Could not delete job.")
+    } finally {
+      setDeletePending(false)
+    }
+  }
 
   const parsers = useMemo(
     () => ({
@@ -502,6 +530,13 @@ export function MediaDataTable({
               className="truncate text-left text-gray-900"
             >
               {job.title ?? job.source_path}
+              {job.error ? (
+                <span
+                  title={job.error}
+                  className="ml-1.5 inline-block size-1.5 rounded-full bg-red-500 align-middle"
+                  aria-label={job.error}
+                />
+              ) : null}
             </button>
           )
         },
@@ -571,16 +606,32 @@ export function MediaDataTable({
         id: "edit",
         header: "Actions",
         cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation()
-              onOpen?.(row.original)
-            }}
-          >
-            Open
-          </Button>
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation()
+                onOpen?.(row.original)
+              }}
+            >
+              Open
+            </Button>
+            {onDeleteJob ? (
+              <Button
+                variant="ghost"
+                className="size-8 p-0 text-gray-500 hover:text-red-700"
+                aria-label={`Delete ${row.original.title ?? "job"}`}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setDeleteError(null)
+                  setDeleteCandidate(row.original)
+                }}
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </Button>
+            ) : null}
+          </div>
         ),
         enableSorting: false,
         enableHiding: false,
@@ -763,6 +814,55 @@ export function MediaDataTable({
         }}
       />
 
+      <Dialog
+        open={deleteCandidate !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletePending) {
+            setDeleteCandidate(null)
+            setDeleteError(null)
+          }
+        }}
+      >
+        <DialogContent className="max-w-md p-0">
+          <DialogHeader className="border-b border-gray-200 px-5 py-4">
+            <DialogTitle className="text-base">
+              {deleteCandidate?.status === "moved" ? "Remove job" : "Delete job"}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {deleteCandidate?.status === "moved"
+                ? "This removes the job from history. The library file is kept."
+                : "This deletes the downloaded source file and removes the job."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 px-5 py-4">
+            <p className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-[11px] text-gray-700">
+              {deleteCandidate?.status === "moved"
+                ? deleteCandidate?.target_path || "No target path"
+                : deleteCandidate?.source_path}
+            </p>
+            {deleteError ? <p className="text-xs text-red-700">{deleteError}</p> : null}
+          </div>
+          <DialogFooter className="border-t border-gray-200 bg-gray-50 px-5 py-3">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary" disabled={deletePending}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => void confirmDelete()}
+              disabled={deletePending}
+            >
+              {deletePending
+                ? "Deleting…"
+                : deleteCandidate?.status === "moved"
+                  ? "Remove job"
+                  : "Delete source"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

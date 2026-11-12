@@ -83,6 +83,7 @@ class Scanner:
                 if key not in seen:
                     self._pending.pop(key, None)
 
+            self._reconcile_jobs()
             if settings.auto_apply:
                 self._auto_apply_existing(settings)
 
@@ -143,7 +144,11 @@ class Scanner:
                 existing["source_size"] == stat.st_size
                 and existing["source_mtime"] == stat.st_mtime
             )
-            if unchanged and existing["status"] in {
+            recovering = (
+                existing["status"] == "failed"
+                and existing.get("error") == "Source file is missing."
+            )
+            if unchanged and not recovering and existing["status"] in {
                 "moved", "rejected", "needs_review", "ready", "failed"
             }:
                 return False
@@ -160,14 +165,96 @@ class Scanner:
         if not job:
             return False
 
+        duplicate = None
+        if job.get("target_path"):
+            duplicate = self.db.get_job_by_target(
+                job["target_path"], exclude_id=int(job["id"])
+            )
+        if duplicate:
+            self.db.update_job(
+                job["id"],
+                status="needs_review",
+                error=f"Duplicate target with {Path(duplicate['source_path']).name}",
+                auto_apply_eligible=0,
+            )
+            job = self.db.get_job(int(job["id"])) or job
+
         if settings.auto_apply and job.get("status") == "ready":
             self._apply_auto(settings, job, path)
 
         return True
 
+    def _reconcile_jobs(self) -> None:
+        jobs = self.db.list_jobs(limit=1000)
+        targets: dict[str, dict] = {}
+        duplicate_ids: set[int] = set()
+        for job in sorted(jobs, key=lambda item: item["id"]):
+            if job.get("status") in {"rejected", "failed"}:
+                continue
+            target_path = job.get("target_path")
+            if not target_path:
+                continue
+            primary = targets.get(target_path)
+            if primary is None:
+                targets[target_path] = job
+                continue
+            duplicate_error = f"Duplicate target with {Path(primary['source_path']).name}"
+            if job.get("status") == "needs_review" and job.get("error") == duplicate_error:
+                duplicate_ids.add(int(job["id"]))
+                continue
+            self.db.update_job(
+                job["id"],
+                status="needs_review",
+                error=duplicate_error,
+                auto_apply_eligible=0,
+            )
+            duplicate_ids.add(int(job["id"]))
+
+        for job in jobs:
+            if (
+                str(job.get("error") or "").startswith("Duplicate target with ")
+                and int(job["id"]) not in duplicate_ids
+                and job.get("status") == "needs_review"
+            ):
+                self.db.update_job(
+                    job["id"],
+                    error=None,
+                    auto_apply_eligible=0,
+                )
+
+        for job in jobs:
+            status = job.get("status")
+            if status == "rejected":
+                continue
+            source = Path(job["source_path"])
+            if status == "moved":
+                target = Path(job["target_path"] or "")
+                if job.get("target_path") and not target.exists():
+                    self.db.update_job(
+                        job["id"],
+                        error="Target file is missing.",
+                        auto_apply_eligible=0,
+                    )
+                continue
+            if status not in {"analyzing", "needs_review", "ready", "failed"}:
+                continue
+            if source.exists():
+                continue
+            if status == "failed" and job.get("error") == "Source file is missing.":
+                continue
+            self.db.update_job(
+                job["id"],
+                status="failed",
+                target_path=None,
+                error="Source file is missing.",
+                auto_apply_eligible=0,
+            )
+
     def _auto_apply_existing(self, settings: settings_mod.Settings) -> None:
         for job in self.db.list_jobs(limit=1000):
             if job.get("status") not in {"needs_review", "ready"}:
+                continue
+            if not job.get("auto_apply_eligible", 1):
                 continue
             if job.get("error") or not job.get("title"):
                 continue

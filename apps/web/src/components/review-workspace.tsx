@@ -33,6 +33,13 @@ export function ReviewWorkspace({
       invalidate()
     },
   })
+  const remove = useMutation({
+    mutationFn: (id: number) => api.deleteJob(id),
+    onSuccess: () => {
+      setSelected(new Set())
+      invalidate()
+    },
+  })
 
   useEffect(() => {
     setSelected(new Set())
@@ -65,7 +72,10 @@ export function ReviewWorkspace({
           onApprove={(ids) => bulk.mutate({ ids, action: "approve" })}
           onReject={(ids) => bulk.mutate({ ids, action: "reject" })}
           onUndo={(ids) => bulk.mutate({ ids, action: "undo" })}
-          busy={bulk.isPending}
+          onDeleteJob={async (job) => {
+            await remove.mutateAsync(job.id)
+          }}
+          busy={bulk.isPending || remove.isPending}
           defaultStatus={initialStatus}
         />
       )}

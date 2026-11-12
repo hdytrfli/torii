@@ -211,14 +211,32 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
         return False, "Only applied jobs can be undone."
     target = Path(job.get("target_path") or "")
     source = Path(job["source_path"])
+
+    if target.exists() and not target.is_file():
+        return False, "Target is not a file; refusing to touch it."
+
     if not target.is_file():
+        if source.is_file():
+            stat = source.stat()
+            db.update_job(
+                job["id"],
+                status="needs_review",
+                target_path=None,
+                source_size=stat.st_size,
+                source_mtime=stat.st_mtime,
+                error=None,
+                reason="Undo: target was already missing; source retained.",
+                auto_apply_eligible=0,
+            )
+            return True, "Target was already missing; source retained."
         db.update_job(
             job["id"],
-            status="needs_review",
+            status="failed",
             target_path=None,
-            error="Target file is missing; job returned to review.",
+            error="Source and target files are missing.",
+            auto_apply_eligible=0,
         )
-        return False, "Target file is missing; job returned to review."
+        return False, "Source and target files are missing."
 
     if not any(
         _is_relative(target, root) for root in cfg.library_dirs
@@ -259,8 +277,36 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
         source_mtime=stat.st_mtime,
         error=None,
         reason=f"Undo: {message}",
+        auto_apply_eligible=0,
     )
     return True, message
+
+
+def delete_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, str]:
+    source = Path(job["source_path"])
+    if job.get("status") == "moved":
+        db.delete_job(job["id"])
+        return True, "Job removed; library file kept."
+
+    deleted = False
+    if source.exists():
+        if not source.is_file():
+            return False, "Source is not a file; refusing to delete."
+        if not any(_is_relative(source, root) for root in cfg.watch_dirs):
+            return False, "Source is outside the watch folders; refusing to delete."
+        sidecars = _sidecars(source)
+        try:
+            for sidecar in sidecars:
+                sidecar.unlink(missing_ok=True)
+            source.unlink()
+            deleted = True
+        except OSError as exc:
+            return False, f"Delete failed: {exc}"
+        if settings.cleanup_empty_dirs:
+            _cleanup_empty(source.parent, _watch_root(cfg, source))
+
+    db.delete_job(job["id"])
+    return True, "Source file deleted and job removed." if deleted else "Job removed."
 
 
 def _is_relative(path: Path, root: Path) -> bool:

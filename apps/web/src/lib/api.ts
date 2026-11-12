@@ -51,6 +51,8 @@ export const api = {
     (await http.post<{ ok: boolean; message: string; job: Job }>(`/api/jobs/${id}/undo`)).data,
   reject: async (id: number) =>
     (await http.post<{ ok: boolean }>(`/api/jobs/${id}/reject`)).data,
+  deleteJob: async (id: number) =>
+    (await http.delete<{ ok: boolean; message: string }>(`/api/jobs/${id}`)).data,
   retry: async (id: number) =>
     (await http.post<{ ok: boolean; job: Job }>(`/api/jobs/${id}/retry`)).data,
   askAi: async (id: number) => (await http.post<Job>(`/api/jobs/${id}/ai`)).data,

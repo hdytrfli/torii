@@ -27,6 +27,7 @@ JOB_FIELDS = {
     "llm_json",
     "target_path",
     "error",
+    "auto_apply_eligible",
     "updated_at",
 }
 
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     llm_json TEXT,
     target_path TEXT,
     error TEXT,
+    auto_apply_eligible INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -103,7 +105,9 @@ class DB:
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
+        # Bound host mounts can reject SQLite's WAL sidecar files. The app's
+        # workload is small, so use the portable rollback journal instead.
+        conn.execute("PRAGMA journal_mode=DELETE")
         conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("PRAGMA foreign_keys=ON")
         return conn
@@ -118,6 +122,10 @@ class DB:
                 conn.execute("ALTER TABLE jobs ADD COLUMN group_key TEXT")
             if "group_type" not in columns:
                 conn.execute("ALTER TABLE jobs ADD COLUMN group_type TEXT")
+            if "auto_apply_eligible" not in columns:
+                conn.execute(
+                    "ALTER TABLE jobs ADD COLUMN auto_apply_eligible INTEGER NOT NULL DEFAULT 1"
+                )
 
     # settings ---------------------------------------------------------
 
@@ -252,6 +260,26 @@ class DB:
                 "SELECT * FROM jobs WHERE source_path = ?", (source,)
             ).fetchone()
         return dict(row) if row else None
+
+    def get_job_by_target(
+        self, target: str, exclude_id: int | None = None
+    ) -> dict[str, Any] | None:
+        query = (
+            "SELECT * FROM jobs "
+            "WHERE target_path = ? AND status NOT IN ('rejected', 'failed')"
+        )
+        args: list[Any] = [target]
+        if exclude_id is not None:
+            query += " AND id != ?"
+            args.append(exclude_id)
+        query += " ORDER BY id LIMIT 1"
+        with self._connect() as conn:
+            row = conn.execute(query, args).fetchone()
+        return dict(row) if row else None
+
+    def delete_job(self, job_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
 
     def list_jobs(self, status: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
         query = "SELECT * FROM jobs"

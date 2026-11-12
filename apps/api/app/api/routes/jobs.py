@@ -163,6 +163,7 @@ def identify(request: Request, job_id: int, body: IdentifyBody):
         candidates_json=json.dumps(candidates, ensure_ascii=False),
         target_path=target,
         error=error,
+        auto_apply_eligible=0,
     )
     return deps.db.job_json(deps.db.get_job(job_id) or job)
 
@@ -224,6 +225,7 @@ def ask_ai(request: Request, job_id: int):
         target_path=target,
         error=error,
         llm_json=json.dumps(decision, ensure_ascii=False),
+        auto_apply_eligible=0,
     )
     return deps.db.job_json(deps.db.get_job(job_id) or job)
 
@@ -246,8 +248,30 @@ def reject(request: Request, job_id: int):
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    deps.db.update_job(job_id, status="rejected", error=None)
+    if job.get("status") == "moved":
+        raise HTTPException(status_code=400, detail="Undo applied jobs before rejecting them.")
+    deps.db.update_job(
+        job_id,
+        status="rejected",
+        reason="Rejected.",
+        error=None,
+        auto_apply_eligible=0,
+    )
     return {"ok": True}
+
+
+@router.delete("/jobs/{job_id}")
+def delete(request: Request, job_id: int):
+    deps.current_session(request)
+    job = deps.db.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    ok, message = apply.delete_job(
+        deps.cfg, settings_mod.load(deps.db), deps.db, job
+    )
+    if not ok:
+        raise HTTPException(status_code=400, detail=message)
+    return {"ok": True, "message": message}
 
 
 @router.post("/jobs/{job_id}/retry")
@@ -282,7 +306,22 @@ def bulk(request: Request, body: BulkBody):
             results.append({"id": job_id, "ok": False, "message": "Job not found"})
             continue
         if body.action == "reject":
-            deps.db.update_job(job_id, status="rejected", error=None)
+            if job.get("status") == "moved":
+                results.append(
+                    {
+                        "id": job_id,
+                        "ok": False,
+                        "message": "Undo applied jobs before rejecting them.",
+                    }
+                )
+                continue
+            deps.db.update_job(
+                job_id,
+                status="rejected",
+                reason="Rejected.",
+                error=None,
+                auto_apply_eligible=0,
+            )
             results.append({"id": job_id, "ok": True, "message": "Rejected"})
             continue
         if body.action == "undo":
