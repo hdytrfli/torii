@@ -137,20 +137,33 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
             </DrawerHeader>
 
             <DrawerBody className="-mx-6 overflow-y-auto border-t border-gray-200 px-6">
-              <div className="mb-6 space-y-2 border-b border-gray-200 pb-4">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <Badge>{job.media_type === "tv" ? "Shows" : "Movie"}</Badge>
-                  <SourceBadge source={job.source} />
-                  <StatusBadge status={job.status} />
-                  <span>{pct(job.confidence)} confidence</span>
+              <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-gray-500">
+                <StatusBadge status={job.status} />
+                <span className="text-gray-300">·</span>
+                <span>{job.media_type === "tv" ? "Shows" : "Movie"}</span>
+                <span className="text-gray-300">·</span>
+                <SourceBadge source={job.source} />
+                <span className="text-gray-300">·</span>
+                <span>{pct(job.confidence)} match</span>
+              </div>
+
+              <div className="mb-6 grid divide-y divide-gray-200 overflow-hidden rounded-control border border-line bg-surface-muted text-xs md:grid-cols-2 md:divide-x md:divide-y-0">
+                <div className="min-w-0 p-3">
+                  <div className="mb-1 font-medium text-gray-500">Original path</div>
+                  <p className="break-all font-mono text-[11px] text-gray-700">
+                    {job.source_path}
+                  </p>
                 </div>
-                <p className="break-all font-mono text-[11px] text-gray-500">
-                  {job.source_path}
-                </p>
+                <div className="min-w-0 p-3">
+                  <div className="mb-1 font-medium text-gray-500">Target path</div>
+                  <p className="break-all font-mono text-[11px] text-gray-700">
+                    {target || job.target_path || "—"}
+                  </p>
+                </div>
               </div>
 
               <div className="grid min-w-0 gap-8 md:grid-cols-[minmax(0,1fr)_20rem]">
-              <div className="min-w-0 space-y-5">
+                <div className="min-w-0 space-y-5">
                 {job.reason ? (
                   <p className="text-xs text-gray-500">
                     Matched with {sourceLabel(job.source)}: {job.reason}
@@ -158,13 +171,9 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 ) : null}
 
                 {job.status === "moved" ? (
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-gray-500">Applied target</div>
-                    <p className="break-all font-mono text-xs text-gray-700">{job.target_path ?? "-"}</p>
-                    <p className="text-xs text-gray-500">
-                      This job is read-only. Undo restores the source or removes the copy/link.
-                    </p>
-                  </div>
+                  <p className="text-xs text-gray-500">
+                    This job is read-only. Undo restores the source or removes the copy/link.
+                  </p>
                 ) : null}
 
                 {editable ? (
@@ -261,12 +270,6 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                       </div>
                     </section>
 
-                    <div>
-                      <div className="mb-1 text-xs font-medium text-gray-500">Target</div>
-                      <div className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-xs text-gray-700">
-                        {target || "-"}
-                      </div>
-                    </div>
                   </>
                 ) : null}
 
