@@ -74,7 +74,7 @@ class OperationQueue:
         )
         self.db.update_job(
             int(job["id"]),
-            status="applying",
+            status="ready",
             blocked_reason=None,
             error=None,
             auto_apply_eligible=0,
@@ -111,7 +111,7 @@ class OperationQueue:
 
     def _run(self, operation_id: int) -> None:
         operation = self.db.get_operation(operation_id)
-        if operation is None:
+        if operation is None or operation["status"] != "queued":
             return
         job = self.db.get_job(int(operation["job_id"]))
         if job is None:
@@ -120,6 +120,13 @@ class OperationQueue:
             )
             return
 
+        self.db.update_job(
+            int(job["id"]),
+            status="applying",
+            blocked_reason=None,
+            error=None,
+            auto_apply_eligible=0,
+        )
         self.db.update_operation(
             operation_id,
             status="running",

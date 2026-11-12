@@ -82,6 +82,7 @@ export interface Settings {
   auto_apply_confidence: number
   auto_apply_eligible: number
   auto_apply_blocked: number
+  auto_apply_excluded: number
   auto_apply_below_threshold: number
   poll_interval: number
   stable_seconds: number
@@ -95,7 +96,13 @@ export interface OperationRow {
   kind: string
   source_path: string
   target_path: string
-  status: "queued" | "running" | "committed" | "failed" | "reversed"
+  status:
+    | "queued"
+    | "running"
+    | "committed"
+    | "failed"
+    | "reversed"
+    | "cancelled"
   progress_done: number
   progress_total: number
   message: string | null
@@ -109,6 +116,7 @@ export type SettingsInput = Omit<
   | "tv_preview"
   | "auto_apply_eligible"
   | "auto_apply_blocked"
+  | "auto_apply_excluded"
   | "auto_apply_below_threshold"
 >
 

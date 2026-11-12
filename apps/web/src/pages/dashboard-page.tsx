@@ -75,7 +75,7 @@ export function DashboardPage() {
 
   const statusData = [
     { title: "Needs review", percentage: total ? (review / total) * 100 : 0, current: review, allowed: total },
-    { title: "Ready", percentage: total ? (ready / total) * 100 : 0, current: ready, allowed: total },
+    { title: "Ready to apply", percentage: total ? (ready / total) * 100 : 0, current: ready, allowed: total },
     { title: "Moved / linked", percentage: total ? (moved / total) * 100 : 0, current: moved, allowed: total },
   ]
 

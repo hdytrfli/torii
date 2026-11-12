@@ -297,6 +297,8 @@ def reject(request: Request, job_id: int):
         raise HTTPException(status_code=404, detail="Job not found")
     if job.get("status") == "moved":
         raise HTTPException(status_code=400, detail="Undo applied jobs before rejecting them.")
+    if job.get("status") == "applying":
+        raise HTTPException(status_code=409, detail="Job is currently applying.")
     lifecycle.reject(deps.db, job_id)
     return {"ok": True}
 
@@ -307,6 +309,8 @@ def delete(request: Request, job_id: int):
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if job.get("status") == "applying":
+        raise HTTPException(status_code=409, detail="Job is currently applying.")
     ok, message = apply.delete_job(
         deps.cfg, settings_mod.load(deps.db), deps.db, job
     )
@@ -355,12 +359,16 @@ def bulk(request: Request, body: BulkBody):
             results.append({"id": job_id, "ok": False, "message": "Job not found"})
             continue
         if body.action == "reject":
-            if job.get("status") == "moved":
+            if job.get("status") in {"moved", "applying"}:
                 results.append(
                     {
                         "id": job_id,
                         "ok": False,
-                        "message": "Undo applied jobs before rejecting them.",
+                        "message": (
+                            "Undo applied jobs before rejecting them."
+                            if job.get("status") == "moved"
+                            else "Job is currently applying."
+                        ),
                     }
                 )
                 continue

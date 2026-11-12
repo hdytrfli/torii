@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Astroid, Check, RefreshCw, Undo2, X } from "lucide-react"
+import { Astroid, Check, Loader, RefreshCw, Undo2, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { pct, providerLabel, sourceLabel } from "../lib/format"
@@ -356,6 +356,14 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               {job.status === "moved" ? (
                 <Button variant="secondary" onClick={() => undo.mutate()} disabled={undo.isPending}>
                   <Undo2 size={14} /> Undo apply
+                </Button>
+              ) : job.status === "ready" ? (
+                <Button variant="secondary" disabled>
+                  Queued for apply
+                </Button>
+              ) : job.status === "applying" ? (
+                <Button variant="secondary" disabled>
+                  <Loader size={14} className="animate-spin" /> Applying…
                 </Button>
               ) : reviewable ? (
                 <>

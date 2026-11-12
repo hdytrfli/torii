@@ -442,6 +442,14 @@ class DB:
             rows = conn.execute(query, args).fetchall()
         return [dict(row) for row in rows]
 
+    def cancel_operations_for_job(self, job_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE job_operations SET status = 'cancelled', message = ?, "
+                "updated_at = ? WHERE job_id = ? AND status = 'queued'",
+                ("Cancelled before starting.", now(), job_id),
+            )
+
     def fail_interrupted_operations(self) -> None:
         timestamp = now()
         with self._connect() as conn:

@@ -17,10 +17,7 @@ export function blockedReasonLabel(reason: string | null | undefined) {
 }
 
 export function isReviewable(job: Job) {
-  return (
-    (job.status === "needs_review" || job.status === "ready") &&
-    !job.blocked_reason
-  )
+  return job.status === "needs_review" && !job.blocked_reason
 }
 
 export function canUndo(job: Job) {

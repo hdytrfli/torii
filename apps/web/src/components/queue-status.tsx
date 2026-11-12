@@ -93,7 +93,7 @@ export function QueueStatus() {
             ? `${queued} waiting`
             : running
               ? "In progress"
-              : "Ready"}
+              : "Idle"}
         </span>
       </div>
     </Card>

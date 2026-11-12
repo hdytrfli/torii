@@ -47,18 +47,16 @@ def require_admin(request: Request) -> dict[str, Any]:
 
 def settings_payload() -> dict[str, Any]:
     current = settings_mod.load(db)
-    eligible = blocked = below = 0
+    eligible = blocked = below = excluded = 0
     for job in db.list_jobs(limit=1000):
         if job.get("status") not in {"needs_review", "ready"}:
             continue
         if float(job.get("confidence") or 0) < current.auto_apply_confidence:
             below += 1
-        elif (
-            job.get("blocked_reason")
-            or job.get("error")
-            or not job.get("auto_apply_eligible", 1)
-        ):
+        elif job.get("blocked_reason") or job.get("error"):
             blocked += 1
+        elif not job.get("auto_apply_eligible", 1):
+            excluded += 1
         else:
             eligible += 1
     return {
@@ -72,6 +70,7 @@ def settings_payload() -> dict[str, Any]:
         "auto_apply_confidence": current.auto_apply_confidence,
         "auto_apply_eligible": eligible,
         "auto_apply_blocked": blocked,
+        "auto_apply_excluded": excluded,
         "auto_apply_below_threshold": below,
         "poll_interval": current.poll_interval,
         "stable_seconds": current.stable_seconds,

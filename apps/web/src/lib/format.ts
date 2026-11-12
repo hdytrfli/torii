@@ -51,6 +51,7 @@ export function sourceTone(source: Source) {
 }
 
 export function statusLabel(status: string) {
+  if (status === "ready") return "Ready to apply"
   return status.replaceAll("_", " ")
 }
 

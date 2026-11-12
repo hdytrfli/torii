@@ -16,13 +16,18 @@ import {
 } from "../components/tremor/dialog"
 import { Button, Card, Checkbox, Field, Input, Skeleton, Toggle } from "../components/ui"
 
+type SettingsSection = "scanning" | "apply"
+
 export function SettingsPage() {
   const queryClient = useQueryClient()
   const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: api.settings })
   const [form, setForm] = useState<Settings | null>(null)
   const [extensions, setExtensions] = useState<string[]>([])
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<{
+    section: SettingsSection
+    message?: string
+    error?: string
+  } | null>(null)
 
   useEffect(() => {
     if (!settingsQuery.data) return
@@ -31,7 +36,12 @@ export function SettingsPage() {
   }, [settingsQuery.data])
 
   const save = useMutation({
-    mutationFn: (data: Settings) =>
+    mutationFn: ({
+      data,
+    }: {
+      data: Settings
+      section: SettingsSection
+    }) =>
       api.saveSettings({
         min_size_mb: data.min_size_mb,
         extensions: data.extensions,
@@ -44,22 +54,24 @@ export function SettingsPage() {
         poll_interval: data.poll_interval,
         stable_seconds: data.stable_seconds,
       }),
-    onSuccess: (saved) => {
+    onSuccess: (saved, { section }) => {
       setForm(saved)
       setExtensions(saved.extensions)
-      setMessage(
-        saved.auto_apply
+      setFeedback({
+        section,
+        message: saved.auto_apply
           ? saved.auto_apply_eligible > 0
             ? `Settings saved. Auto-apply queued for ${saved.auto_apply_eligible} eligible job${saved.auto_apply_eligible === 1 ? "" : "s"}.`
-            : `Settings saved. Auto-apply is on, but ${saved.auto_apply_blocked} job${saved.auto_apply_blocked === 1 ? " is" : "s are"} blocked and ${saved.auto_apply_below_threshold} are below the threshold.`
+            : `Settings saved. Auto-apply is on, but no jobs are currently eligible (${saved.auto_apply_blocked} blocked, ${saved.auto_apply_excluded} manually handled, ${saved.auto_apply_below_threshold} below threshold).`
           : "Settings saved.",
-      )
-      setError(null)
+      })
       void queryClient.invalidateQueries({ queryKey: ["settings"] })
     },
-    onError: (err) => {
-      setError(err instanceof ApiError ? err.message : "Could not save settings.")
-      setMessage(null)
+    onError: (err, { section }) => {
+      setFeedback({
+        section,
+        error: err instanceof ApiError ? err.message : "Could not save settings.",
+      })
     },
   })
 
@@ -77,20 +89,23 @@ export function SettingsPage() {
     setForm((current) => (current ? { ...current, [key]: value } : current))
   }
 
-  function submit(event: React.FormEvent) {
+  function submit(event: React.FormEvent, section: SettingsSection) {
     event.preventDefault()
     if (!form) return
     if (extensions.length === 0) {
-      setError("At least one extension is required.")
+      setFeedback({ section, error: "At least one extension is required." })
       return
     }
-    save.mutate({ ...form, extensions })
+    save.mutate({ data: { ...form, extensions }, section })
   }
 
   return (
-    <form onSubmit={submit} className="min-w-0">
+    <div className="min-w-0">
       <div className="space-y-10">
-        <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
+        <form
+          onSubmit={(event) => submit(event, "scanning")}
+          className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3"
+        >
           <div>
             <h2 className="font-semibold text-gray-900">Scanning</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
@@ -111,7 +126,9 @@ export function SettingsPage() {
               value={extensions}
               onChange={(next) => {
                 setExtensions(next)
-                setMessage(null)
+                setFeedback((current) =>
+                  current?.section === "scanning" ? null : current,
+                )
               }}
             />
             <Field label="Poll interval (seconds)">
@@ -130,13 +147,24 @@ export function SettingsPage() {
                 onChange={(event) => update("stable_seconds", Number(event.target.value))}
               />
             </Field>
-            <SaveRow pending={save.isPending} message={message} error={error} />
+            <SaveRow
+              pending={save.isPending && save.variables?.section === "scanning"}
+              message={
+                feedback?.section === "scanning" ? feedback.message ?? null : null
+              }
+              error={
+                feedback?.section === "scanning" ? feedback.error ?? null : null
+              }
+            />
           </div>
-        </section>
+        </form>
 
         <Divider />
 
-        <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
+        <form
+          onSubmit={(event) => submit(event, "apply")}
+          className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3"
+        >
           <div>
             <h2 className="font-semibold text-gray-900">Apply</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
@@ -178,11 +206,19 @@ export function SettingsPage() {
               onChange={(value) => update("auto_apply", value)}
             />
             <AutoApplySummary form={form} />
-            <SaveRow pending={save.isPending} message={message} error={error} />
+            <SaveRow
+              pending={save.isPending && save.variables?.section === "apply"}
+              message={
+                feedback?.section === "apply" ? feedback.message ?? null : null
+              }
+              error={
+                feedback?.section === "apply" ? feedback.error ?? null : null
+              }
+            />
           </div>
-        </section>
+        </form>
       </div>
-    </form>
+    </div>
   )
 }
 
@@ -202,6 +238,14 @@ function AutoApplySummary({ form }: { form: Settings }) {
             {form.auto_apply_blocked}
           </span>{" "}
           blocked
+        </span>
+      ) : null}
+      {form.auto_apply_excluded > 0 ? (
+        <span>
+          <span className="font-medium text-gray-700">
+            {form.auto_apply_excluded}
+          </span>{" "}
+          manually handled
         </span>
       ) : null}
       {form.auto_apply_below_threshold > 0 ? (

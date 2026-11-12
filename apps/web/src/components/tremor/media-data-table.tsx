@@ -47,7 +47,7 @@ type FilterOption = { value: string; label: string }
 
 const STATUS_OPTIONS: FilterOption[] = [
   { value: "needs_review", label: "Needs review" },
-  { value: "ready", label: "Ready" },
+  { value: "ready", label: "Ready to apply" },
   { value: "moved", label: "Moved" },
   { value: "rejected", label: "Rejected" },
   { value: "applying", label: "Applying" },
@@ -619,7 +619,7 @@ export function MediaDataTable({
             >
               Open
             </Button>
-            {onDeleteJob ? (
+            {onDeleteJob && row.original.status !== "applying" ? (
               <Button
                 variant="ghost"
                 className="size-8 p-0 text-gray-500 hover:text-red-700"
