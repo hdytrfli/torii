@@ -491,11 +491,11 @@ export function MediaDataTable({
       },
       {
         id: "edit",
-        header: "Edit",
+        header: "Actions",
         cell: ({ row }) => <JobRowActions job={row.original} onOpen={onOpen} />,
         enableSorting: false,
         enableHiding: false,
-        meta: { className: "text-right", displayName: "Edit" },
+        meta: { className: "text-right", displayName: "Actions" },
       },
     ],
     [onOpen],
