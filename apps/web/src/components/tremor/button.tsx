@@ -1,7 +1,7 @@
 // Tremor Button [v0.2.0]
 // Vendored from tremorlabs/template-overview, light presentation.
 import { Slot } from "@radix-ui/react-slot"
-import { RiLoader2Fill } from "@remixicon/react"
+import { Loader2 } from "lucide-react"
 import { forwardRef, type ComponentPropsWithoutRef } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { cn } from "../../lib/format"
@@ -61,7 +61,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading ? (
           <>
-            <RiLoader2Fill className="mr-2 size-4 shrink-0 animate-spin" aria-hidden="true" />
+            <Loader2 className="mr-2 size-4 shrink-0 animate-spin" aria-hidden="true" />
             {loadingText ?? "Loading..."}
           </>
         ) : (

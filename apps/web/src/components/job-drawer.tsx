@@ -151,7 +151,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
 
               {job.candidates_json && job.candidates_json.length > 0 ? (
                 <section>
-                  <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-muted">
+                  <div className="mb-2 text-xs font-medium text-gray-500">
                     Provider candidates
                   </div>
                   <div className="flex flex-col gap-2">
@@ -184,7 +184,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               ) : null}
 
               <section className="rounded-control border border-line bg-surface-muted/50 p-3">
-                <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-muted">
+                <div className="mb-2 text-xs font-medium text-gray-500">
                   Identify by provider ID
                 </div>
                 <div className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-2">
@@ -280,7 +280,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               </section>
 
               <div>
-                <div className="mb-1 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-muted">
+                <div className="mb-1 text-xs font-medium text-gray-500">
                   Target
                 </div>
                 <div className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-[11px] text-ink">

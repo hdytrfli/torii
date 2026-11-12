@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import { RiArrowDownSLine, RiArrowRightSLine } from "@remixicon/react"
+import { ChevronDown, ChevronRight } from "lucide-react"
 import type { Group, Job } from "../../lib/types"
-import { episodeLabel, pct } from "../../lib/format"
+import { jobMeta, pct } from "../../lib/format"
 import { Checkbox, SourceBadge, StatusBadge } from "../ui"
 import {
   Table,
@@ -71,6 +71,19 @@ export function GroupedJobTable({
               const someSelected = selected ? ids.some((id) => selected.has(id)) : false
               const reviewCount = group.counts.needs_review ?? 0
 
+              if (group.total === 1) {
+                return (
+                  <SingleJobRow
+                    key={group.key}
+                    job={group.jobs[0]}
+                    selected={selected}
+                    onToggle={onToggle}
+                    onOpen={onOpen}
+                    readOnly={readOnly}
+                  />
+                )
+              }
+
               return (
                 <GroupRows
                   key={group.key}
@@ -95,6 +108,46 @@ export function GroupedJobTable({
     </div>
   )
 }
+
+function SingleJobRow({
+  job,
+  selected,
+  onToggle,
+  onOpen,
+  readOnly,
+}: {
+  job: Job
+  selected?: Set<number>
+  onToggle?: (id: number) => void
+  onOpen?: (job: Job) => void
+  readOnly: boolean
+}) {
+  return (
+    <TableRow
+      className="cursor-pointer hover:bg-gray-50"
+      onClick={() => onOpen?.(job)}
+    >
+      {!readOnly ? (
+        <TableCell onClick={(event) => event.stopPropagation()}>
+          <Checkbox
+            checked={selected?.has(job.id) ?? false}
+            onChange={() => onToggle?.(job.id)}
+            aria-label={`Select ${job.title}`}
+          />
+        </TableCell>
+      ) : null}
+      <TableCell className="max-w-[360px] truncate text-gray-900">
+        {job.title}
+        <span className="ml-1.5 text-xs font-normal text-gray-400">{jobMeta(job)}</span>
+      </TableCell>
+      <TableCell className="capitalize">{job.media_type ?? "movie"}</TableCell>
+      <TableCell><SourceBadge source={job.source} /></TableCell>
+      <TableCell>{pct(job.confidence)}</TableCell>
+      <TableCell><StatusBadge status={job.status} /></TableCell>
+    </TableRow>
+  )
+}
+
 
 function GroupRows({
   group,
@@ -139,9 +192,9 @@ function GroupRows({
         <TableCell className="font-medium text-gray-900">
           <button type="button" onClick={onToggleExpanded} className="flex items-center gap-2 text-left">
             {isOpen ? (
-              <RiArrowDownSLine className="size-4 shrink-0 text-gray-500" />
+              <ChevronDown className="size-4 shrink-0 text-gray-500" />
             ) : (
-              <RiArrowRightSLine className="size-4 shrink-0 text-gray-500" />
+              <ChevronRight className="size-4 shrink-0 text-gray-500" />
             )}
             <span>{group.label}</span>
             <span className="text-[10px] font-normal text-gray-400">{group.total}</span>
@@ -173,10 +226,7 @@ function GroupRows({
               ) : null}
               <TableCell className="max-w-[360px] truncate text-gray-900">
                 {job.title}
-                {job.year ? <span className="ml-1 font-normal text-gray-400">({job.year})</span> : null}
-                {episodeLabel(job) ? (
-                  <span className="ml-2 text-[10px] text-gray-400">{episodeLabel(job)}</span>
-                ) : null}
+                <span className="ml-1.5 text-xs font-normal text-gray-400">{jobMeta(job)}</span>
               </TableCell>
               <TableCell className="capitalize">{job.media_type ?? "movie"}</TableCell>
               <TableCell><SourceBadge source={job.source} /></TableCell>

@@ -1,38 +1,44 @@
+import { lazy, Suspense } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AppShell } from "./components/app-shell"
+import { AppLoading, PageLoading } from "./components/loading"
 import { AuthProvider, useAuth } from "./lib/auth"
 import { queryClient } from "./lib/query-client"
-import { DashboardPage } from "./pages/dashboard-page"
 import { LoginPage } from "./pages/login-page"
-import { QueuePage } from "./pages/queue-page"
-import { SettingsPage } from "./pages/settings-page"
-import { UsersPage } from "./pages/users-page"
 
+
+
+const DashboardPage = lazy(() => import("./pages/dashboard-page").then((m) => ({ default: m.DashboardPage })))
+const QueuePage = lazy(() => import("./pages/queue-page").then((m) => ({ default: m.QueuePage })))
+const NamingPage = lazy(() => import("./pages/naming-page").then((m) => ({ default: m.NamingPage })))
+const SettingsLayout = lazy(() => import("./components/settings-layout").then((m) => ({ default: m.SettingsLayout })))
+const SettingsPage = lazy(() => import("./pages/settings-page").then((m) => ({ default: m.SettingsPage })))
+const UsersPage = lazy(() => import("./pages/users-page").then((m) => ({ default: m.UsersPage })))
 
 function AppRoutes() {
   const { user, loading } = useAuth()
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas text-sm text-ink-muted">
-        Loading torii…
-      </div>
-    )
-  }
+  if (loading) return <AppLoading />
 
   if (!user) return <LoginPage />
 
   return (
-    <Routes>
-      <Route element={<AppShell />}>
+    <Suspense fallback={<PageLoading />}>
+      <Routes>
+        <Route element={<AppShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="queue" element={<QueuePage />} />
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="users" element={<UsersPage />} />
+        <Route path="naming" element={<NamingPage />} />
+        <Route path="settings" element={<SettingsLayout />}>
+          <Route index element={<SettingsPage />} />
+          <Route path="users" element={<UsersPage />} />
+        </Route>
+        <Route path="users" element={<Navigate to="/settings/users" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+        </Route>
+      </Routes>
+    </Suspense>
   )
 }
 

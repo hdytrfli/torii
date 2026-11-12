@@ -71,3 +71,11 @@ export function totalCounts(counts: Partial<Record<string, number>>) {
 }
 
 export const cx = cn
+
+export function jobMeta(job: Job) {
+  const parts: string[] = []
+  if (job.year) parts.push(`(${job.year})`)
+  const episode = episodeLabel(job)
+  if (episode) parts.push(episode)
+  return parts.join(" / ")
+}

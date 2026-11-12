@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
 import { Save } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "../lib/api"
 import type { Settings } from "../lib/types"
-import { LayoutBuilder } from "../components/layout-builder"
 import { Divider } from "../components/tremor/divider"
 import { Button, Field, Input, Select, Skeleton, Toggle } from "../components/ui"
 
@@ -80,30 +78,17 @@ export function SettingsPage() {
   }
 
   return (
-    <form onSubmit={submit}>
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Settings</h1>
-        <p className="mt-1 text-sm text-gray-500">Configure scanning, naming, and apply behavior.</p>
-      </div>
+    <form onSubmit={submit} className="min-w-0">
+      <div className="space-y-10">
 
-      <div className="mt-4 flex items-center gap-1 border-b border-gray-200 sm:mt-6">
-        <span className="border-b-2 border-gray-900 px-3 pb-2 text-sm font-medium text-gray-900">
-          General
-        </span>
-        <Link to="/users" className="px-3 pb-2 text-sm font-medium text-gray-500 hover:text-gray-900">
-          Users
-        </Link>
-      </div>
-
-      <div className="mt-10 space-y-10">
-        <section className="grid grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
+        <section className="min-w-0 space-y-4">
           <div>
             <h2 className="font-semibold text-gray-900">Scanning</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
               Control which files are picked up and how quickly.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Minimum file size (MB)" hint="Use 0 for empty test files.">
               <Input
                 type="number"
@@ -136,25 +121,15 @@ export function SettingsPage() {
         </section>
 
         <Divider />
-        <LayoutBuilder
-          movie={form.movie_template}
-          shows={form.tv_template}
-          onChange={({ movie, shows }) =>
-            setForm((current) =>
-              current ? { ...current, movie_template: movie, tv_template: shows } : current,
-            )
-          }
-        />
-        <Divider />
 
-        <section className="grid grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
+        <section className="min-w-0 space-y-4">
           <div>
             <h2 className="font-semibold text-gray-900">Apply</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
               Choose the file action and automation boundary.
             </p>
           </div>
-          <div className="space-y-4 md:col-span-2">
+          <div className="min-w-0 space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Action">
                 <Select

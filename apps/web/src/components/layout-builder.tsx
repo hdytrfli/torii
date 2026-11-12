@@ -62,7 +62,7 @@ export function LayoutBuilder({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
+    <div className="min-w-0 space-y-5">
       <div>
         <h2 className="font-semibold text-gray-900">Naming layouts</h2>
         <p className="mt-1 text-sm leading-6 text-gray-500">
@@ -86,8 +86,8 @@ export function LayoutBuilder({
         </p>
       </div>
 
-      <div className="space-y-6 md:col-span-2">
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="min-w-0 space-y-6">
+        <div className="grid gap-4">
           <Field label="Movie layout">
             <Input
               ref={movieRef}
@@ -108,7 +108,7 @@ export function LayoutBuilder({
           </Field>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3">
           <Preview label="Movie preview" example="Spirited Away (2001)" path={preview.data?.movie} error={preview.error} />
           <Preview label="Show preview" example="Dark (2017) · S01E01" path={preview.data?.shows} error={preview.error} />
         </div>
@@ -130,9 +130,9 @@ function Preview({
 }) {
   const parts = path?.replaceAll("\\", "/").split("/").filter(Boolean) ?? []
   return (
-    <div className="rounded-md border border-gray-200 bg-gray-50/60 p-3">
+    <div className="min-w-0 overflow-hidden rounded-md border border-gray-200 bg-gray-50/60 p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-gray-500">{label}</span>
+        <span className="text-xs font-medium text-gray-500">{label}</span>
         <Badge variant="neutral">{example}</Badge>
       </div>
       {error ? (
@@ -141,9 +141,9 @@ function Preview({
         <div className="mt-2 space-y-1 font-mono text-[11px] leading-5">
           {parts.length ? (
             parts.map((part, index) => (
-              <div key={`${part}-${index}`} className="flex items-center gap-1.5 text-gray-600">
+              <div key={`${part}-${index}`} className="flex min-w-0 items-center gap-1.5 text-gray-600">
                 <span className="text-gray-300">{index === 0 ? "/" : "└"}</span>
-                <span className={index === parts.length - 1 ? "text-gray-900" : ""}>{part}</span>
+                <span className={`break-all ${index === parts.length - 1 ? "text-gray-900" : ""}`}>{part}</span>
               </div>
             ))
           ) : (

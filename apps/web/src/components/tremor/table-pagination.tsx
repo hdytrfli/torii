@@ -1,9 +1,4 @@
-import {
-  RiArrowLeftDoubleLine,
-  RiArrowLeftSLine,
-  RiArrowRightDoubleLine,
-  RiArrowRightSLine,
-} from "@remixicon/react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Button } from "./button"
 
 export function TablePagination({
@@ -23,10 +18,10 @@ export function TablePagination({
   const last = Math.min(total, (page + 1) * pageSize)
 
   const buttons = [
-    { icon: RiArrowLeftDoubleLine, onClick: () => onPage(0), disabled: page === 0, label: "First page", mobile: "hidden sm:flex" },
-    { icon: RiArrowLeftSLine, onClick: () => onPage(Math.max(0, page - 1)), disabled: page === 0, label: "Previous page", mobile: "flex" },
-    { icon: RiArrowRightSLine, onClick: () => onPage(Math.min(pages - 1, page + 1)), disabled: page >= pages - 1, label: "Next page", mobile: "flex" },
-    { icon: RiArrowRightDoubleLine, onClick: () => onPage(pages - 1), disabled: page >= pages - 1, label: "Last page", mobile: "hidden sm:flex" },
+    { icon: ChevronsLeft, onClick: () => onPage(0), disabled: page === 0, label: "First page", mobile: "hidden sm:flex" },
+    { icon: ChevronLeft, onClick: () => onPage(Math.max(0, page - 1)), disabled: page === 0, label: "Previous page", mobile: "flex" },
+    { icon: ChevronRight, onClick: () => onPage(Math.min(pages - 1, page + 1)), disabled: page >= pages - 1, label: "Next page", mobile: "flex" },
+    { icon: ChevronsRight, onClick: () => onPage(pages - 1), disabled: page >= pages - 1, label: "Last page", mobile: "hidden sm:flex" },
   ]
 
   return (

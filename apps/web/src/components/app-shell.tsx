@@ -1,11 +1,4 @@
-import {
-  RiHome2Line,
-  RiListCheck,
-  RiSettings5Line,
-  RiTeamLine,
-  RiLogoutBoxRLine,
-  RiArrowDownSLine,
-} from "@remixicon/react"
+import { ChevronDown, Home, ListChecks, LogOut, Settings, Tags, Users } from "lucide-react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { useAuth } from "../lib/auth"
 import { cn } from "../lib/format"
@@ -19,16 +12,16 @@ import {
 } from "./tremor/dropdown"
 
 const navigation = [
-  { name: "Overview", href: "/", icon: RiHome2Line, end: true },
-  { name: "Review queue", href: "/queue", icon: RiListCheck },
-  { name: "Settings", href: "/settings", icon: RiSettings5Line },
-  { name: "Users", href: "/users", icon: RiTeamLine, admin: true },
+  { name: "Overview", href: "/", icon: Home, end: true },
+  { name: "Review queue", href: "/queue", icon: ListChecks },
+  { name: "Naming", href: "/naming", icon: Tags },
+  { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 const shortcuts = [
-  { name: "Review queue", href: "/queue", icon: RiListCheck },
-  { name: "Add new user", href: "/users", icon: RiTeamLine, admin: true },
-  { name: "Naming layouts", href: "/settings", icon: RiSettings5Line },
+  { name: "Review queue", href: "/queue", icon: ListChecks },
+  { name: "Add new user", href: "/settings/users", icon: Users, admin: true },
+  { name: "Naming layouts", href: "/naming", icon: Tags },
 ]
 
 export function AppShell() {
@@ -50,21 +43,19 @@ export function AppShell() {
               <span className="block text-sm font-semibold text-gray-900">torii</span>
               <span className="block text-xs text-gray-500">media workspace</span>
             </span>
-            <RiArrowDownSLine className="ml-auto size-4 text-gray-400" />
+            <ChevronDown className="ml-auto size-4 text-gray-400" />
           </button>
 
           <nav aria-label="core navigation links" className="flex flex-1 flex-col space-y-10">
             <ul role="list" className="space-y-0.5">
-              {navigation
-                .filter((item) => !item.admin || user?.is_admin)
-                .map((item) => (
+              {navigation.map((item) => (
                   <li key={item.name}>
                     <NavLink
                       to={item.href}
                       end={item.end}
                       className={({ isActive }) =>
                         cn(
-                          isActive ? "text-indigo-600" : "text-gray-700 hover:text-gray-900",
+                          isActive ? "text-gray-900" : "text-gray-700 hover:text-gray-900",
                           "flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition hover:bg-gray-100",
                         )
                       }
@@ -95,7 +86,7 @@ export function AppShell() {
             </div>
           </nav>
 
-          <div className="mt-auto border-t border-gray-200 pt-4">
+          <div className="mt-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-100">
@@ -110,7 +101,7 @@ export function AppShell() {
                       {user?.is_admin ? "Administrator" : "Reviewer"}
                     </span>
                   </span>
-                  <RiArrowDownSLine className="size-4 text-gray-400" />
+                  <ChevronDown className="size-4 text-gray-400" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
@@ -122,7 +113,7 @@ export function AppShell() {
                 ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => void logout()}>
-                  <RiLogoutBoxRLine className="mr-2 size-4" /> Sign out
+                  <LogOut className="mr-2 size-4" /> Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -144,7 +135,7 @@ export function AppShell() {
               to={item.href}
               end={item.end}
               className={({ isActive }) =>
-                cn("rounded-md px-2 py-1 text-xs font-medium", isActive ? "text-indigo-600" : "text-gray-600")
+                cn("rounded-md px-2 py-1 text-xs font-medium", isActive ? "text-gray-900" : "text-gray-600")
               }
             >
               {item.name}

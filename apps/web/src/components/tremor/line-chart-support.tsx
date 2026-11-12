@@ -2,7 +2,7 @@
 "use client"
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import React from "react"
 import {
   CartesianGrid,

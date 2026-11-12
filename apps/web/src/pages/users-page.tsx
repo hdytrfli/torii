@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { RiAddLine, RiMore2Fill } from "@remixicon/react"
+import { MoreHorizontal, Plus } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { useAuth } from "../lib/auth"
@@ -79,7 +79,7 @@ export function UsersPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="mt-4 w-full gap-2 sm:mt-0 sm:w-fit">
-                <RiAddLine className="-ml-1 size-4 shrink-0" aria-hidden="true" />
+                <Plus className="-ml-1 size-4 shrink-0" aria-hidden="true" />
                 Add user
               </Button>
             </DialogTrigger>
@@ -202,7 +202,7 @@ function UserRow({
               variant="ghost"
               className="group size-8 p-0 hover:border hover:border-gray-300 hover:bg-gray-50 data-[state=open]:border-gray-300 data-[state=open]:bg-gray-50"
             >
-              <RiMore2Fill className="size-4 shrink-0 text-gray-500 group-hover:text-gray-700" />
+              <MoreHorizontal className="size-4 shrink-0 text-gray-500 group-hover:text-gray-700" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">

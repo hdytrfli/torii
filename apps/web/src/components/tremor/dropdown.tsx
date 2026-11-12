@@ -4,12 +4,7 @@
 "use client"
 
 import * as DropdownMenuPrimitives from "@radix-ui/react-dropdown-menu"
-import {
-  RiArrowRightSLine,
-  RiCheckboxBlankCircleLine,
-  RiCheckLine,
-  RiRadioButtonFill,
-} from "@remixicon/react"
+import { Check, ChevronRight, Circle, CircleDot } from "lucide-react"
 import * as React from "react"
 
 import { cx } from "../../lib/format"
@@ -52,7 +47,7 @@ const DropdownMenuSubMenuTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <RiArrowRightSLine
+    <ChevronRight
       className="ml-auto size-4 shrink-0 text-gray-500"
       aria-hidden="true"
     />
@@ -216,7 +211,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     >
       <span className="absolute left-2 flex size-4 items-center justify-center">
         <DropdownMenuPrimitives.ItemIndicator>
-          <RiCheckLine
+          <Check
             aria-hidden="true"
             className="size-full shrink-0 text-gray-800 dark:text-gray-200"
           />
@@ -277,18 +272,18 @@ const DropdownMenuRadioItem = React.forwardRef<
     >
       {iconType === "radio" ? (
         <span className="absolute left-2 flex size-4 items-center justify-center">
-          <RiRadioButtonFill
+          <CircleDot
             aria-hidden="true"
             className="size-full shrink-0 text-blue-500 group-data-[state=checked]/DropdownMenuRadioItem:flex group-data-[state=unchecked]/DropdownMenuRadioItem:hidden dark:text-blue-500"
           />
-          <RiCheckboxBlankCircleLine
+          <Circle
             aria-hidden="true"
             className="size-full shrink-0 text-gray-300 group-data-[state=unchecked]/DropdownMenuRadioItem:flex group-data-[state=checked]/DropdownMenuRadioItem:hidden dark:text-gray-700"
           />
         </span>
       ) : iconType === "check" ? (
         <span className="absolute left-2 flex size-4 items-center justify-center">
-          <RiCheckLine
+          <Check
             aria-hidden="true"
             className="size-full shrink-0 text-gray-800 group-data-[state=checked]/DropdownMenuRadioItem:flex group-data-[state=unchecked]/DropdownMenuRadioItem:hidden dark:text-gray-200"
           />

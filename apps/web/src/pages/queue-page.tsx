@@ -4,7 +4,7 @@ export function QueuePage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-muted">
+        <div className="text-xs font-medium text-gray-500">
           Queue
         </div>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight text-ink">

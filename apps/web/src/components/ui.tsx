@@ -56,7 +56,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     <input
       ref={ref}
       className={cn(
-        "h-10 w-full rounded-control border border-line bg-surface px-3 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-ink focus:ring-2 focus:ring-ink/10",
+        "h-10 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-ink focus:ring-2 focus:ring-ink/10",
         className,
       )}
       {...props}
@@ -69,7 +69,7 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
   return (
     <select
       className={cn(
-        "h-10 w-full rounded-control border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/10",
+        "h-10 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/10",
         className,
       )}
       {...props}
@@ -183,7 +183,7 @@ export function StatCard({
 }) {
   return (
     <Card className="p-4">
-      <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-ink-muted">{label}</div>
+      <div className="text-xs font-medium text-gray-500">{label}</div>
       <div
         className={cn(
           "mt-2 text-3xl font-semibold tracking-tight",
