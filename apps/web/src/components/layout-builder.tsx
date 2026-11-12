@@ -1,17 +1,12 @@
-import { useEffect, useRef, useState, type RefObject } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, GripVertical } from "lucide-react"
 import { api } from "../lib/api"
 import { cn } from "../lib/format"
-import { Card, Field, Input } from "./ui"
+import { TOKEN_DRAG_TYPE, TOKEN_GROUPS, tokenLabel } from "../lib/naming-tokens"
+import { Card, Field } from "./ui"
+import { InlineTokenEditor, type InlineTokenEditorHandle } from "./inline-token-editor"
 import { Divider } from "./tremor/divider"
-
-const TOKEN_GROUPS = [
-  { label: "Metadata", tokens: ["{title}", "{year}", "{folder}"] },
-  { label: "Episode", tokens: ["{season}", "{episode}", "{episode_tag}"] },
-  { label: "Release", tokens: ["{quality}", "{source}", "{codec}", "{group}"] },
-  { label: "File", tokens: ["{ext}"] },
-]
 
 export function LayoutBuilder({
   movie,
@@ -23,8 +18,8 @@ export function LayoutBuilder({
   onChange: (next: { movie: string; shows: string }) => void
 }) {
   const [active, setActive] = useState<"movie" | "shows">("movie")
-  const movieRef = useRef<HTMLInputElement>(null)
-  const showRef = useRef<HTMLInputElement>(null)
+  const movieRef = useRef<InlineTokenEditorHandle>(null)
+  const showRef = useRef<InlineTokenEditorHandle>(null)
   const [debounced, setDebounced] = useState({ movie, shows })
 
   useEffect(() => {
@@ -44,26 +39,13 @@ export function LayoutBuilder({
 
   const chooseActive = (next: "movie" | "shows") => {
     setActive(next)
-    const input = next === "movie" ? movieRef.current : showRef.current
-    if (!input) return
-    input.focus()
-    const end = input.value.length
-    input.setSelectionRange(end, end)
+    const editor = next === "movie" ? movieRef.current : showRef.current
+    editor?.focus()
   }
 
   const insert = (token: string) => {
-    const target: RefObject<HTMLInputElement | null> = active === "movie" ? movieRef : showRef
-    const input = target.current
-    if (!input) return
-    const start = input.selectionStart ?? input.value.length
-    const end = input.selectionEnd ?? start
-    const value = active === "movie" ? movie : shows
-    const next = value.slice(0, start) + token + value.slice(end)
-    onChange(active === "movie" ? { movie: next, shows } : { movie, shows: next })
-    requestAnimationFrame(() => {
-      input.focus()
-      input.setSelectionRange(start + token.length, start + token.length)
-    })
+    const editor = active === "movie" ? movieRef.current : showRef.current
+    editor?.insertToken(token)
   }
 
   return (
@@ -72,7 +54,7 @@ export function LayoutBuilder({
         <div>
           <h2 className="font-semibold text-gray-900">Tokens</h2>
           <p className="mt-1 text-sm leading-6 text-gray-500">
-            Insert reusable values at the cursor. Tokens target the layout you are editing.
+            Drag a token into a layout, or click to insert it at the cursor.
           </p>
         </div>
         <div className="md:col-span-2">
@@ -81,14 +63,14 @@ export function LayoutBuilder({
               <div>
                 <div className="text-sm font-medium text-gray-900">Token palette</div>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  Click a token to add it to the active layout.
+                  Chips become real values in the preview.
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500">Insert into</span>
                 <button
                   type="button"
                   onClick={() => chooseActive("movie")}
+                  title="Insert tokens into the Movie layout"
                   className={cn(
                     "rounded-md px-2 py-1 text-xs font-medium transition",
                     active === "movie"
@@ -101,6 +83,7 @@ export function LayoutBuilder({
                 <button
                   type="button"
                   onClick={() => chooseActive("shows")}
+                  title="Insert tokens into the Show layout"
                   className={cn(
                     "rounded-md px-2 py-1 text-xs font-medium transition",
                     active === "shows"
@@ -122,10 +105,20 @@ export function LayoutBuilder({
                       <button
                         key={token}
                         type="button"
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData(TOKEN_DRAG_TYPE, token)
+                          event.dataTransfer.effectAllowed = "copy"
+                        }}
                         onClick={() => insert(token)}
-                        className="rounded-md border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+                        title={`Insert {${token}}`}
+                        className="group inline-flex cursor-grab items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 active:cursor-grabbing"
                       >
-                        {token}
+                        <GripVertical
+                          className="size-3 text-gray-300 transition group-hover:text-gray-400"
+                          aria-hidden="true"
+                        />
+                        {tokenLabel(token)}
                       </button>
                     ))}
                   </div>
@@ -146,7 +139,7 @@ export function LayoutBuilder({
         <div>
           <h2 className="font-semibold text-gray-900">Movie layout</h2>
           <p className="mt-1 text-sm leading-6 text-gray-500">
-            Folder and filename pattern for movies.
+            Folder and filename pattern for movies. Type separators and drag tokens into place.
           </p>
         </div>
         <div className="min-w-0 space-y-4 md:col-span-2">
@@ -158,16 +151,17 @@ export function LayoutBuilder({
               </span>
             }
           >
-            <Input
+            <InlineTokenEditor
               ref={movieRef}
               value={movie}
               onFocus={() => setActive("movie")}
-              onChange={(event) => onChange({ movie: event.target.value, shows })}
-              inputClassName="font-mono text-xs"
+              onChange={(next) => onChange({ movie: next, shows })}
+              placeholder="Drag tokens here, or type a path…"
+              ariaLabel="Movie path template"
             />
           </Field>
           <Preview
-            label="Movie preview"
+            label="Movie output"
             example="Spirited Away (2001)"
             path={preview.data?.movie}
             error={preview.error}
@@ -182,7 +176,7 @@ export function LayoutBuilder({
         <div>
           <h2 className="font-semibold text-gray-900">Show layout</h2>
           <p className="mt-1 text-sm leading-6 text-gray-500">
-            Folder and filename pattern for episodes.
+            Folder and filename pattern for episodes. Type separators and drag tokens into place.
           </p>
         </div>
         <div className="min-w-0 space-y-4 md:col-span-2">
@@ -194,16 +188,17 @@ export function LayoutBuilder({
               </span>
             }
           >
-            <Input
+            <InlineTokenEditor
               ref={showRef}
               value={shows}
               onFocus={() => setActive("shows")}
-              onChange={(event) => onChange({ movie, shows: event.target.value })}
-              inputClassName="font-mono text-xs"
+              onChange={(next) => onChange({ movie, shows: next })}
+              placeholder="Drag tokens here, or type a path…"
+              ariaLabel="Show path template"
             />
           </Field>
           <Preview
-            label="Show preview"
+            label="Show output"
             example="Dark (2017) - S01E01"
             path={preview.data?.shows}
             error={preview.error}
@@ -233,7 +228,7 @@ function Preview({
     <Card className="min-w-0 overflow-hidden p-0">
       <div className="px-4 pb-4 pt-4">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium text-gray-500">{label}</span>
+          <span className="text-xs font-medium text-gray-500">Generated path</span>
           {pending ? <span className="text-[11px] text-gray-400">Updating…</span> : null}
         </div>
         {error ? (
@@ -259,11 +254,12 @@ function Preview({
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-xs text-gray-400">Waiting for a valid layout…</p>
+          <p className="mt-3 text-xs text-gray-400">Output appears when the layout is valid.</p>
         )}
       </div>
-      <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs text-gray-500">
-        Example: {example}
+      <div className="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-4 py-2">
+        <span className="text-[11px] font-medium text-gray-500">{label}</span>
+        <span className="truncate text-[11px] text-gray-500">Input example: {example}</span>
       </div>
     </Card>
   )
