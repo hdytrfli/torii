@@ -52,3 +52,9 @@ class UserCreateBody(BaseModel):
 
 class UserPasswordBody(BaseModel):
     password: str
+
+
+class IdentifyBody(BaseModel):
+    provider: Literal["tmdb", "imdb", "tvdb"]
+    id: str
+    media_type: Literal["movie", "tv"] | None = None

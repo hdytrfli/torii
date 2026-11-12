@@ -97,6 +97,9 @@ export const api = {
     },
   ) => request<{ target: string }>(`/api/jobs/${id}/preview`, body(data)),
   reject: (id: number) => request<{ ok: boolean }>(`/api/jobs/${id}/reject`, { method: "POST" }),
+  askAi: (id: number) => request<Job>(`/api/jobs/${id}/ai`, { method: "POST" }),
+  identify: (id: number, provider: "tmdb" | "imdb" | "tvdb", externalId: string, mediaType?: "movie" | "tv") =>
+    request<Job>(`/api/jobs/${id}/identify`, body({ provider, id: externalId, media_type: mediaType })),
   retry: (id: number) => request<{ ok: boolean; job: Job }>(`/api/jobs/${id}/retry`, { method: "POST" }),
   bulk: (ids: number[], action: "approve" | "reject") =>
     request<{ results: Array<{ id: number; ok: boolean; message: string; target?: string | null }> }>(

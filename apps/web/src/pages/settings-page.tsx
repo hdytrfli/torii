@@ -225,8 +225,8 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-line bg-canvas/90 px-4 py-3 backdrop-blur lg:left-sidebar lg:px-8">
-        <div className="mx-auto flex max-w-[1400px] items-center gap-3">
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-line bg-canvas/90 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
           <Button type="submit" disabled={save.isPending}>
             <Save size={14} /> {save.isPending ? "Saving…" : "Save settings"}
           </Button>

@@ -142,6 +142,53 @@ class JellyfinProvider:
 
         return sorted(candidates, key=lambda item: item.score, reverse=True)[:6]
 
+    def lookup(self, provider: str, external_id: str, kind: str) -> Candidate | None:
+        if not self.enabled:
+            return None
+        keys = {"tmdb": "Tmdb", "imdb": "Imdb", "tvdb": "Tvdb"}
+        key = keys.get(provider.lower())
+        if key is None or not external_id.strip():
+            return None
+
+        endpoint = "Series" if kind == "tv" else "Movie"
+        payload = {
+            "SearchInfo": {"ProviderIds": {key: external_id.strip()}},
+            "IncludeDisabledProviders": False,
+        }
+        try:
+            with httpx.Client(timeout=20.0) as client:
+                response = client.post(
+                    f"{self.base_url}/Items/RemoteSearch/{endpoint}",
+                    json=payload,
+                    headers={
+                        "Authorization": f'MediaBrowser Token="{self.api_key or ""}"',
+                    },
+                )
+            if response.status_code >= 400:
+                logger.warning("Jellyfin ID lookup failed: %s %s", response.status_code, response.text[:200])
+                return None
+            data = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.warning("Jellyfin ID lookup error: %s", exc)
+            return None
+
+        if not isinstance(data, list) or not data:
+            return None
+        item = data[0]
+        ids = item.get("ProviderIds") or {}
+        provider_id = ids.get(key) or external_id.strip()
+        return Candidate(
+            provider="jellyfin",
+            provider_id=str(provider_id),
+            title=item.get("Name") or "",
+            year=item.get("ProductionYear"),
+            overview=item.get("Overview") or "",
+            image=item.get("ImageUrl"),
+            kind=kind,
+            score=100.0,
+            raw=item,
+        )
+
 
 class LLM:
     def __init__(self, base_url: str | None, api_key: str | None, model: str | None):
@@ -149,6 +196,7 @@ class LLM:
         self.api_key = api_key
         self.model = model
         self.enabled = bool(self.base_url and self.api_key and self.model)
+        self.last_error: str | None = None
 
     def normalize(self, release: str, parsed: Parsed,
                   candidates: list[Candidate]) -> dict[str, Any] | None:
@@ -217,6 +265,7 @@ class LLM:
             "response_format": {"type": "json_object"},
         }
 
+        self.last_error = None
         try:
             with httpx.Client(timeout=45.0) as client:
                 response = client.post(url, json=body, headers=headers)
@@ -225,11 +274,25 @@ class LLM:
                     response = client.post(url, json=body, headers=headers)
                 response.raise_for_status()
                 content = response.json()["choices"][0]["message"]["content"]
+        except httpx.HTTPStatusError as exc:
+            detail = exc.response.text[:300]
+            try:
+                payload = exc.response.json()
+                detail = payload.get("error", {}).get("message") or payload.get("detail") or detail
+            except ValueError:
+                pass
+            self.last_error = detail
+            logger.warning("LLM request failed: %s", detail)
+            return None
         except (httpx.HTTPError, KeyError, ValueError) as exc:
+            self.last_error = str(exc)
             logger.warning("LLM request failed: %s", exc)
             return None
 
-        return _extract_json(content)
+        result = _extract_json(content)
+        if result is None:
+            self.last_error = "AI response was not valid JSON"
+        return result
 
 
 def _extract_json(content: str) -> dict[str, Any] | None:

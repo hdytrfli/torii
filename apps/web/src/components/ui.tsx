@@ -1,13 +1,16 @@
 import {
   forwardRef,
   type ButtonHTMLAttributes,
-  type HTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
 } from "react"
 import { cn, sourceLabel, sourceTone, statusLabel } from "../lib/format"
 import type { Source } from "../lib/types"
+import { Badge } from "./tremor/badge"
+import { Card } from "./tremor/card"
+
+export { Badge, Card }
 
 export function Button({
   className,
@@ -34,32 +37,6 @@ export function Button({
   )
 }
 
-export function Badge({
-  className,
-  tone = "neutral",
-  children,
-}: {
-  className?: string
-  tone?: "neutral" | "success" | "warning" | "danger" | "info"
-  children: ReactNode
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium capitalize",
-        tone === "neutral" && "bg-surface-muted text-ink-muted",
-        tone === "success" && "bg-success-soft text-success",
-        tone === "warning" && "bg-warning-soft text-warning",
-        tone === "danger" && "bg-danger-soft text-danger",
-        tone === "info" && "bg-info-soft text-info",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  )
-}
-
 export function StatusBadge({ status }: { status: string }) {
   const tone =
     status === "ready"
@@ -82,15 +59,6 @@ export function SourceBadge({ source }: { source: Source }) {
     >
       {sourceLabel(source)}
     </span>
-  )
-}
-
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("rounded-card border border-line bg-surface shadow-card", className)}
-      {...props}
-    />
   )
 }
 

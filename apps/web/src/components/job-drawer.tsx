@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Check, RefreshCw, X } from "lucide-react"
+import { Check, RefreshCw, Sparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { pct, sourceLabel } from "../lib/format"
@@ -16,6 +16,8 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
   const [action, setAction] = useState<"move" | "copy" | "hardlink">("move")
   const [target, setTarget] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [provider, setProvider] = useState<"tmdb" | "imdb" | "tvdb">("tmdb")
+  const [externalId, setExternalId] = useState("")
 
   useEffect(() => {
     if (!job) return
@@ -62,6 +64,26 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
       invalidate()
       if (result.ok) onClose()
       else setError(result.message)
+    },
+    onError: (err: Error) => setError(err.message),
+  })
+
+  const identify = useMutation({
+    mutationFn: () => api.identify(jobId, provider, externalId, mediaType),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["job", jobId], updated)
+      invalidate()
+      setError(null)
+    },
+    onError: (err: Error) => setError(err.message),
+  })
+
+  const askAi = useMutation({
+    mutationFn: () => api.askAi(jobId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["job", jobId], updated)
+      invalidate()
+      setError(null)
     },
     onError: (err: Error) => setError(err.message),
   })
@@ -156,6 +178,39 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 </section>
               ) : null}
 
+              <section className="rounded-control border border-line bg-surface-muted/50 p-3">
+                <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-muted">
+                  Identify by provider ID
+                </div>
+                <div className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-2">
+                  <Select
+                    value={provider}
+                    onChange={(event) =>
+                      setProvider(event.target.value as "tmdb" | "imdb" | "tvdb")
+                    }
+                  >
+                    <option value="tmdb">TMDb</option>
+                    <option value="imdb">IMDb</option>
+                    <option value="tvdb">TVDB</option>
+                  </Select>
+                  <Input
+                    value={externalId}
+                    onChange={(event) => setExternalId(event.target.value)}
+                    placeholder={provider === "imdb" ? "tt0245429" : "129"}
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => identify.mutate()}
+                    disabled={identify.isPending || !externalId.trim()}
+                  >
+                    Apply
+                  </Button>
+                </div>
+                <p className="mt-2 text-[10.5px] text-ink-muted">
+                  Resolved through Jellyfin, so no extra TMDb/TVDB key is needed.
+                </p>
+              </section>
+
               <section className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Field label="Title">
@@ -237,6 +292,13 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
                 <Button onClick={() => approve.mutate()} disabled={approve.isPending || !title}>
                   <Check size={14} /> Approve
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => askAi.mutate()}
+                  disabled={askAi.isPending}
+                >
+                  <Sparkles size={14} /> Ask AI
                 </Button>
                 <Button
                   variant="secondary"
