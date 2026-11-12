@@ -1,65 +1,39 @@
 import {
   forwardRef,
-  type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
 } from "react"
-import { cn, sourceLabel, sourceTone, statusLabel } from "../lib/format"
+import { cn, sourceLabel, statusLabel } from "../lib/format"
 import type { Source } from "../lib/types"
 import { Badge } from "./tremor/badge"
+import { Button } from "./tremor/button"
 import { Card } from "./tremor/card"
 
-export { Badge, Card }
-
-export function Button({
-  className,
-  variant = "primary",
-  size = "md",
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger"
-  size?: "sm" | "md"
-}) {
-  return (
-    <button
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-control border font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
-        size === "sm" ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm",
-        variant === "primary" && "border-brand bg-brand text-brand-ink hover:bg-brand/90",
-        variant === "secondary" && "border-line bg-surface text-ink hover:bg-surface-muted",
-        variant === "ghost" && "border-transparent bg-transparent text-ink-muted hover:bg-surface-muted hover:text-ink",
-        variant === "danger" && "border-danger/20 bg-danger-soft text-danger hover:bg-danger/10",
-        className,
-      )}
-      {...props}
-    />
-  )
-}
+export { Badge, Button, Card }
 
 export function StatusBadge({ status }: { status: string }) {
   const tone =
     status === "ready"
       ? "success"
       : status === "failed" || status === "rejected"
-        ? "danger"
+        ? "error"
         : status === "needs_review"
           ? "warning"
           : "neutral"
-  return <Badge tone={tone}>{statusLabel(status)}</Badge>
+  return <Badge variant={tone}>{statusLabel(status)}</Badge>
 }
 
 export function SourceBadge({ source }: { source: Source }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
-        sourceTone(source),
-      )}
-    >
-      {sourceLabel(source)}
-    </span>
-  )
+  const variant =
+    source === "jellyfin"
+      ? "success"
+      : source === "nfo"
+        ? "default"
+        : source === "llm"
+          ? "warning"
+          : "neutral"
+  return <Badge variant={variant}>{sourceLabel(source)}</Badge>
 }
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {

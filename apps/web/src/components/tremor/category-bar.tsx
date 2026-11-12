@@ -1,11 +1,11 @@
 import { cn } from "../../lib/format"
 
 const colors: Record<string, string> = {
-  blue: "bg-blue-500",
+  blue: "bg-gray-900",
   lightGray: "bg-gray-400",
-  red: "bg-red-500",
-  emerald: "bg-emerald-500",
-  yellow: "bg-yellow-500",
+  red: "bg-gray-200",
+  emerald: "bg-gray-600",
+  yellow: "bg-gray-300",
 }
 
 export function CategoryBar({

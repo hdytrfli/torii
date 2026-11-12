@@ -170,7 +170,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                           <span className="text-xs font-medium text-ink">
                             {candidate.title} {candidate.year ? `(${candidate.year})` : ""}
                           </span>
-                          <Badge tone="info">{pct(candidate.score / 100)}</Badge>
+                          <Badge variant="default">{pct(candidate.score / 100)}</Badge>
                         </div>
                         {candidate.overview ? (
                           <p className="mt-1 line-clamp-2 text-[11px] text-ink-muted">

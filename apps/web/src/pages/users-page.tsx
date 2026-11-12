@@ -137,7 +137,7 @@ function UserRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-sm font-medium text-ink">
           {account.username}
-          {account.is_admin ? <Badge tone="info">admin</Badge> : null}
+          {account.is_admin ? <Badge variant="default">admin</Badge> : null}
           {isSelf ? <span className="text-[11px] text-ink-muted">you</span> : null}
         </div>
         <div className="text-[11px] text-ink-muted">

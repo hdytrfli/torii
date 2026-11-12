@@ -3,7 +3,8 @@ import { Search } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import type { Group, Job } from "../lib/types"
-import { BulkBar, GroupList } from "./group-list"
+import { BulkBar } from "./bulk-bar"
+import { GroupedJobTable } from "./tremor/job-table"
 import { JobDrawer } from "./job-drawer"
 import { EmptyState, Input, Skeleton } from "./ui"
 
@@ -144,7 +145,7 @@ export function ReviewWorkspace({
           }
         />
       ) : (
-        <GroupList
+        <GroupedJobTable
           groups={groups}
           selected={selected}
           onToggle={toggle}
@@ -152,6 +153,9 @@ export function ReviewWorkspace({
           onOpen={(job) => setOpenJob(job.id)}
           onApprove={approveOne}
           onReject={rejectOne}
+          onApproveGroup={(group) =>
+            bulk.mutate({ ids: group.jobs.map((job) => job.id), action: "approve" })
+          }
           busy={bulk.isPending}
         />
       )}

@@ -5,24 +5,24 @@ import { api } from "../lib/api"
 import { Button, Card, Skeleton } from "../components/ui"
 import { CategoryBar } from "../components/tremor/category-bar"
 import { Divider } from "../components/tremor/divider"
-import { JobTable } from "../components/tremor/job-table"
+import { GroupedJobTable } from "../components/tremor/job-table"
 import { ProgressCircle } from "../components/tremor/progress-circle"
 import { Sparkline } from "../components/tremor/sparkline"
 
 export function DashboardPage() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: api.stats })
-  const jobsQuery = useQuery({ queryKey: ["jobs", "all"], queryFn: () => api.jobs("all") })
+  const groupsQuery = useQuery({ queryKey: ["groups", "all"], queryFn: () => api.groups("all") })
   const queryClient = useQueryClient()
   const scan = useMutation({
     mutationFn: api.scan,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["jobs"] })
       void queryClient.invalidateQueries({ queryKey: ["stats"] })
       void queryClient.invalidateQueries({ queryKey: ["groups"] })
     },
   })
 
-  const jobs = jobsQuery.data ?? []
+  const groups = groupsQuery.data ?? []
+  const jobs = groups.flatMap((group) => group.jobs)
   const total = stats.data?.total ?? jobs.length
   const review = stats.data?.needs_review ?? 0
   const ready = stats.data?.ready ?? 0
@@ -78,7 +78,7 @@ export function DashboardPage() {
             <li>
               <span className="text-base font-semibold text-gray-900">{review}</span>
               <div className="flex items-center gap-2">
-                <span className="size-2.5 shrink-0 rounded-sm bg-blue-500" aria-hidden="true" />
+                <span className="size-2.5 shrink-0 rounded-sm bg-gray-900" aria-hidden="true" />
                 <span className="text-sm">Needs review</span>
               </div>
             </li>
@@ -92,7 +92,7 @@ export function DashboardPage() {
             <li>
               <span className="text-base font-semibold text-gray-900">{moved}</span>
               <div className="flex items-center gap-2">
-                <span className="size-2.5 shrink-0 rounded-sm bg-red-500" aria-hidden="true" />
+                <span className="size-2.5 shrink-0 rounded-sm bg-gray-300" aria-hidden="true" />
                 <span className="text-sm">Moved</span>
               </div>
             </li>
@@ -105,14 +105,14 @@ export function DashboardPage() {
             <dd className="space-y-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm bg-blue-500" aria-hidden="true" />
+                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-900" aria-hidden="true" />
                   <span className="text-sm">At or above 85%</span>
                 </div>
                 <span className="mt-1 block text-2xl font-semibold text-gray-900">{confidence}%</span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm bg-red-500" aria-hidden="true" />
+                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-300" aria-hidden="true" />
                   <span className="text-sm text-gray-900">Below threshold</span>
                 </div>
                 <span className="mt-1 block text-2xl font-semibold text-gray-900">
@@ -130,7 +130,7 @@ export function DashboardPage() {
             <dd className="space-y-3 whitespace-nowrap">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm bg-blue-500" aria-hidden="true" />
+                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-900" aria-hidden="true" />
                   <span className="text-sm">Jellyfin</span>
                 </div>
                 <span className="mt-1 block text-2xl font-semibold text-gray-900">
@@ -152,10 +152,10 @@ export function DashboardPage() {
         </Card>
       </dl>
 
-      {jobsQuery.isLoading ? (
+      {groupsQuery.isLoading ? (
         <Skeleton className="mt-8 h-72" />
       ) : (
-        <JobTable jobs={jobs} />
+        <GroupedJobTable groups={groups} readOnly pageSize={6} />
       )}
     </main>
   )

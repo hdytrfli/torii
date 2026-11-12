@@ -13,7 +13,7 @@ export function Sparkline({ values }: { values: number[] }) {
       <polyline
         points={points}
         fill="none"
-        stroke="#3B82F6"
+        stroke="#1B1B1B"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"

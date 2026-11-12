@@ -44,7 +44,7 @@ export function ProgressCircle({
         strokeDashoffset={offset}
         fill="transparent"
         strokeLinecap="round"
-        className="stroke-blue-500 transition-all duration-300 ease-in-out"
+        className="stroke-gray-900 transition-all duration-300 ease-in-out"
       />
     </svg>
   )

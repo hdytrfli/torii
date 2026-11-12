@@ -1,102 +1,117 @@
-import { Clapperboard, LogOut, RefreshCw } from "lucide-react"
-import { NavLink, Outlet, useLocation } from "react-router-dom"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "../lib/api"
+import {
+  RiHome2Line,
+  RiListCheck,
+  RiSettings5Line,
+  RiTeamLine,
+  RiLogoutBoxRLine,
+} from "@remixicon/react"
+import { NavLink, Outlet } from "react-router-dom"
 import { useAuth } from "../lib/auth"
 import { cn } from "../lib/format"
-import { Button } from "./ui"
 
-const tabs = [
-  { to: "/", label: "Overview", end: true },
-  { to: "/queue", label: "Review queue" },
-  { to: "/settings", label: "Settings" },
-  { to: "/users", label: "Users", admin: true },
+const navigation = [
+  { name: "Overview", href: "/", icon: RiHome2Line, end: true },
+  { name: "Review queue", href: "/queue", icon: RiListCheck },
+  { name: "Settings", href: "/settings", icon: RiSettings5Line },
+  { name: "Users", href: "/users", icon: RiTeamLine, admin: true },
 ]
 
 export function AppShell() {
   const { user, logout } = useAuth()
-  const location = useLocation()
-  const queryClient = useQueryClient()
-  const scan = useMutation({
-    mutationFn: api.scan,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["groups"] })
-      void queryClient.invalidateQueries({ queryKey: ["jobs"] })
-      void queryClient.invalidateQueries({ queryKey: ["stats"] })
-    },
-  })
-
-  const current = tabs.find((tab) => tab.to === location.pathname)?.label ?? "Review"
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <header className="sticky top-0 z-30 border-b border-line bg-surface/95 shadow-card backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 pt-3 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-control bg-brand text-brand-ink">
-              <Clapperboard size={16} />
+    <div className="min-h-screen bg-white">
+      <nav className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+        <aside className="flex grow flex-col gap-y-6 overflow-y-auto border-r border-gray-200 bg-white p-4">
+          <div className="flex items-center gap-2.5 px-2 py-1.5">
+            <span className="flex size-9 items-center justify-center rounded-md bg-gray-900 text-sm font-semibold text-white">
+              T
             </span>
             <div>
-              <div className="text-sm font-semibold tracking-tight text-ink">torii</div>
-              <div className="text-[10px] uppercase tracking-[0.16em] text-ink-muted">
-                media gateway
-              </div>
+              <div className="text-sm font-semibold text-gray-900">torii</div>
+              <div className="text-xs text-gray-500">media gateway</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => scan.mutate()}
-              disabled={scan.isPending}
-            >
-              <RefreshCw size={14} className={scan.isPending ? "animate-spin" : ""} />
-              Scan now
-            </Button>
-            <div className="hidden items-center gap-2 border-l border-line pl-3 sm:flex">
-              <div className="text-right">
-                <div className="text-xs font-medium text-ink">{user?.username}</div>
-                <div className="text-[10px] text-ink-muted">
+
+          <nav aria-label="core navigation links" className="flex flex-1 flex-col space-y-10">
+            <ul role="list" className="space-y-0.5">
+              {navigation
+                .filter((item) => !item.admin || user?.is_admin)
+                .map((item) => (
+                  <li key={item.name}>
+                    <NavLink
+                      to={item.href}
+                      end={item.end}
+                      className={({ isActive }) =>
+                        cn(
+                          isActive
+                            ? "text-ink"
+                            : "text-gray-700 hover:text-gray-900",
+                          "flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition hover:bg-gray-100",
+                        )
+                      }
+                    >
+                      <item.icon className="size-4 shrink-0" aria-hidden="true" />
+                      {item.name}
+                    </NavLink>
+                  </li>
+                ))}
+            </ul>
+          </nav>
+
+          <div className="mt-auto border-t border-gray-200 pt-4">
+            <div className="flex items-center gap-2 px-2 py-1.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-xs font-medium uppercase text-gray-700">
+                {user?.username.slice(0, 2)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-gray-900">{user?.username}</div>
+                <div className="text-xs text-gray-500">
                   {user?.is_admin ? "Administrator" : "Reviewer"}
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => void logout()}>
-                <LogOut size={14} />
-              </Button>
+              <button
+                onClick={() => void logout()}
+                className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Sign out"
+              >
+                <RiLogoutBoxRLine className="size-4" />
+              </button>
             </div>
           </div>
-        </div>
+        </aside>
+      </nav>
 
-        <div className="mx-auto mt-4 flex max-w-7xl items-center gap-1 overflow-x-auto px-4 sm:px-6">
-          <nav className="flex min-w-max items-center">
-            {tabs
-              .filter((tab) => !tab.admin || user?.is_admin)
-              .map((tab) => (
-                <NavLink
-                  key={tab.to}
-                  to={tab.to}
-                  end={tab.end}
-                  className={({ isActive }) =>
-                    cn(
-                      "relative flex shrink-0 items-center justify-center border-b-2 px-3 pb-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "border-brand text-ink"
-                        : "border-transparent text-ink-muted hover:border-line hover:text-ink",
-                    )
-                  }
-                >
-                  {tab.label}
-                </NavLink>
-              ))}
-          </nav>
-          <div className="ml-auto hidden pb-2 text-[11px] text-ink-muted sm:block">
-            {current}
-          </div>
+      <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm lg:hidden">
+        <div className="flex items-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-md bg-gray-900 text-xs font-semibold text-white">
+            T
+          </span>
+          <span className="text-sm font-semibold text-gray-900">torii</span>
         </div>
-      </header>
+        <nav className="flex items-center gap-2">
+          {navigation.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.href}
+              end={item.end}
+              className={({ isActive }) =>
+                cn("rounded-md px-2 py-1 text-xs font-medium", isActive ? "text-ink" : "text-gray-600")
+              }
+            >
+              {item.name}
+            </NavLink>
+          ))}
+          <button onClick={() => void logout()} className="p-1.5 text-gray-500" aria-label="Sign out">
+            <RiLogoutBoxRLine className="size-4" />
+          </button>
+        </nav>
+      </div>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
-        <Outlet />
+      <main className="lg:pl-72">
+        <div className="p-4 sm:px-6 sm:pb-10 sm:pt-10 lg:px-10 lg:pt-7">
+          <Outlet />
+        </div>
       </main>
     </div>
   )
