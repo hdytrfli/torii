@@ -70,7 +70,7 @@ export function NamingPage() {
         description="Compose movie and episode patterns with live previews. Tokens insert at the cursor in the active layout."
       />
 
-      <div className="mt-10">
+      <div className="mt-12">
         <LayoutBuilder
           movie={movie}
           shows={shows}
@@ -82,7 +82,7 @@ export function NamingPage() {
         />
       </div>
 
-      <div className="mt-8 flex items-center justify-end gap-3 border-t border-gray-200 pt-5">
+      <div className="mt-10 flex items-center justify-end gap-3">
         {message ? <span className="text-xs text-gray-500">{message}</span> : null}
         {error ? <span className="text-xs text-red-700">{error}</span> : null}
         <Button onClick={() => save.mutate()} disabled={save.isPending}>

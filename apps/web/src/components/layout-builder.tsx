@@ -140,7 +140,7 @@ export function LayoutBuilder({
         </div>
       </section>
 
-      <Divider className="my-0" />
+      <Divider />
 
       <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
         <div>
@@ -176,7 +176,7 @@ export function LayoutBuilder({
         </div>
       </section>
 
-      <Divider className="my-0" />
+      <Divider />
 
       <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
         <div>
