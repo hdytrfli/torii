@@ -2,6 +2,7 @@
 name = "torii-api"
 version = "0.1.0"
 description = "Torii media review API"
+license = "GPL-3.0-only"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1",

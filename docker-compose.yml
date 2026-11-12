@@ -10,7 +10,7 @@ services:
       DEFAULT_USERNAME: test
       DEFAULT_PASSWORD: example
     ports:
-      - "127.0.0.1:8090:8000"
+      - "8090:8000"
     healthcheck:
       test: ["CMD", "python", "app/healthcheck.py"]
       interval: 30s

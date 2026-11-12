@@ -4,14 +4,14 @@ There are three places to look:
 
 - `.env`: Jellyfin and AI provider details only. Gitignored.
 - `config.yaml`: application behavior. Committed and validated.
-- `compose.yaml`: host mount paths and container wiring.
+- `docker-compose.yml`: host mount paths and container wiring.
 
 The SQLite database is `torii.db` in the project root.
 
 ## `.env`
 
 ```dotenv
-JELLYFIN_URL=https://jellyfin.nichi.my.id
+JELLYFIN_URL=https://jellyfin.example.com
 JELLYFIN_API_KEY=...
 
 LLM_BASE_URL=https://opencode.ai/inference/openai/v1
@@ -31,7 +31,7 @@ filename/guessit, Jellyfin, local NFO, AI fallback, or manual edit.
 
 ### `paths`
 
-Container paths. The host side is configured by `compose.yaml`.
+Container paths. The host side is configured by `docker-compose.yml`.
 
 ```yaml
 paths:
@@ -51,7 +51,7 @@ The default Compose mounts are:
 | `/media` | `./temp` |
 | `/data` | `.` |
 
-The last mount is why `torii.db` appears in the project root.
+The last mount is why `torii.db` appears in the project root. The default Compose file publishes `8090:8000`.
 
 ### `server`
 
@@ -72,7 +72,7 @@ user's other sessions.
 ```yaml
 scan:
   min_size_mb: 0
-  extensions: [mkv, mp4]
+  extensions: [mkv, mp4, avi, mov, m4v, webm, ts, m2ts]
   poll_interval: 5
   stable_seconds: 0
 ```
@@ -155,6 +155,7 @@ The block is grouped by when each option applies.
 
 - `automation.auto_apply`: when false, every job waits for human approval. When
   true, jobs at or above the confidence threshold are applied without review.
+  Existing review jobs that meet the threshold are picked up on the next scan.
 - `automation.auto_apply_confidence`: number from `0` to `1`. Only used when
   `auto_apply` is true. Higher means fewer automatic moves.
 
@@ -162,6 +163,8 @@ The block is grouped by when each option applies.
 
 - `dry_run`: when true, calculate and report the target without modifying
   files.
+
+`copy.delete_source` and `dry_run` are config-only options in the current UI.
 
 The service never overwrites an existing target. A conflict returns the job to
 review with an error. Matching subtitle and sidecar `.nfo` files follow the
