@@ -148,8 +148,8 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               </div>
 
               <div className="mb-6 grid gap-3 sm:grid-cols-2">
-                <Card className="min-w-0 overflow-hidden p-0">
-                  <div className="px-4 pb-4 pt-4">
+                <Card className="flex min-w-0 flex-col overflow-hidden p-0">
+                  <div className="flex-1 px-4 pb-4 pt-4">
                     <p className="break-all font-mono text-[11px] leading-5 text-gray-700">
                       {job.source_path}
                     </p>
@@ -158,8 +158,8 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                     Original path
                   </div>
                 </Card>
-                <Card className="min-w-0 overflow-hidden p-0">
-                  <div className="px-4 pb-4 pt-4">
+                <Card className="flex min-w-0 flex-col overflow-hidden p-0">
+                  <div className="flex-1 px-4 pb-4 pt-4">
                     <p className="break-all font-mono text-[11px] leading-5 text-gray-700">
                       {target || job.target_path || "—"}
                     </p>
