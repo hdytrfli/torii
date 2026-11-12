@@ -43,9 +43,11 @@ async def lifespan(_: FastAPI):
         directory.mkdir(parents=True, exist_ok=True)
     deps.db.purge_expired_sessions()
     deps.ensure_default_admin()
+    deps.operations.start()
     deps.scanner.start()
     yield
     deps.scanner.stop()
+    deps.operations.stop()
 
 
 app = FastAPI(title="torii", version="0.1.0", lifespan=lifespan)

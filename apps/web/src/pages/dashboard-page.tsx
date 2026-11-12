@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { RefreshCw } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -15,6 +15,13 @@ export function DashboardPage() {
   const groupsQuery = useQuery({ queryKey: ["groups", "all"], queryFn: () => api.groups("all") })
   const queryClient = useQueryClient()
   const [sourceFilter, setSourceFilter] = useState("all")
+  const [scanAnimating, setScanAnimating] = useState(false)
+  const scanTimer = useRef<number | null>(null)
+  useEffect(() => {
+    return () => {
+      if (scanTimer.current !== null) window.clearTimeout(scanTimer.current)
+    }
+  }, [])
   const scan = useMutation({
     mutationFn: api.scan,
     onSuccess: () => {
@@ -22,6 +29,26 @@ export function DashboardPage() {
       void queryClient.invalidateQueries({ queryKey: ["stats"] })
     },
   })
+
+  const runScan = async () => {
+    if (scanAnimating) return
+    setScanAnimating(true)
+    const started = performance.now()
+    try {
+      await scan.mutateAsync()
+    } finally {
+      const remaining = Math.max(0, 650 - (performance.now() - started))
+      if (scanTimer.current !== null) window.clearTimeout(scanTimer.current)
+      if (remaining === 0) {
+        setScanAnimating(false)
+      } else {
+        scanTimer.current = window.setTimeout(() => {
+          scanTimer.current = null
+          setScanAnimating(false)
+        }, remaining)
+      }
+    }
+  }
 
   const groups = groupsQuery.data ?? []
   const jobs = groups.flatMap((group) => group.jobs)
@@ -169,8 +196,13 @@ export function DashboardPage() {
           <h2 id="usage-overview" className="scroll-mt-8 text-lg font-semibold text-gray-900 sm:text-xl">
             Overview
           </h2>
-          <Button variant="secondary" onClick={() => scan.mutate()} disabled={scan.isPending}>
-            <RefreshCw size={15} className={scan.isPending ? "animate-spin" : ""} />
+          <Button
+            variant="secondary"
+            onClick={() => void runScan()}
+            disabled={scanAnimating}
+            className="disabled:bg-white disabled:text-gray-900"
+          >
+            <RefreshCw size={15} className={scanAnimating ? "animate-spin" : ""} />
             Scan now
           </Button>
         </div>

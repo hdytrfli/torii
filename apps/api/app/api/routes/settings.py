@@ -30,6 +30,7 @@ def update_settings(request: Request, body: SettingsBody):
         settings_mod.save(deps.db, form)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    deps.scanner.trigger()
     return deps.settings_payload()
 
 

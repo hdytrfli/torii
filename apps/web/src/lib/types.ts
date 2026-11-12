@@ -1,6 +1,13 @@
 export type Source = "guessit" | "jellyfin" | "nfo" | "llm" | "manual" | null
 export type MediaType = "movie" | "tv"
-export type JobStatus = "needs_review" | "ready" | "moved" | "rejected" | "failed" | "analyzing"
+export type JobStatus =
+  | "needs_review"
+  | "ready"
+  | "moved"
+  | "rejected"
+  | "failed"
+  | "analyzing"
+  | "applying"
 
 export interface Job {
   id: number
@@ -73,11 +80,37 @@ export interface Settings {
   cleanup_empty_dirs: boolean
   auto_apply: boolean
   auto_apply_confidence: number
+  auto_apply_eligible: number
+  auto_apply_blocked: number
+  auto_apply_below_threshold: number
   poll_interval: number
   stable_seconds: number
   movie_preview: string
   tv_preview: string
 }
+
+export interface OperationRow {
+  id: number
+  job_id: number
+  kind: string
+  source_path: string
+  target_path: string
+  status: "queued" | "running" | "committed" | "failed" | "reversed"
+  progress_done: number
+  progress_total: number
+  message: string | null
+  job_title: string | null
+  job_status: string
+}
+
+export type SettingsInput = Omit<
+  Settings,
+  | "movie_preview"
+  | "tv_preview"
+  | "auto_apply_eligible"
+  | "auto_apply_blocked"
+  | "auto_apply_below_threshold"
+>
 
 export interface SessionResponse {
   token: string

@@ -73,6 +73,17 @@ export function pct(value: number | null | undefined) {
   return `${Math.round((value ?? 0) * 100)}%`
 }
 
+export function formatBytes(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return "0 B"
+  const units = ["B", "KB", "MB", "GB", "TB"]
+  const index = Math.min(
+    units.length - 1,
+    Math.floor(Math.log(value) / Math.log(1024)),
+  )
+  const amount = value / 1024 ** index
+  return `${amount >= 10 || index === 0 ? Math.round(amount) : amount.toFixed(1)} ${units[index]}`
+}
+
 export function basename(path: string | null | undefined) {
   if (!path) return ""
   return path.replaceAll("\\", "/").split("/").pop() ?? path

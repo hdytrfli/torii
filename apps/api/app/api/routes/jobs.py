@@ -57,20 +57,61 @@ def approve(request: Request, job_id: int, body: ApproveBody):
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if job.get("status") == "applying":
+        raise HTTPException(status_code=409, detail="Job is already applying.")
+    if job.get("status") not in {"needs_review", "ready"}:
+        raise HTTPException(status_code=400, detail="Job is not reviewable.")
 
-    ok, message, target = apply.apply_job(
+    target = apply.preview_target(
         deps.cfg,
         settings_mod.load(deps.db),
-        deps.db,
         job,
         body.title,
         body.year,
         body.media_type,
         body.season,
         body.episode,
-        body.action,
     )
-    return {"ok": ok, "message": message, "target": str(target) if target else None}
+    if target.startswith("Invalid layout:"):
+        lifecycle.block(deps.db, job_id, "invalid_layout", target)
+        return {"ok": False, "message": target, "target": None}
+
+    deps.db.update_job(
+        job_id,
+        title=body.title,
+        year=body.year,
+        media_type=body.media_type,
+        season=body.season,
+        episode=body.episode,
+    )
+    lifecycle.set_target(deps.db, job_id, target)
+    updated = deps.db.get_job(job_id) or job
+    if updated.get("blocked_reason") == "duplicate_target":
+        return {
+            "ok": False,
+            "message": updated.get("error") or "Duplicate target.",
+            "target": target,
+        }
+
+    try:
+        operation_id = deps.operations.enqueue_apply(
+            updated,
+            body.title,
+            body.year,
+            body.media_type,
+            body.season,
+            body.episode,
+            body.action,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "ok": True,
+        "queued": True,
+        "message": "Queued for apply.",
+        "target": target,
+        "operation_id": operation_id,
+    }
 
 
 @router.post("/jobs/{job_id}/preview")
@@ -330,25 +371,28 @@ def bulk(request: Request, body: BulkBody):
             ok, message = apply.undo_job(deps.cfg, current_settings, deps.db, job)
             results.append({"id": job_id, "ok": ok, "message": message})
             continue
-        ok, message, target = apply.apply_job(
-            deps.cfg,
-            current_settings,
-            deps.db,
-            job,
-            job["title"],
-            job["year"],
-            job["media_type"],
-            job["season"],
-            job["episode"],
-        )
-        results.append(
-            {
-                "id": job_id,
-                "ok": ok,
-                "message": message,
-                "target": str(target) if target else None,
-            }
-        )
+        try:
+            operation_id = deps.operations.enqueue_apply(
+                job,
+                job["title"],
+                job["year"],
+                job["media_type"],
+                job["season"],
+                job["episode"],
+                current_settings.action,
+            )
+            results.append(
+                {
+                    "id": job_id,
+                    "ok": True,
+                    "queued": True,
+                    "message": "Queued for apply.",
+                    "operation_id": operation_id,
+                    "target": job.get("target_path"),
+                }
+            )
+        except ValueError as exc:
+            results.append({"id": job_id, "ok": False, "message": str(exc)})
     return {"results": results}
 
 
@@ -357,3 +401,15 @@ def scan(request: Request):
     deps.current_session(request)
     deps.scanner.trigger()
     return {"ok": True, "message": "Scan requested"}
+
+
+@router.get("/scan/status")
+def scan_status(request: Request):
+    deps.current_session(request)
+    return deps.scanner.status()
+
+
+@router.get("/operations")
+def operations_status(request: Request):
+    deps.current_session(request)
+    return deps.operations.status()

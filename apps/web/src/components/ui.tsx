@@ -38,9 +38,11 @@ export function StatusBadge({ status }: { status: string }) {
       ? "bg-emerald-500"
       : status === "needs_review"
         ? "bg-yellow-500"
-        : status === "failed" || status === "rejected"
-          ? "bg-red-500"
-          : "bg-gray-400"
+        : status === "applying"
+          ? "bg-blue-500"
+          : status === "failed" || status === "rejected"
+            ? "bg-red-500"
+            : "bg-gray-400"
   return (
     <span className="inline-flex items-center gap-1.5 text-xs capitalize text-gray-600">
       <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />

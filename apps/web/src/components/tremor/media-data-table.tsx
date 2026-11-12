@@ -50,6 +50,7 @@ const STATUS_OPTIONS: FilterOption[] = [
   { value: "ready", label: "Ready" },
   { value: "moved", label: "Moved" },
   { value: "rejected", label: "Rejected" },
+  { value: "applying", label: "Applying" },
   { value: "failed", label: "Failed" },
 ]
 
@@ -835,11 +836,16 @@ export function MediaDataTable({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 px-5 py-4">
-            <p className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-[11px] text-gray-700">
-              {deleteCandidate?.status === "moved"
-                ? deleteCandidate?.target_path || "No target path"
-                : deleteCandidate?.source_path}
-            </p>
+            <div>
+              <div className="text-[11px] font-medium text-gray-500">
+                {deleteCandidate?.status === "moved" ? "Library file" : "Source file"}
+              </div>
+              <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+                {deleteCandidate?.status === "moved"
+                  ? deleteCandidate?.target_path || "No target path"
+                  : deleteCandidate?.source_path}
+              </p>
+            </div>
             {deleteError ? <p className="text-xs text-red-700">{deleteError}</p> : null}
           </div>
           <DialogFooter className="border-t border-gray-200 bg-gray-50 px-5 py-3">

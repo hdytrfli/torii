@@ -16,6 +16,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../lib/auth"
 import { cn } from "../lib/format"
 import { RouteSkeleton } from "./loading"
+import { QueueStatus } from "./queue-status"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -109,7 +110,8 @@ export function AppShell() {
             </div>
           </nav>
 
-          <div className="mt-auto">
+          <div className="mt-auto space-y-3">
+            <QueueStatus />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-100">

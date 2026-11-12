@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from pathlib import Path
+from typing import Callable
 
 from ..domain import lifecycle, pipeline
 from ..domain import settings as settings_mod
@@ -16,16 +17,43 @@ SKIP_DIRS = {"@eadir", "#recycle", "sample", "samples"}
 
 
 class Scanner:
-    def __init__(self, cfg, db, jellyfin: JellyfinProvider, llm: LLM):
+    def __init__(
+        self,
+        cfg,
+        db,
+        jellyfin: JellyfinProvider,
+        llm: LLM,
+        enqueue_apply: Callable[[settings_mod.Settings, dict], int] | None = None,
+    ):
         self.cfg = cfg
         self.db = db
         self.jellyfin = jellyfin
         self.llm = llm
+        self.enqueue_apply = enqueue_apply
         self._stop = threading.Event()
         self._wake = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._pending: dict[str, tuple[int, float, float]] = {}
+        self._status_lock = threading.Lock()
+        self._status: dict[str, object] = {
+            "running": False,
+            "stage": "idle",
+            "started_at": None,
+            "finished_at": None,
+            "processed": 0,
+            "total": 0,
+            "current": None,
+            "error": None,
+        }
+
+    def status(self) -> dict[str, object]:
+        with self._status_lock:
+            return dict(self._status)
+
+    def _set_status(self, **updates: object) -> None:
+        with self._status_lock:
+            self._status.update(updates)
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -44,11 +72,29 @@ class Scanner:
 
     def _loop(self) -> None:
         while not self._stop.is_set():
+            self._set_status(
+                running=True,
+                stage="scanning",
+                started_at=time.time(),
+                finished_at=None,
+                processed=0,
+                total=0,
+                current=None,
+                error=None,
+            )
             try:
                 current = settings_mod.load(self.db)
                 self.scan_once(current)
-            except Exception:
+            except Exception as exc:
+                self._set_status(error=str(exc))
                 logger.exception("Scan failed")
+            finally:
+                self._set_status(
+                    running=False,
+                    stage="idle",
+                    finished_at=time.time(),
+                    current=None,
+                )
 
             try:
                 interval = settings_mod.load(self.db).poll_interval
@@ -64,28 +110,39 @@ class Scanner:
         with self._lock:
             processed = 0
             seen: set[str] = set()
-
+            files: list[tuple[Path, str]] = []
             for root, forced_kind in (
                 (self.cfg.movie_watch_dir, "movie"),
                 (self.cfg.show_watch_dir, "tv"),
             ):
                 if not root.exists():
                     continue
-                for path in self._iter_files(settings, root):
-                    key = str(path)
-                    seen.add(key)
-                    if not self._stable(path, settings):
-                        continue
-                    if self._process(path, settings, forced_kind):
-                        processed += 1
+                files.extend(
+                    (path, forced_kind)
+                    for path in self._iter_files(settings, root)
+                )
+            self._set_status(total=len(files), processed=0)
+
+            for path, forced_kind in files:
+                key = str(path)
+                seen.add(key)
+                self._set_status(current=str(path))
+                if not self._stable(path, settings):
+                    continue
+                if self._process(path, settings, forced_kind):
+                    processed += 1
+                self._set_status(processed=processed)
 
             for key in list(self._pending):
                 if key not in seen:
                     self._pending.pop(key, None)
 
+            self._set_status(stage="reconciling", current=None)
             self._reconcile_jobs()
             if settings.auto_apply:
+                self._set_status(stage="applying")
                 self._auto_apply_existing(settings)
+            self._set_status(stage="finished")
 
             return processed
 
@@ -267,11 +324,20 @@ class Scanner:
             source = Path(job["source_path"])
             if not source.exists():
                 continue
+            self._set_status(current=str(source))
             self._apply_auto(settings, job, source)
+        self._set_status(current=None)
 
     def _apply_auto(
         self, settings: settings_mod.Settings, job: dict, source: Path
     ) -> None:
+        if self.enqueue_apply is not None:
+            try:
+                operation_id = self.enqueue_apply(settings, job)
+                logger.info("Queued auto apply %s as operation %s", source, operation_id)
+            except ValueError as exc:
+                logger.warning("Auto apply skipped for %s: %s", source, exc)
+            return
         ok, message, _ = apply.apply_job(
             self.cfg,
             settings,

@@ -2,8 +2,10 @@ import { http } from "./http"
 import type {
   Group,
   Job,
+  OperationRow,
   SessionResponse,
   Settings,
+  SettingsInput,
   Stats,
   User,
 } from "./types"
@@ -26,6 +28,19 @@ export const api = {
     (await http.get<Group[]>("/api/groups", { params: { status, limit: 2000 } })).data,
   job: async (id: number) => (await http.get<Job>(`/api/jobs/${id}`)).data,
   scan: async () => (await http.post<{ ok: boolean }>("/api/scan")).data,
+  scanStatus: async () =>
+    (
+      await http.get<{
+        running: boolean
+        stage: string
+        started_at: number | null
+        finished_at: number | null
+        processed: number
+        total: number
+        current: string | null
+        error: string | null
+      }>("/api/scan/status")
+    ).data,
   approve: async (
     id: number,
     data: {
@@ -36,7 +51,16 @@ export const api = {
       episode: number | null
       action?: "move" | "copy" | "hardlink"
     },
-  ) => (await http.post<{ ok: boolean; message: string; target: string | null }>(`/api/jobs/${id}/approve`, data)).data,
+  ) =>
+    (
+      await http.post<{
+        ok: boolean
+        message: string
+        target: string | null
+        queued?: boolean
+        operation_id?: number
+      }>(`/api/jobs/${id}/approve`, data)
+    ).data,
   preview: async (
     id: number,
     data: {
@@ -68,7 +92,27 @@ export const api = {
       media_type: mediaType,
     })).data,
   bulk: async (ids: number[], action: "approve" | "reject" | "undo") =>
-    (await http.post<{ results: Array<{ id: number; ok: boolean; message: string; target?: string | null }> }>("/api/jobs/bulk", { ids, action })).data,
+    (
+      await http.post<{
+        results: Array<{
+          id: number
+          ok: boolean
+          message: string
+          target?: string | null
+          queued?: boolean
+          operation_id?: number
+        }>
+      }>("/api/jobs/bulk", { ids, action })
+    ).data,
+  operations: async () =>
+    (
+      await http.get<{
+        running: OperationRow | null
+        queued: number
+        active: OperationRow[]
+        recent: OperationRow[]
+      }>("/api/operations")
+    ).data,
 
   previewLayout: async (data: {
     movie_template: string
@@ -81,7 +125,7 @@ export const api = {
     episode?: number
   }) => (await http.post<{ movie: string; shows: string }>("/api/layout/preview", data)).data,
   settings: async () => (await http.get<Settings>("/api/settings")).data,
-  saveSettings: async (data: Omit<Settings, "movie_preview" | "tv_preview">) =>
+  saveSettings: async (data: SettingsInput) =>
     (await http.put<Settings>("/api/settings", data)).data,
 
   users: async () => (await http.get<User[]>("/api/users")).data,

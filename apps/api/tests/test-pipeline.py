@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 from app.core.config import Config
@@ -6,6 +7,7 @@ from app.core.db import DB
 from app.domain import pipeline, settings as settings_mod
 from app.services import apply
 from app.services.providers import JellyfinProvider, LLM
+from app.services.operations import OperationQueue
 from app.services.scanner import Scanner
 
 
@@ -74,6 +76,48 @@ def test_analyze_and_move(tmp_path: Path):
     assert operation["kind"] == "move"
     assert operation["status"] == "committed"
     assert db.get_target_reservation(str(target))["job_id"] == job["id"]
+
+
+def test_operation_queue_applies_asynchronously(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    cfg.movie_library_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Queued.2024.mkv"
+    source.write_bytes(b"queued source")
+    db = DB(tmp_path / "state.db")
+    settings = settings_mod.load(db)
+    job = pipeline.analyze(
+        cfg,
+        settings,
+        db,
+        source,
+        JellyfinProvider(None, None),
+        LLM(None, None, None),
+    )
+    queue = OperationQueue(cfg, db)
+    queue.start()
+    try:
+        operation_id = queue.enqueue_apply(
+            job,
+            job["title"],
+            job["year"],
+            job["media_type"],
+            job["season"],
+            job["episode"],
+            settings.action,
+        )
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            updated = db.get_job(job["id"]) or {}
+            if updated.get("status") == "moved":
+                break
+            time.sleep(0.05)
+        updated = db.get_job(job["id"]) or {}
+        operation = db.get_operation(operation_id) or {}
+        assert updated.get("status") == "moved"
+        assert operation.get("status") == "committed"
+    finally:
+        queue.stop()
 
 
 def test_undo_reverses_operation_and_releases_target(tmp_path: Path):

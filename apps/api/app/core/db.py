@@ -75,6 +75,9 @@ CREATE TABLE IF NOT EXISTS job_operations (
     source_path TEXT NOT NULL,
     target_path TEXT NOT NULL,
     status TEXT NOT NULL,
+    progress_done INTEGER NOT NULL DEFAULT 0,
+    progress_total INTEGER NOT NULL DEFAULT 0,
+    message TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -149,6 +152,19 @@ class DB:
                 )
             if "blocked_reason" not in columns:
                 conn.execute("ALTER TABLE jobs ADD COLUMN blocked_reason TEXT")
+            operation_columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(job_operations)")
+            }
+            if "progress_done" not in operation_columns:
+                conn.execute(
+                    "ALTER TABLE job_operations ADD COLUMN progress_done INTEGER NOT NULL DEFAULT 0"
+                )
+            if "progress_total" not in operation_columns:
+                conn.execute(
+                    "ALTER TABLE job_operations ADD COLUMN progress_total INTEGER NOT NULL DEFAULT 0"
+                )
+            if "message" not in operation_columns:
+                conn.execute("ALTER TABLE job_operations ADD COLUMN message TEXT")
 
     # settings ---------------------------------------------------------
 
@@ -339,23 +355,48 @@ class DB:
             )
 
     def create_operation(
-        self, job_id: int, kind: str, source_path: str, target_path: str
+        self,
+        job_id: int,
+        kind: str,
+        source_path: str,
+        target_path: str,
+        status: str = "queued",
     ) -> int:
         timestamp = now()
         with self._connect() as conn:
             cursor = conn.execute(
                 "INSERT INTO job_operations "
                 "(job_id, kind, source_path, target_path, status, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, 'planned', ?, ?)",
-                (job_id, kind, source_path, target_path, timestamp, timestamp),
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (job_id, kind, source_path, target_path, status, timestamp, timestamp),
             )
             return int(cursor.lastrowid)
 
-    def update_operation(self, operation_id: int, status: str) -> None:
+    def update_operation(
+        self,
+        operation_id: int,
+        status: str | None = None,
+        progress_done: int | None = None,
+        progress_total: int | None = None,
+        message: str | None = None,
+    ) -> None:
+        updates: dict[str, Any] = {}
+        if status is not None:
+            updates["status"] = status
+        if progress_done is not None:
+            updates["progress_done"] = progress_done
+        if progress_total is not None:
+            updates["progress_total"] = progress_total
+        if message is not None:
+            updates["message"] = message
+        if not updates:
+            return
+        updates["updated_at"] = now()
+        assignments = ", ".join(f"{key} = ?" for key in updates)
+        values = list(updates.values()) + [operation_id]
         with self._connect() as conn:
             conn.execute(
-                "UPDATE job_operations SET status = ?, updated_at = ? WHERE id = ?",
-                (status, now(), operation_id),
+                f"UPDATE job_operations SET {assignments} WHERE id = ?", values
             )
 
     def latest_operation(self, job_id: int) -> dict[str, Any] | None:
@@ -366,6 +407,49 @@ class DB:
                 (job_id,),
             ).fetchone()
         return dict(row) if row else None
+
+    def get_operation(self, operation_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM job_operations WHERE id = ?", (operation_id,)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def active_operation_for_job(self, job_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM job_operations WHERE job_id = ? "
+                "AND status IN ('queued', 'running') ORDER BY id LIMIT 1",
+                (job_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def list_operations(
+        self, statuses: tuple[str, ...] | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        query = (
+            "SELECT o.*, j.title AS job_title, j.status AS job_status "
+            "FROM job_operations o JOIN jobs j ON j.id = o.job_id"
+        )
+        args: list[Any] = []
+        if statuses:
+            placeholders = ", ".join("?" for _ in statuses)
+            query += f" WHERE o.status IN ({placeholders})"
+            args.extend(statuses)
+        query += " ORDER BY o.id DESC LIMIT ?"
+        args.append(limit)
+        with self._connect() as conn:
+            rows = conn.execute(query, args).fetchall()
+        return [dict(row) for row in rows]
+
+    def fail_interrupted_operations(self) -> None:
+        timestamp = now()
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE job_operations SET status = 'failed', message = ?, "
+                "updated_at = ? WHERE status = 'running'",
+                ("Interrupted by restart.", timestamp),
+            )
 
     def list_jobs(self, status: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
         query = "SELECT * FROM jobs"

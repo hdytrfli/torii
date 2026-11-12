@@ -47,7 +47,13 @@ export function SettingsPage() {
     onSuccess: (saved) => {
       setForm(saved)
       setExtensions(saved.extensions)
-      setMessage("Settings saved.")
+      setMessage(
+        saved.auto_apply
+          ? saved.auto_apply_eligible > 0
+            ? `Settings saved. Auto-apply queued for ${saved.auto_apply_eligible} eligible job${saved.auto_apply_eligible === 1 ? "" : "s"}.`
+            : `Settings saved. Auto-apply is on, but ${saved.auto_apply_blocked} job${saved.auto_apply_blocked === 1 ? " is" : "s are"} blocked and ${saved.auto_apply_below_threshold} are below the threshold.`
+          : "Settings saved.",
+      )
       setError(null)
       void queryClient.invalidateQueries({ queryKey: ["settings"] })
     },
@@ -171,11 +177,42 @@ export function SettingsPage() {
               checked={form.auto_apply}
               onChange={(value) => update("auto_apply", value)}
             />
+            <AutoApplySummary form={form} />
             <SaveRow pending={save.isPending} message={message} error={error} />
           </div>
         </section>
       </div>
     </form>
+  )
+}
+
+function AutoApplySummary({ form }: { form: Settings }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+      <span>
+        {form.auto_apply ? "Auto-apply" : "If enabled"}:{" "}
+        <span className="font-medium text-gray-700">
+          {form.auto_apply_eligible}
+        </span>{" "}
+        eligible
+      </span>
+      {form.auto_apply_blocked > 0 ? (
+        <span>
+          <span className="font-medium text-gray-700">
+            {form.auto_apply_blocked}
+          </span>{" "}
+          blocked
+        </span>
+      ) : null}
+      {form.auto_apply_below_threshold > 0 ? (
+        <span>
+          <span className="font-medium text-gray-700">
+            {form.auto_apply_below_threshold}
+          </span>{" "}
+          below threshold
+        </span>
+      ) : null}
+    </div>
   )
 }
 

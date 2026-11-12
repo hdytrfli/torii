@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import json
 import logging
 import os
@@ -8,7 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 
@@ -30,15 +31,60 @@ def _parsed(job: dict[str, Any]) -> SimpleNamespace | None:
         return None
 
 
-def _apply_file(src: Path, target: Path, action: str) -> None:
+def _copy_with_progress(
+    src: Path,
+    target: Path,
+    progress: Callable[[int, int], None] | None,
+) -> None:
+    total = src.stat().st_size
+    done = 0
+    with src.open("rb") as source, target.open("wb") as destination:
+        while True:
+            chunk = source.read(1024 * 1024)
+            if not chunk:
+                break
+            destination.write(chunk)
+            done += len(chunk)
+            if progress:
+                progress(done, total)
+    shutil.copystat(src, target)
+    if progress and total == 0:
+        progress(0, 0)
+
+
+def _apply_file(
+    src: Path,
+    target: Path,
+    action: str,
+    progress: Callable[[int, int], None] | None = None,
+) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
+    total = src.stat().st_size
 
     if action == "move":
-        shutil.move(str(src), str(target))
+        try:
+            os.replace(src, target)
+            if progress:
+                progress(total, total)
+        except OSError as exc:
+            if exc.errno != errno.EXDEV:
+                raise
+            try:
+                _copy_with_progress(src, target, progress)
+                src.unlink()
+            except OSError:
+                target.unlink(missing_ok=True)
+                raise
     elif action == "copy":
-        shutil.copy2(src, target)
+        try:
+            _copy_with_progress(src, target, progress)
+        except OSError:
+            target.unlink(missing_ok=True)
+            raise
     elif action == "hardlink":
         os.link(src, target)
+        if progress:
+            progress(total, total)
     else:
         raise ValueError(f"Unknown action: {action}")
 
@@ -135,7 +181,10 @@ def _post_action(command: str | None, env: dict[str, str]) -> None:
 def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
               title: str, year: int | None, media_type: str,
               season: int | None, episode: int | None,
-              action: str | None = None) -> tuple[bool, str, Path | None]:
+              action: str | None = None,
+              operation_id: int | None = None,
+              progress: Callable[[int, int], None] | None = None
+              ) -> tuple[bool, str, Path | None]:
     source = Path(job["source_path"])
     if not source.exists():
         lifecycle.release(db, int(job["id"]))
@@ -199,19 +248,47 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
         )
         return False, f"Unknown action: {chosen_action}", None
 
-    operation_id = db.create_operation(
-        int(job["id"]), chosen_action, str(source), str(target)
+    if operation_id is None:
+        operation_id = db.create_operation(
+            int(job["id"]), chosen_action, str(source), str(target), status="running"
+        )
+    total_size = source.stat().st_size
+    db.update_operation(
+        operation_id,
+        status="running",
+        progress_total=total_size,
+        message="Starting",
     )
+
+    def report(done: int, total: int) -> None:
+        if progress is not None:
+            progress(done, total)
+        else:
+            db.update_operation(
+                operation_id,
+                progress_done=done,
+                progress_total=total,
+                message="Copying" if chosen_action == "copy" else "Applying",
+            )
+
     sidecars = _sidecars(source)
     try:
-        _apply_file(source, target, chosen_action)
+        _apply_file(source, target, chosen_action, report)
         for sidecar in sidecars:
             sidecar_target = target.with_name(f"{target.stem}{sidecar.suffix}")
             if not sidecar_target.exists():
                 _apply_file(sidecar, sidecar_target, chosen_action)
-        db.update_operation(operation_id, "committed")
+        db.update_operation(
+            operation_id,
+            status="committed",
+            progress_done=total_size,
+            progress_total=total_size,
+            message="Completed",
+        )
     except OSError as exc:
-        db.update_operation(operation_id, "failed")
+        db.update_operation(
+            operation_id, status="failed", message=str(exc)
+        )
         lifecycle.block(
             db,
             int(job["id"]),
