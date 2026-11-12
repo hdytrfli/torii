@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Plus, Save, X } from "lucide-react"
+import { Plus, Save } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "../lib/api"
 import type { Settings } from "../lib/types"
@@ -391,29 +391,6 @@ function ExtensionsPicker({
               ) : null}
             </div>
 
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs font-medium text-gray-500">Selected</div>
-                <span className="text-xs text-gray-500">{pending.length}</span>
-              </div>
-              {pending.length ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {pending.map((extension) => (
-                    <button
-                      key={extension}
-                      type="button"
-                      onClick={() => toggle(extension)}
-                      className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-700 transition hover:bg-gray-50"
-                    >
-                      {extension}
-                      <X className="size-3 text-gray-400" aria-hidden="true" />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-2 text-xs text-gray-400">No extensions selected.</p>
-              )}
-            </div>
           </div>
 
           <DialogFooter className="border-t border-gray-200 bg-gray-50 px-5 py-3">
