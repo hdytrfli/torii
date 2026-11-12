@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from . import guess, naming, providers, settings as settings_mod
+from . import guess, naming, nfo, providers, settings as settings_mod
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,48 @@ def _confidence(parsed: guess.Parsed, best: providers.Candidate | None,
 def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
             jellyfin: providers.JellyfinProvider, llm: providers.LLM) -> dict[str, Any]:
     parsed = guess.parse(path)
+    local = nfo.read(path)
+    nfo_candidate = None
+
+    if local:
+        if local.get("title"):
+            parsed.title = local["title"]
+        if local.get("year"):
+            parsed.year = local["year"]
+        if local.get("season") is not None:
+            parsed.season = local["season"]
+        if local.get("episode") is not None:
+            parsed.episode = local["episode"]
+        if local.get("kind"):
+            parsed.kind = local["kind"]
+        parsed.confidence = max(parsed.confidence, 0.9)
+
+        if local.get("title"):
+            ids = local.get("provider_ids") or {}
+            provider_id = next(iter(ids.values()), None)
+            nfo_candidate = providers.Candidate(
+                provider="nfo",
+                provider_id=provider_id,
+                title=local["title"],
+                year=local.get("year"),
+                overview=f"Local metadata from {local['path']}",
+                image=None,
+                kind=local.get("kind") or parsed.kind,
+                score=100.0,
+                raw={"path": local["path"], "provider_ids": ids},
+            )
+
     candidates = jellyfin.search(parsed.title, parsed.year, parsed.kind)
+    if nfo_candidate is not None:
+        candidates = [nfo_candidate] + [
+            candidate
+            for candidate in candidates
+            if not (
+                candidate.title.casefold() == nfo_candidate.title.casefold()
+                and candidate.year == nfo_candidate.year
+            )
+        ]
+
     best = _candidate_best(candidates)
     confidence = _confidence(parsed, best, candidates)
     decision: dict[str, Any] | None = None
@@ -116,6 +157,9 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
     if target_error:
         status = "needs_review"
 
+    parsed_payload = parsed.to_dict()
+    parsed_payload["nfo"] = local
+
     payload = {
         "media_type": media_type,
         "title": str(title),
@@ -124,9 +168,11 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
         "episode": episode,
         "confidence": round(confidence, 3),
         "reason": (decision.get("reason") if decision else None) or (
-            "Provider candidate selected." if best else "Parsed from filename."
+            "Local NFO metadata selected."
+            if nfo_candidate
+            else ("Provider candidate selected." if best else "Parsed from filename.")
         ),
-        "parsed_json": json.dumps(parsed.to_dict(), ensure_ascii=False),
+        "parsed_json": json.dumps(parsed_payload, ensure_ascii=False),
         "candidates_json": json.dumps([candidate.to_dict() for candidate in candidates], ensure_ascii=False),
         "llm_json": json.dumps(decision, ensure_ascii=False) if decision else None,
         "target_path": str(target) if target else None,

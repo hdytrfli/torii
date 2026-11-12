@@ -17,7 +17,7 @@ from .settings import Settings
 
 logger = logging.getLogger(__name__)
 
-SIDECAR_SUFFIXES = {".srt", ".ass", ".ssa", ".vtt", ".sub", ".idx"}
+SIDECAR_SUFFIXES = {".srt", ".ass", ".ssa", ".vtt", ".sub", ".idx", ".nfo"}
 
 
 def _parsed(job: dict[str, Any]) -> SimpleNamespace | None:
