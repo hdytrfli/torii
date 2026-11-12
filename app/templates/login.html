@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login">
+  <h1>Sign in</h1>
+  <p class="muted">Enter the token configured in <code>APP_TOKEN</code>.</p>
+  <form method="post" action="/login">
+    <label>Token
+      <input type="password" name="token" autofocus required>
+    </label>
+    <button class="button" type="submit">Sign in</button>
+  </form>
+</div>
+{% endblock %}

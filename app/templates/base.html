@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}media-renamer{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">media-renamer</a>
+      <nav>
+        <a href="/">Jobs</a>
+        <a href="/settings">Settings</a>
+        {% if auth_enabled %}<a href="/logout">Logout</a>{% endif %}
+      </nav>
+    </header>
+
+    {% if msg %}
+      <div class="flash {{ kind|default('ok') }}">{{ msg }}</div>
+    {% endif %}
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

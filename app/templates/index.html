@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Jobs</h1>
+    <p class="muted">Files waiting for a decision, plus the ones already handled.</p>
+  </div>
+  <form method="post" action="/scan">
+    <button class="button" type="submit">Scan now</button>
+  </form>
+</div>
+
+<div class="stats">
+  {% for key, label in [("needs_review", "Needs review"), ("ready", "Ready"), ("moved", "Moved"), ("rejected", "Rejected"), ("failed", "Failed")] %}
+    <div class="stat">
+      <span class="stat-value">{{ stats.get(key, 0) }}</span>
+      <span class="stat-label">{{ label }}</span>
+    </div>
+  {% endfor %}
+</div>
+
+<nav class="filters">
+  {% for key, label in [("needs_review", "Needs review"), ("ready", "Ready"), ("moved", "Moved"), ("rejected", "Rejected"), ("failed", "Failed"), ("all", "All")] %}
+    <a href="/?status={{ key }}" class="{% if status == key %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% if jobs %}
+  <div class="jobs">
+    {% for job in jobs %}
+      <a class="job-row" href="/jobs/{{ job.id }}">
+        <div class="job-main">
+          <div class="job-name">{{ job.source_path|basename }}</div>
+          <div class="muted small">
+            {{ job.title or "Unknown title" }}
+            {% if job.year %} ({{ job.year }}){% endif %}
+            {% if job.media_type == "tv" and job.season and job.episode %}
+              · S{{ "%02d"|format(job.season) }}E{{ "%02d"|format(job.episode) }}
+            {% endif %}
+          </div>
+        </div>
+        <div class="job-meta">
+          <span class="badge {{ job.status }}">{{ job.status }}</span>
+          <span class="confidence">{{ job.confidence|pct }}</span>
+        </div>
+        <div class="job-target muted small">
+          {{ job.target_path or job.error or "" }}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">No jobs in this view. Use Scan now, or change the filter.</p>
+{% endif %}
+{% endblock %}
