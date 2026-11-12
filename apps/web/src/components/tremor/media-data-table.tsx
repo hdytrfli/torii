@@ -88,22 +88,11 @@ function DataTableColumnHeader({
       )}
     >
       <span>{title}</span>
-      <div className="-space-y-2">
-        <ChevronUp
-          className={cn(
-            "size-3.5 text-gray-900",
-            column.getIsSorted() === "desc" ? "opacity-30" : "",
-          )}
-          aria-hidden="true"
-        />
-        <ChevronDown
-          className={cn(
-            "size-3.5 text-gray-900",
-            column.getIsSorted() === "asc" ? "opacity-30" : "",
-          )}
-          aria-hidden="true"
-        />
-      </div>
+      {column.getIsSorted() === "asc" ? (
+        <ChevronUp className="size-3.5 shrink-0 text-gray-900" aria-hidden="true" />
+      ) : column.getIsSorted() === "desc" ? (
+        <ChevronDown className="size-3.5 shrink-0 text-gray-900" aria-hidden="true" />
+      ) : null}
     </div>
   )
 }
