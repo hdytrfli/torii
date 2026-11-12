@@ -78,6 +78,58 @@ def test_analyze_and_move(tmp_path: Path):
     assert db.get_target_reservation(str(target))["job_id"] == job["id"]
 
 
+def test_promotion_queue_moves_high_confidence_jobs_to_ready(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Promoted.2024.mkv"
+    source.write_bytes(b"x")
+    db = DB(tmp_path / "state.db")
+    settings_mod.save(
+        db,
+        {
+            "min_size_mb": "0",
+            "extensions": "mkv",
+            "movie_template": "{title} ({year})/{title}",
+            "tv_template": "{title} ({year})/{title}",
+            "action": "move",
+            "cleanup_empty_dirs": "on",
+            "auto_apply": "on",
+            "auto_apply_confidence": "0.85",
+            "poll_interval": "30",
+            "stable_seconds": "0",
+        },
+    )
+    high_id = db.create_job(
+        source,
+        1,
+        0,
+        status="needs_review",
+        title="Promoted",
+        year=2024,
+        media_type="movie",
+        confidence=0.9,
+    )
+    low_source = cfg.movie_watch_dir / "Low.2024.mkv"
+    low_source.write_bytes(b"x")
+    low_id = db.create_job(
+        low_source,
+        1,
+        0,
+        status="needs_review",
+        title="Low",
+        year=2024,
+        media_type="movie",
+        confidence=0.5,
+        target_path=str(cfg.movie_library_dir / "Low (2024)" / "Low.mkv"),
+    )
+    queue = OperationQueue(cfg, db)
+
+    queue.promote_ready()
+
+    assert db.get_job(high_id)["status"] == "ready"
+    assert db.get_job(low_id)["status"] == "needs_review"
+
+
 def test_operation_queue_applies_asynchronously(tmp_path: Path):
     cfg = make_config(tmp_path)
     cfg.movie_watch_dir.mkdir(parents=True)

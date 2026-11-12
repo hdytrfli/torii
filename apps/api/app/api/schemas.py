@@ -15,6 +15,14 @@ class SetupBody(BaseModel):
     password: str
 
 
+class JobUpdateBody(BaseModel):
+    title: str
+    year: int | None = None
+    media_type: Literal["movie", "tv"] = "movie"
+    season: int | None = None
+    episode: int | None = None
+
+
 class ApproveBody(BaseModel):
     title: str
     year: int | None = None

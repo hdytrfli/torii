@@ -7,7 +7,6 @@ export type JobStatus =
   | "rejected"
   | "failed"
   | "analyzing"
-  | "applying"
 
 export interface Job {
   id: number
@@ -82,7 +81,6 @@ export interface Settings {
   auto_apply_confidence: number
   auto_apply_eligible: number
   auto_apply_blocked: number
-  auto_apply_excluded: number
   auto_apply_below_threshold: number
   poll_interval: number
   stable_seconds: number
@@ -116,7 +114,6 @@ export type SettingsInput = Omit<
   | "tv_preview"
   | "auto_apply_eligible"
   | "auto_apply_blocked"
-  | "auto_apply_excluded"
   | "auto_apply_below_threshold"
 >
 

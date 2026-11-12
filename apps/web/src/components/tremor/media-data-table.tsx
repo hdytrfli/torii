@@ -50,7 +50,6 @@ const STATUS_OPTIONS: FilterOption[] = [
   { value: "ready", label: "Ready to apply" },
   { value: "moved", label: "Moved" },
   { value: "rejected", label: "Rejected" },
-  { value: "applying", label: "Applying" },
   { value: "failed", label: "Failed" },
 ]
 
@@ -619,7 +618,7 @@ export function MediaDataTable({
             >
               Open
             </Button>
-            {onDeleteJob && row.original.status !== "applying" ? (
+            {onDeleteJob ? (
               <Button
                 variant="ghost"
                 className="size-8 p-0 text-gray-500 hover:text-red-700"

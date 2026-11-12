@@ -1,7 +1,7 @@
 # Torii
 
 Torii is a self-hosted media renamer for curated downloads. It watches folders
-for new releases, resolves metadata, keeps uncertain matches in a review queue,
+for new releases, resolves metadata, keeps uncertain matches in a review table,
 and moves, copies, or hardlinks approved files into a Jellyfin-compatible
 library.
 
@@ -41,8 +41,10 @@ runs as a single container.
 - Watches movie and TV download folders on a configurable interval.
 - Resolves metadata through Jellyfin RemoteSearch, local `.nfo` files, filename
   parsing, and optional AI fallback.
-- Keeps uncertain matches in a review queue with filtering, sorting, bulk
+- Keeps uncertain matches in a review table with filtering, sorting, bulk
   actions, row previews, and undo.
+- Applies Ready-to-apply jobs through a sequential background queue with
+  progress reporting.
 - Supports manual identification by TMDb, IMDb, or TVDB ID.
 - Provides naming layouts with draggable tokens and live previews.
 - Moves, copies, or hardlinks approved files into a Jellyfin library.

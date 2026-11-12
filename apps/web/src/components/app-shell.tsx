@@ -28,15 +28,15 @@ import {
 
 const navigation = [
   { name: "Overview", href: "/", icon: Home, end: true },
-  { name: "Review queue", href: "/queue", icon: ListChecks },
+  { name: "Review table", href: "/review", icon: ListChecks },
   { name: "Naming", href: "/naming", icon: Tags },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 const shortcuts = [
-  { name: "Needs review", href: "/queue?status=needs_review", icon: CircleAlert },
-  { name: "Ready to apply", href: "/queue?status=ready", icon: CircleCheck },
-  { name: "Applied", href: "/queue?status=moved", icon: FolderCheck },
+  { name: "Needs review", href: "/review?status=needs_review", icon: CircleAlert },
+  { name: "Ready to apply", href: "/review?status=ready", icon: CircleCheck },
+  { name: "Applied", href: "/review?status=moved", icon: FolderCheck },
   { name: "Add new user", href: "/settings/users", icon: Users, admin: true },
   { name: "Naming layouts", href: "/naming", icon: Tags },
 ]
@@ -48,7 +48,8 @@ export function AppShell() {
   useEffect(() => {
     const title =
       location.pathname === "/" ? "Overview"
-      : location.pathname.startsWith("/queue") ? "Review queue"
+      : location.pathname.startsWith("/review") || location.pathname.startsWith("/queue")
+        ? "Review table"
       : location.pathname.startsWith("/naming") ? "Naming"
       : location.pathname.startsWith("/settings/users") ? "Users"
       : location.pathname.startsWith("/settings") ? "Settings"

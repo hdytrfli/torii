@@ -62,7 +62,7 @@ export function SettingsPage() {
         message: saved.auto_apply
           ? saved.auto_apply_eligible > 0
             ? `Settings saved. Auto-apply queued for ${saved.auto_apply_eligible} eligible job${saved.auto_apply_eligible === 1 ? "" : "s"}.`
-            : `Settings saved. Auto-apply is on, but no jobs are currently eligible (${saved.auto_apply_blocked} blocked, ${saved.auto_apply_excluded} manually handled, ${saved.auto_apply_below_threshold} below threshold).`
+            : `Settings saved. Auto-apply is on, but no jobs are currently eligible (${saved.auto_apply_blocked} blocked, ${saved.auto_apply_below_threshold} below threshold).`
           : "Settings saved.",
       })
       void queryClient.invalidateQueries({ queryKey: ["settings"] })
@@ -238,14 +238,6 @@ function AutoApplySummary({ form }: { form: Settings }) {
             {form.auto_apply_blocked}
           </span>{" "}
           blocked
-        </span>
-      ) : null}
-      {form.auto_apply_excluded > 0 ? (
-        <span>
-          <span className="font-medium text-gray-700">
-            {form.auto_apply_excluded}
-          </span>{" "}
-          manually handled
         </span>
       ) : null}
       {form.auto_apply_below_threshold > 0 ? (

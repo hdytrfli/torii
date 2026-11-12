@@ -196,9 +196,7 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
     if target_error:
         confidence = min(confidence, 0.4)
 
-    status = "ready" if settings.auto_apply and confidence >= settings.auto_apply_confidence else "needs_review"
-    if target_error:
-        status = "needs_review"
+    status = "needs_review"
 
     parsed_payload = parsed.to_dict()
     parsed_payload["nfo"] = local

@@ -11,7 +11,7 @@ from ...domain import settings as settings_mod
 from ...services import apply
 from ...services.providers import Candidate
 from .. import deps
-from ..schemas import ApproveBody, BulkBody, IdentifyBody
+from ..schemas import ApproveBody, BulkBody, IdentifyBody, JobUpdateBody
 
 router = APIRouter(prefix="/api", tags=["jobs"])
 
@@ -51,14 +51,58 @@ def get_job(request: Request, job_id: int):
     return deps.db.job_json(job)
 
 
+@router.patch("/jobs/{job_id}")
+def update_job(request: Request, job_id: int, body: JobUpdateBody):
+    deps.current_session(request)
+    job = deps.db.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.get("status") != "needs_review":
+        raise HTTPException(status_code=409, detail="Only review jobs can be edited.")
+
+    target = apply.preview_target(
+        deps.cfg,
+        settings_mod.load(deps.db),
+        job,
+        body.title,
+        body.year,
+        body.media_type,
+        body.season,
+        body.episode,
+    )
+    group_key, group_type = _group(
+        body.title, body.year, body.media_type, job
+    )
+    deps.db.update_job(
+        job_id,
+        title=body.title,
+        year=body.year,
+        media_type=body.media_type,
+        season=body.season,
+        episode=body.episode,
+        group_key=group_key,
+        group_type=group_type,
+        source="manual",
+        reason="Manually updated.",
+        auto_apply_eligible=0,
+    )
+    if target.startswith("Invalid layout:"):
+        lifecycle.block(deps.db, job_id, "invalid_layout", target)
+    else:
+        lifecycle.clear_block(deps.db, job_id)
+        lifecycle.set_target(deps.db, job_id, target)
+    return deps.db.job_json(deps.db.get_job(job_id) or job)
+
+
 @router.post("/jobs/{job_id}/approve")
 def approve(request: Request, job_id: int, body: ApproveBody):
     deps.current_session(request)
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if job.get("status") == "applying":
-        raise HTTPException(status_code=409, detail="Job is already applying.")
+    active = deps.db.active_operation_for_job(job_id)
+    if active is not None:
+        raise HTTPException(status_code=409, detail="Job is already queued for apply.")
     if job.get("status") not in {"needs_review", "ready"}:
         raise HTTPException(status_code=400, detail="Job is not reviewable.")
 
@@ -297,7 +341,8 @@ def reject(request: Request, job_id: int):
         raise HTTPException(status_code=404, detail="Job not found")
     if job.get("status") == "moved":
         raise HTTPException(status_code=400, detail="Undo applied jobs before rejecting them.")
-    if job.get("status") == "applying":
+    active = deps.db.active_operation_for_job(job_id)
+    if active is not None and active["status"] == "running":
         raise HTTPException(status_code=409, detail="Job is currently applying.")
     lifecycle.reject(deps.db, job_id)
     return {"ok": True}
@@ -309,7 +354,8 @@ def delete(request: Request, job_id: int):
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if job.get("status") == "applying":
+    active = deps.db.active_operation_for_job(job_id)
+    if active is not None and active["status"] == "running":
         raise HTTPException(status_code=409, detail="Job is currently applying.")
     ok, message = apply.delete_job(
         deps.cfg, settings_mod.load(deps.db), deps.db, job
@@ -359,7 +405,10 @@ def bulk(request: Request, body: BulkBody):
             results.append({"id": job_id, "ok": False, "message": "Job not found"})
             continue
         if body.action == "reject":
-            if job.get("status") in {"moved", "applying"}:
+            active = deps.db.active_operation_for_job(job_id)
+            if job.get("status") == "moved" or (
+                active is not None and active["status"] == "running"
+            ):
                 results.append(
                     {
                         "id": job_id,

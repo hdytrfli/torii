@@ -127,7 +127,12 @@ function NamingSkeleton() {
 
 export function RouteSkeleton() {
   const location = useLocation()
-  if (location.pathname.startsWith("/queue")) return <QueueSkeleton />
+  if (
+    location.pathname.startsWith("/review") ||
+    location.pathname.startsWith("/queue")
+  ) {
+    return <QueueSkeleton />
+  }
   if (location.pathname.startsWith("/settings")) return <SettingsSkeleton />
   if (location.pathname.startsWith("/naming")) return <NamingSkeleton />
   return <DashboardSkeleton />

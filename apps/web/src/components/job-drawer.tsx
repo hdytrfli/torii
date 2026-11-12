@@ -1,11 +1,26 @@
 import { useEffect, useMemo, useState } from "react"
-import { Astroid, Check, Loader, RefreshCw, Undo2, X } from "lucide-react"
+import {
+  Astroid,
+  Check,
+  MoreHorizontal,
+  RefreshCw,
+  Undo2,
+  X,
+} from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { pct, providerLabel, sourceLabel } from "../lib/format"
 import { blockedReasonLabel, isReviewable } from "../lib/job-state"
+import { useToast } from "./toast"
 import { Badge, Button, Card, Field, Input, SourceBadge, StatusBadge } from "./ui"
 import { DropdownSelect } from "./tremor/dropdown-select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./tremor/dropdown"
 import {
   Drawer,
   DrawerBody,
@@ -17,6 +32,7 @@ import {
 
 export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => void }) {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const { data: job } = useQuery({ queryKey: ["job", jobId], queryFn: () => api.job(jobId) })
   const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: api.settings })
   const [title, setTitle] = useState("")
@@ -70,30 +86,107 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     void queryClient.invalidateQueries({ queryKey: ["stats"] })
   }
 
-  const approve = useMutation({
-    mutationFn: () => api.approve(jobId, { ...payload, action }),
-    onSuccess: (result) => {
-      invalidate()
-      if (result.ok) onClose()
-      else setError(result.message)
-    },
-    onError: (err: Error) => setError(err.message),
-  })
+  const requestApprove = () => {
+    toast({
+      title: "Approve requested",
+      description: "Adding this job to the apply queue.",
+    })
+    onClose()
+    void api
+      .approve(jobId, { ...payload, action })
+      .then((result) => {
+        invalidate()
+        if (!result.ok) {
+          toast({
+            title: "Approve failed",
+            description: result.message,
+            variant: "error",
+          })
+        }
+      })
+      .catch((err: Error) => {
+        invalidate()
+        toast({
+          title: "Approve failed",
+          description: err.message,
+          variant: "error",
+        })
+      })
+  }
+  const requestSave = () => {
+    toast({
+      title: "Saving changes",
+      description: "Sending the updated metadata to the server.",
+    })
+    onClose()
+    void api
+      .updateJob(jobId, payload)
+      .then((updated) => {
+        queryClient.setQueryData(["job", jobId], updated)
+        invalidate()
+        if (updated.blocked_reason) {
+          toast({
+            title:
+              blockedReasonLabel(updated.blocked_reason) ?? "Could not save",
+            description: updated.error ?? "Could not save this job.",
+            variant: "error",
+          })
+        }
+      })
+      .catch((err: Error) => {
+        invalidate()
+        toast({
+          title: "Could not save changes",
+          description: err.message,
+          variant: "error",
+        })
+      })
+  }
+  const requestUndo = () => {
+    toast({
+      title: "Undo requested",
+      description: "Restoring the applied file.",
+    })
+    onClose()
+    void api
+      .undo(jobId)
+      .then((result) => {
+        queryClient.setQueryData(["job", jobId], result.job)
+        invalidate()
+      })
+      .catch((err: Error) => {
+        invalidate()
+        toast({
+          title: "Undo failed",
+          description: err.message,
+          variant: "error",
+        })
+      })
+  }
+  const requestReject = () => {
+    toast({
+      title: "Reject requested",
+      description: "Sending the decision to the server.",
+    })
+    onClose()
+    void api
+      .reject(jobId)
+      .then(invalidate)
+      .catch((err: Error) => {
+        invalidate()
+        toast({
+          title: "Reject failed",
+          description: err.message,
+          variant: "error",
+        })
+      })
+  }
   const identify = useMutation({
     mutationFn: () => api.identify(jobId, provider, externalId, mediaType),
     onSuccess: (updated) => {
       queryClient.setQueryData(["job", jobId], updated)
       invalidate()
       setError(null)
-    },
-    onError: (err: Error) => setError(err.message),
-  })
-  const undo = useMutation({
-    mutationFn: () => api.undo(jobId),
-    onSuccess: (result) => {
-      queryClient.setQueryData(["job", jobId], result.job)
-      invalidate()
-      onClose()
     },
     onError: (err: Error) => setError(err.message),
   })
@@ -104,15 +197,14 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
       invalidate()
       setError(null)
     },
-    onError: (err: Error) => setError(err.message),
-  })
-  const reject = useMutation({
-    mutationFn: () => api.reject(jobId),
-    onSuccess: () => {
-      invalidate()
-      onClose()
+    onError: (err: Error) => {
+      setError(err.message)
+      toast({
+        title: "AI request failed",
+        description: err.message,
+        variant: "error",
+      })
     },
-    onError: (err: Error) => setError(err.message),
   })
   const retry = useMutation({
     mutationFn: () => api.retry(jobId),
@@ -120,18 +212,29 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
       invalidate()
       setError(null)
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err: Error) => {
+      setError(err.message)
+      toast({
+        title: "Retry failed",
+        description: err.message,
+        variant: "error",
+      })
+    },
   })
 
-  const editable = job?.status !== "moved"
+  const editable = job?.status === "needs_review"
+  const saveable = editable
   const layoutReady =
     Boolean(target) && !target.startsWith("Invalid layout:")
   const reviewable = job
     ? isReviewable(job) ||
       (job.blocked_reason === "invalid_layout" && layoutReady)
     : false
-  const rejectable =
-    job != null && job.status !== "moved" && job.status !== "rejected"
+  const canRetry = job != null && !["moved", "ready"].includes(job.status)
+  const canAskAi = job?.status === "needs_review"
+  const canReject =
+    job != null && !["moved", "rejected", "ready"].includes(job.status)
+  const showMore = canRetry || canAskAi || canReject
   const showBlockedMessage =
     Boolean(job?.blocked_reason || job?.error || error) &&
     !(job?.blocked_reason === "invalid_layout" && layoutReady)
@@ -353,45 +456,86 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
             </DrawerBody>
 
             <DrawerFooter>
+              {showMore ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary">
+                      <MoreHorizontal size={14} /> More
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-44">
+                    {canRetry ? (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          toast({
+                            title: "Retry requested",
+                            description: "Re-checking metadata for this job.",
+                          })
+                          retry.mutate()
+                        }}
+                        disabled={retry.isPending}
+                        className="gap-2"
+                      >
+                        <RefreshCw size={14} /> Retry
+                      </DropdownMenuItem>
+                    ) : null}
+                    {canAskAi ? (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          toast({
+                            title: "AI request sent",
+                            description: "Waiting for a metadata suggestion.",
+                          })
+                          askAi.mutate()
+                        }}
+                        disabled={askAi.isPending}
+                        className="gap-2"
+                      >
+                        <Astroid size={14} /> Ask AI
+                      </DropdownMenuItem>
+                    ) : null}
+                    {canReject ? (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={requestReject}
+                          className="gap-2 text-red-700 focus-visible:bg-red-50"
+                        >
+                          <X size={14} /> Reject
+                        </DropdownMenuItem>
+                      </>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+              {saveable ? (
+                <Button
+                  variant="secondary"
+                  onClick={requestSave}
+                  disabled={!title}
+                >
+                  Save changes
+                </Button>
+              ) : null}
               {job.status === "moved" ? (
-                <Button variant="secondary" onClick={() => undo.mutate()} disabled={undo.isPending}>
+                <Button
+                  variant="secondary"
+                  onClick={requestUndo}
+                >
                   <Undo2 size={14} /> Undo apply
                 </Button>
               ) : job.status === "ready" ? (
                 <Button variant="secondary" disabled>
                   Queued for apply
                 </Button>
-              ) : job.status === "applying" ? (
-                <Button variant="secondary" disabled>
-                  <Loader size={14} className="animate-spin" /> Applying…
-                </Button>
               ) : reviewable ? (
-                <>
-                  <Button onClick={() => approve.mutate()} disabled={approve.isPending || !title}>
-                    <Check size={14} /> Approve
-                  </Button>
-                  <Button variant="secondary" onClick={() => askAi.mutate()} disabled={askAi.isPending}>
-                    <Astroid size={14} /> Ask AI
-                  </Button>
-                  <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
-                    <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
-                  </Button>
-                  <Button variant="danger" onClick={() => reject.mutate()} disabled={reject.isPending}>
-                    <X size={14} /> Reject
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
-                    <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
-                  </Button>
-                  {rejectable ? (
-                    <Button variant="danger" onClick={() => reject.mutate()} disabled={reject.isPending}>
-                      <X size={14} /> Reject
-                    </Button>
-                  ) : null}
-                </>
-              )}
+                <Button
+                  onClick={requestApprove}
+                  disabled={!title}
+                >
+                  <Check size={14} /> Approve
+                </Button>
+              ) : null}
             </DrawerFooter>
           </>
         )}

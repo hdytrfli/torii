@@ -61,6 +61,16 @@ export const api = {
         operation_id?: number
       }>(`/api/jobs/${id}/approve`, data)
     ).data,
+  updateJob: async (
+    id: number,
+    data: {
+      title: string
+      year: number | null
+      media_type: "movie" | "tv"
+      season: number | null
+      episode: number | null
+    },
+  ) => (await http.patch<Job>(`/api/jobs/${id}`, data)).data,
   preview: async (
     id: number,
     data: {
@@ -109,6 +119,8 @@ export const api = {
       await http.get<{
         running: OperationRow | null
         queued: number
+        ready?: number
+        promotion?: number
         active: OperationRow[]
         recent: OperationRow[]
       }>("/api/operations")

@@ -150,18 +150,18 @@ export function DashboardPage() {
       <PageHeader
         eyebrow="Dashboard"
         title="Library overview."
-        description="Monitor the queue, match quality, and where each rename decision came from."
+        description="Monitor reviews, match quality, and where each rename decision came from."
       />
-      <section aria-label="Current queue" className="mt-10">
+      <section aria-label="Current pipeline" className="mt-10">
         <div className="mt-4 grid grid-cols-1 gap-14 sm:mt-8 sm:grid-cols-2 lg:mt-10 xl:grid-cols-3">
           <div>
             <ProgressBarCard
-              title="Queue health"
+              title="Review health"
               change={review ? `${review} waiting` : "clear"}
               value={`${total}`}
               valueDescription="files in the current scan"
               ctaDescription="Files are grouped before review."
-              ctaText="Open queue."
+              ctaText="Open review table."
               data={statusData}
             />
           </div>
@@ -222,7 +222,7 @@ export function DashboardPage() {
               ]}
             />
             <Button asChild variant="primary">
-              <Link to="/queue">Review queue</Link>
+              <Link to="/review">Review table</Link>
             </Button>
           </div>
           <p className="hidden text-sm text-gray-500 sm:block">
@@ -249,7 +249,7 @@ export function DashboardPage() {
             colors={[...SOURCE_CHART_COLORS]}
           />
           <MediaChartCard
-            title="Queue movement"
+            title="Apply progress"
             value={`${moved}`}
             previous={`${ready}`}
             change="moved / ready"
