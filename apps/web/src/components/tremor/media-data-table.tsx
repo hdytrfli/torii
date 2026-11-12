@@ -322,7 +322,9 @@ function MatchIndicator({ value }: { value: number }) {
       className="flex items-center gap-2"
       aria-label={`${percentage}% match`}
     >
-      <span className="w-8 tabular-nums text-gray-600">{percentage}%</span>
+      <span className="w-8 text-xs font-medium tabular-nums text-gray-600">
+        {percentage}%
+      </span>
       <div className="flex gap-0.5" aria-hidden="true">
         {[0, 1, 2].map((index) => (
           <div
