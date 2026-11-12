@@ -1,7 +1,9 @@
-import { ChevronDown, Home, ListChecks, LogOut, Settings, Tags, Users } from "lucide-react"
-import { NavLink, Outlet, useNavigate } from "react-router-dom"
+import { ChevronDown, Home, Landmark, ListChecks, LogOut, Settings, Tags, Users } from "lucide-react"
+import { Suspense, useEffect } from "react"
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../lib/auth"
 import { cn } from "../lib/format"
+import { RouteSkeleton } from "./loading"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,24 +29,31 @@ const shortcuts = [
 export function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  useEffect(() => {
+    const title =
+      location.pathname === "/" ? "Overview"
+      : location.pathname.startsWith("/queue") ? "Review queue"
+      : location.pathname.startsWith("/naming") ? "Naming"
+      : location.pathname.startsWith("/settings/users") ? "Users"
+      : location.pathname.startsWith("/settings") ? "Settings"
+      : "Torii"
+    document.title = `${title} - Torii`
+  }, [location.pathname])
 
   return (
     <div className="mx-auto min-h-screen max-w-screen-2xl bg-white">
       <nav className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <aside className="flex grow flex-col gap-y-6 overflow-y-auto border-r border-gray-200 bg-white p-4">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-gray-100"
-          >
-            <span className="flex size-9 items-center justify-center rounded-md bg-gray-900 text-sm font-semibold text-white">
-              T
+          <div className="flex items-center gap-2.5 px-2 py-1.5">
+            <span className="flex size-9 items-center justify-center rounded-md bg-gray-900 text-white">
+              <Landmark className="size-5" />
             </span>
             <span>
-              <span className="block text-sm font-semibold text-gray-900">torii</span>
+              <span className="block text-sm font-semibold text-gray-900">Torii</span>
               <span className="block text-xs text-gray-500">media workspace</span>
             </span>
-            <ChevronDown className="ml-auto size-4 text-gray-400" />
-          </button>
+          </div>
 
           <nav aria-label="core navigation links" className="flex flex-1 flex-col space-y-10">
             <ul role="list" className="space-y-0.5">
@@ -146,7 +155,9 @@ export function AppShell() {
 
       <main className="lg:pl-72">
         <div className="p-4 sm:px-6 sm:pb-10 sm:pt-10 lg:px-10 lg:pt-7">
-          <Outlet />
+          <Suspense fallback={<RouteSkeleton />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react"
-import { ChevronDown, ChevronRight } from "lucide-react"
 import type { Group, Job } from "../../lib/types"
 import { jobMeta, pct } from "../../lib/format"
 import { Checkbox, SourceBadge, StatusBadge } from "../ui"
@@ -176,9 +175,14 @@ function GroupRows({
 }) {
   return (
     <>
-      <TableRow className="bg-gray-50/70">
+      <TableRow
+        className="cursor-pointer bg-gray-50/70"
+        onClick={onToggleExpanded}
+        aria-expanded={isOpen}
+        title={isOpen ? "Collapse group" : "Expand group"}
+      >
         {!readOnly ? (
-          <TableCell>
+          <TableCell onClick={(event) => event.stopPropagation()}>
             <Checkbox
               checked={allSelected}
               ref={(node) => {
@@ -190,15 +194,8 @@ function GroupRows({
           </TableCell>
         ) : null}
         <TableCell className="font-medium text-gray-900">
-          <button type="button" onClick={onToggleExpanded} className="flex items-center gap-2 text-left">
-            {isOpen ? (
-              <ChevronDown className="size-4 shrink-0 text-gray-500" />
-            ) : (
-              <ChevronRight className="size-4 shrink-0 text-gray-500" />
-            )}
-            <span>{group.label}</span>
-            <span className="text-[10px] font-normal text-gray-400">{group.total}</span>
-          </button>
+          <span>{group.label}</span>
+          <span className="ml-1.5 text-xs font-normal text-gray-400">{group.total}</span>
         </TableCell>
         <TableCell className="capitalize">{group.type}</TableCell>
         <TableCell><SourceBadge source={group.source} /></TableCell>

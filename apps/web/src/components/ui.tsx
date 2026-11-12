@@ -36,13 +36,20 @@ export function AssessedBadge({
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const level =
+  const dot =
     status === "ready"
-      ? "medium"
+      ? "bg-emerald-500"
       : status === "needs_review"
-        ? "low"
-        : "none"
-  return <AssessedBadge label={statusLabel(status)} level={level} />
+        ? "bg-yellow-500"
+        : status === "failed" || status === "rejected"
+          ? "bg-red-500"
+          : "bg-gray-400"
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs capitalize text-gray-600">
+      <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />
+      {statusLabel(status)}
+    </span>
+  )
 }
 
 export function SourceBadge({ source }: { source: Source }) {

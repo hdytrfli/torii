@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "../lib/api"
 import type { Settings } from "../lib/types"
 import { LayoutBuilder } from "../components/layout-builder"
+import { PageHeader } from "../components/page-header"
 import { Button, Skeleton } from "../components/ui"
 
 export function NamingPage() {
@@ -63,12 +64,13 @@ export function NamingPage() {
 
   return (
     <div className="max-w-5xl">
-      <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">Naming</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Define where movies and shows land. Use the tokens to keep the layout readable and predictable.
-      </p>
+      <PageHeader
+        eyebrow="Naming"
+        title="Shape the library paths."
+        description="Define where movies and shows land. Use the tokens to keep the layout readable and predictable."
+      />
 
-      <div className="mt-8">
+      <div className="mt-10">
         <LayoutBuilder
           movie={movie}
           shows={shows}

@@ -47,6 +47,8 @@ export const api = {
       episode: number | null
     },
   ) => (await http.post<{ target: string }>(`/api/jobs/${id}/preview`, data)).data,
+  undo: async (id: number) =>
+    (await http.post<{ ok: boolean; message: string; job: Job }>(`/api/jobs/${id}/undo`)).data,
   reject: async (id: number) =>
     (await http.post<{ ok: boolean }>(`/api/jobs/${id}/reject`)).data,
   retry: async (id: number) =>

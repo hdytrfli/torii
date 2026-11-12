@@ -206,3 +206,38 @@ def test_hardlink_action_links_source(tmp_path: Path):
     assert source.exists()
     assert target is not None and target.exists()
     assert os.path.samefile(source, target)
+
+
+def test_undo_move_restores_source(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Spirited.Away.2001.1080p.mkv"
+    source.write_bytes(b"")
+    db = DB(tmp_path / "state.db")
+    settings = settings_mod.load(db)
+    job = pipeline.analyze(cfg, settings, db, source, JellyfinProvider(None, None), LLM(None, None, None))
+    ok, _, target = apply.apply_job(cfg, settings, db, job, job["title"], job["year"], job["media_type"], job["season"], job["episode"], action="move")
+    assert ok and target and target.exists() and not source.exists()
+
+    ok, message = apply.undo_job(cfg, settings, db, db.get_job(job["id"]))
+    assert ok, message
+    assert source.exists()
+    assert not target.exists()
+    assert db.get_job(job["id"])["status"] == "needs_review"
+
+
+def test_undo_copy_removes_target_and_keeps_source(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Spirited.Away.2001.1080p.mkv"
+    source.write_bytes(b"")
+    db = DB(tmp_path / "state.db")
+    settings = settings_mod.load(db)
+    job = pipeline.analyze(cfg, settings, db, source, JellyfinProvider(None, None), LLM(None, None, None))
+    ok, _, target = apply.apply_job(cfg, settings, db, job, job["title"], job["year"], job["media_type"], job["season"], job["episode"], action="copy")
+    assert ok and target and target.exists() and source.exists()
+
+    ok, message = apply.undo_job(cfg, settings, db, db.get_job(job["id"]))
+    assert ok, message
+    assert source.exists()
+    assert not target.exists()

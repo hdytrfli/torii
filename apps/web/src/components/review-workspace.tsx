@@ -7,6 +7,7 @@ import { BulkBar } from "./bulk-bar"
 import { GroupedJobTable } from "./tremor/job-table"
 import { JobDrawer } from "./job-drawer"
 import { EmptyState, Input, Skeleton } from "./ui"
+import { TabNavigation, TabNavigationLink } from "./tremor/tab-navigation"
 
 const tabs: Array<{ key: string; label: string }> = [
   { key: "needs_review", label: "Needs review" },
@@ -90,21 +91,19 @@ export function ReviewWorkspace({
     <div className="flex flex-col gap-4">
       {!compact ? (
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1 rounded-control border border-line bg-surface p-1">
+          <TabNavigation className="flex-1">
             {tabs.map((tab) => (
-              <button
+              <TabNavigationLink
                 key={tab.key}
-                onClick={() => setStatus(tab.key)}
-                className={
-                  status === tab.key
-                    ? "rounded-[8px] bg-brand px-2.5 py-1.5 text-[11.5px] font-medium text-brand-ink"
-                    : "rounded-[8px] px-2.5 py-1.5 text-[11.5px] text-ink-muted hover:bg-surface-muted hover:text-ink"
-                }
+                active={status === tab.key}
+                asChild
               >
-                {tab.label}
-              </button>
+                <button type="button" onClick={() => setStatus(tab.key)}>
+                  {tab.label}
+                </button>
+              </TabNavigationLink>
             ))}
-          </div>
+          </TabNavigation>
           <div className="relative ml-auto w-full max-w-xs">
             <Search
               size={14}

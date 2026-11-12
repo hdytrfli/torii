@@ -1,5 +1,6 @@
 import { Badge } from "./badge"
 import { LineChartSupport } from "./line-chart-support"
+import type { AvailableChartColorsKeys } from "../../lib/chart-utils"
 
 export function MediaChartCard({
   title,
@@ -8,6 +9,7 @@ export function MediaChartCard({
   change,
   data,
   categories,
+  colors = ["blue", "gray"] as AvailableChartColorsKeys[],
 }: {
   title: string
   value: string
@@ -15,6 +17,7 @@ export function MediaChartCard({
   change?: string
   data: Array<Record<string, string | number>>
   categories: string[]
+  colors?: AvailableChartColorsKeys[]
 }) {
   return (
     <div className="transition">
@@ -32,7 +35,7 @@ export function MediaChartCard({
         className="mt-6 h-32"
         data={data}
         index="date"
-        colors={["blue", "gray"]}
+        colors={colors}
         startEndOnly
         valueFormatter={(number: number) => Intl.NumberFormat("us").format(number)}
         showYAxis={false}

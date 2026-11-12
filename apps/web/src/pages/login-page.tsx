@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Clapperboard, Loader2 } from "lucide-react"
+import { Landmark, Loader } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { useAuth } from "../lib/auth"
@@ -42,7 +42,7 @@ export function LoginPage() {
     <div className="grid min-h-screen bg-canvas lg:grid-cols-[1.1fr_1fr]">
       <section className="hidden flex-col justify-between border-r border-line bg-brand p-10 text-brand-ink lg:flex">
         <div className="flex items-center gap-2 text-sm font-semibold">
-          <Clapperboard size={18} /> torii
+          <Landmark size={18} /> torii
         </div>
         <div className="max-w-lg">
           <h1 className="text-4xl font-semibold leading-tight tracking-tight">
@@ -74,13 +74,13 @@ export function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2 lg:hidden">
             <span className="flex h-8 w-8 items-center justify-center rounded-control bg-brand text-brand-ink">
-              <Clapperboard size={16} />
+              <Landmark size={16} />
             </span>
             <span className="text-sm font-semibold">torii</span>
           </div>
           {setupStatus.isLoading ? (
             <div className="flex items-center gap-2 text-sm text-ink-muted">
-              <Loader2 size={16} className="animate-spin" /> Checking setup…
+              <Loader size={16} className="animate-spin" /> Checking setup…
             </div>
           ) : (
             <>
@@ -128,7 +128,7 @@ export function LoginPage() {
                   </div>
                 ) : null}
                 <Button type="submit" disabled={busy} className="mt-1">
-                  {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+                  {busy ? <Loader size={14} className="animate-spin" /> : null}
                   {needsSetup ? "Create administrator" : "Sign in"}
                 </Button>
               </form>

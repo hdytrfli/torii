@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
-import { Check, RefreshCw, Sparkles, X } from "lucide-react"
+import { Check, RefreshCw, Sparkles, Undo2, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { pct, sourceLabel } from "../lib/format"
-import { Badge, Button, Field, Input, Select, SourceBadge } from "./ui"
+import { Badge, Button, Field, Input, SourceBadge } from "./ui"
+import { DropdownSelect } from "./tremor/dropdown-select"
 
 export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => void }) {
   const queryClient = useQueryClient()
@@ -83,6 +84,16 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     onError: (err: Error) => setError(err.message),
   })
 
+  const undo = useMutation({
+    mutationFn: () => api.undo(jobId),
+    onSuccess: (result) => {
+      queryClient.setQueryData(["job", jobId], result.job)
+      invalidate()
+      onClose()
+    },
+    onError: (err: Error) => setError(err.message),
+  })
+
   const askAi = useMutation({
     mutationFn: () => api.askAi(jobId),
     onSuccess: (updated) => {
@@ -133,7 +144,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                   <SourceBadge source={job.source} />
                   <span>{pct(job.confidence)} confidence</span>
                 </div>
-                <div className="mt-1 truncate font-mono text-[10.5px] text-ink-muted">
+                <div className="mt-1 truncate font-mono text-xs text-ink-muted">
                   {job.source_path}
                 </div>
               </div>
@@ -149,7 +160,17 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 </p>
               ) : null}
 
-              {job.candidates_json && job.candidates_json.length > 0 ? (
+              {job.status === "moved" ? (
+                <div className="rounded-control border border-line bg-surface-muted/50 p-3">
+                  <div className="text-xs font-medium text-gray-500">Applied target</div>
+                  <p className="mt-1 break-all font-mono text-xs text-gray-700">{job.target_path ?? "-"}</p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    This job is read-only. Undo restores the source or removes the copy/link.
+                  </p>
+                </div>
+              ) : null}
+
+              {job.status !== "moved" && job.candidates_json && job.candidates_json.length > 0 ? (
                 <section>
                   <div className="mb-2 text-xs font-medium text-gray-500">
                     Provider candidates
@@ -183,21 +204,22 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 </section>
               ) : null}
 
+              {job.status !== "moved" ? (
+                <>
               <section className="rounded-control border border-line bg-surface-muted/50 p-3">
                 <div className="mb-2 text-xs font-medium text-gray-500">
                   Identify by provider ID
                 </div>
                 <div className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-2">
-                  <Select
+                  <DropdownSelect
                     value={provider}
-                    onChange={(event) =>
-                      setProvider(event.target.value as "tmdb" | "imdb" | "tvdb")
-                    }
-                  >
-                    <option value="tmdb">TMDb</option>
-                    <option value="imdb">IMDb</option>
-                    <option value="tvdb">TVDB</option>
-                  </Select>
+                    onChange={setProvider}
+                    options={[
+                      { value: "tmdb", label: "TMDb" },
+                      { value: "imdb", label: "IMDb" },
+                      { value: "tvdb", label: "TVDB" },
+                    ]}
+                  />
                   <Input
                     value={externalId}
                     onChange={(event) => setExternalId(event.target.value)}
@@ -230,20 +252,20 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                   />
                 </Field>
                 <Field label="Type">
-                  <Select
+                  <DropdownSelect
                     value={mediaType}
-                    onChange={(event) => {
-                      const value = event.target.value as "movie" | "tv"
+                    onChange={(value) => {
                       setMediaType(value)
                       if (value === "movie") {
                         setSeason("")
                         setEpisode("")
                       }
                     }}
-                  >
-                    <option value="movie">Movie</option>
-                    <option value="tv">Show</option>
-                  </Select>
+                    options={[
+                      { value: "movie", label: "Movie" },
+                      { value: "tv", label: "Show" },
+                    ]}
+                  />
                 </Field>
                 {mediaType === "tv" ? (
                   <>
@@ -265,16 +287,15 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 ) : null}
                 <div className="col-span-2">
                   <Field label="Action">
-                    <Select
+                    <DropdownSelect
                       value={action}
-                      onChange={(event) =>
-                        setAction(event.target.value as "move" | "copy" | "hardlink")
-                      }
-                    >
-                      <option value="move">Move</option>
-                      <option value="copy">Copy</option>
-                      <option value="hardlink">Hardlink</option>
-                    </Select>
+                      onChange={setAction}
+                      options={[
+                        { value: "move", label: "Move" },
+                        { value: "copy", label: "Copy" },
+                        { value: "hardlink", label: "Hardlink" },
+                      ]}
+                    />
                   </Field>
                 </div>
               </section>
@@ -283,10 +304,13 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 <div className="mb-1 text-xs font-medium text-gray-500">
                   Target
                 </div>
-                <div className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-[11px] text-ink">
+                <div className="break-all rounded-control border border-line bg-surface-muted px-3 py-2 font-mono text-xs text-ink">
                   {target || "—"}
                 </div>
               </div>
+
+                </>
+              ) : null}
 
               {error ? (
                 <div className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger">
@@ -295,34 +319,35 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
-                <Button onClick={() => approve.mutate()} disabled={approve.isPending || !title}>
-                  <Check size={14} /> Approve
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => askAi.mutate()}
-                  disabled={askAi.isPending}
-                >
-                  <Sparkles size={14} /> Ask AI
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => retry.mutate()}
-                  disabled={retry.isPending}
-                >
-                  <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => reject.mutate()}
-                  disabled={reject.isPending}
-                >
-                  <X size={14} /> Reject
-                </Button>
-                <span className="ml-auto text-[10.5px] text-ink-muted">
+                {job.status === "moved" ? (
+                  <Button variant="secondary" onClick={() => undo.mutate()} disabled={undo.isPending}>
+                    <Undo2 size={14} /> Undo apply
+                  </Button>
+                ) : job.status === "needs_review" || job.status === "ready" ? (
+                  <>
+                    <Button onClick={() => approve.mutate()} disabled={approve.isPending || !title}>
+                      <Check size={14} /> Approve
+                    </Button>
+                    <Button variant="secondary" onClick={() => askAi.mutate()} disabled={askAi.isPending}>
+                      <Sparkles size={14} /> Ask AI
+                    </Button>
+                    <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
+                      <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
+                    </Button>
+                    <Button variant="danger" onClick={() => reject.mutate()} disabled={reject.isPending}>
+                      <X size={14} /> Reject
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
+                    <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
+                  </Button>
+                )}
+                <span className="ml-auto text-[10.5px] text-gray-500">
                   {job.status.replaceAll("_", " ")}
                 </span>
               </div>
+
             </div>
           </>
         )}

@@ -3,7 +3,10 @@ import { Link } from "react-router-dom"
 import { RefreshCw } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
-import { Button, Select } from "../components/ui"
+import { SOURCE_CHART_COLORS, SOURCE_META } from "../lib/constants"
+import { Button } from "../components/ui"
+import { DropdownSelect } from "../components/tremor/dropdown-select"
+import { PageHeader } from "../components/page-header"
 import { CategoryBarCard, ProgressBarCard } from "../components/tremor/dashboard-cards"
 import { MediaChartCard } from "../components/tremor/media-chart-card"
 
@@ -22,6 +25,13 @@ export function DashboardPage() {
 
   const groups = groupsQuery.data ?? []
   const jobs = groups.flatMap((group) => group.jobs)
+  const filteredJobs = useMemo(
+    () =>
+      sourceFilter === "all"
+        ? jobs
+        : jobs.filter((job) => (job.source ?? "guessit") === sourceFilter),
+    [jobs, sourceFilter],
+  )
   const total = jobs.length
   const review = stats.data?.needs_review ?? 0
   const ready = stats.data?.ready ?? 0
@@ -65,11 +75,17 @@ export function DashboardPage() {
     },
   ]
 
-  const sourceData = [
-    { title: "Jellyfin", percentage: total ? ((sourceCounts.jellyfin ?? 0) / total) * 100 : 0, value: String(sourceCounts.jellyfin ?? 0), color: "bg-gray-900" },
-    { title: "Filename", percentage: total ? ((sourceCounts.guessit ?? 0) / total) * 100 : 0, value: String(sourceCounts.guessit ?? 0), color: "bg-gray-500" },
-    { title: "NFO / AI", percentage: total ? (((sourceCounts.nfo ?? 0) + (sourceCounts.llm ?? 0)) / total) * 100 : 0, value: String((sourceCounts.nfo ?? 0) + (sourceCounts.llm ?? 0)), color: "bg-gray-300" },
-  ]
+  const sourceData = (Object.entries(SOURCE_META) as Array<
+    [keyof typeof SOURCE_META, (typeof SOURCE_META)[keyof typeof SOURCE_META]]
+  >).map(([key, meta]) => {
+    const count = sourceCounts[key] ?? 0
+    return {
+      title: meta.label,
+      percentage: total ? (count / total) * 100 : 0,
+      value: String(count),
+      color: meta.bar,
+    }
+  })
 
   const trend = useMemo(() => {
     const days = Array.from({ length: 7 }, (_, index) => {
@@ -79,10 +95,23 @@ export function DashboardPage() {
     })
     return days.map((date) => ({
       date: date.slice(5),
-      Matched: jobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source !== "guessit").length,
-      Review: jobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "guessit").length,
+      Matched: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source !== "guessit").length,
+      Review: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "guessit").length,
     }))
-  }, [jobs])
+  }, [filteredJobs])
+
+  const sourceTrend = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date()
+      date.setDate(date.getDate() - (6 - index))
+      return date.toISOString().slice(0, 10)
+    })
+    return days.map((date) => ({
+      date: date.slice(5),
+      Jellyfin: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "jellyfin").length,
+      Filename: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "guessit").length,
+    }))
+  }, [filteredJobs])
 
   const filteredGroups =
     sourceFilter === "all"
@@ -91,10 +120,12 @@ export function DashboardPage() {
 
   return (
     <main>
-      <section aria-labelledby="current-queue">
-        <h1 id="current-queue" className="scroll-mt-10 text-lg font-semibold text-gray-900 sm:text-xl">
-          Current queue
-        </h1>
+      <PageHeader
+        eyebrow="Dashboard"
+        title="Library overview."
+        description="Monitor the queue, match quality, and where each rename decision came from."
+      />
+      <section aria-label="Current queue" className="mt-10">
         <div className="mt-4 grid grid-cols-1 gap-14 sm:mt-8 sm:grid-cols-2 lg:mt-10 xl:grid-cols-3">
           <div>
             <ProgressBarCard
@@ -146,26 +177,31 @@ export function DashboardPage() {
 
         <div className="sticky top-16 z-20 flex items-center justify-between border-b border-gray-200 bg-white pb-4 pt-4 sm:pt-6 lg:top-0 lg:pt-8">
           <div className="flex items-center gap-2">
-            <Select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)} className="w-44">
-              <option value="all">All sources</option>
-              <option value="jellyfin">Jellyfin</option>
-              <option value="guessit">Filename</option>
-              <option value="nfo">Local NFO</option>
-              <option value="llm">AI fallback</option>
-            </Select>
+            <DropdownSelect
+              value={sourceFilter}
+              onChange={setSourceFilter}
+              className="w-44"
+              options={[
+                { value: "all", label: "All sources" },
+                { value: "jellyfin", label: "Jellyfin" },
+                { value: "guessit", label: "Filename" },
+                { value: "nfo", label: "Local NFO" },
+                { value: "llm", label: "AI fallback" },
+              ]}
+            />
             <Link to="/queue">
               <Button variant="light">Review queue</Button>
             </Link>
           </div>
           <p className="hidden text-sm text-gray-500 sm:block">
-            {filteredGroups.length} groups · {jobs.length} jobs
+            {filteredGroups.length} groups - {jobs.length} jobs
           </p>
         </div>
 
         <dl className="mt-10 grid grid-cols-1 gap-14 md:grid-cols-2 xl:grid-cols-3">
           <MediaChartCard
             title="Scan activity"
-            value={`${jobs.length}`}
+            value={`${filteredJobs.length}`}
             previous={`${review}`}
             change="7 days"
             data={trend}
@@ -176,8 +212,9 @@ export function DashboardPage() {
             value={`${sourceCounts.jellyfin ?? 0}`}
             previous={`${sourceCounts.guessit ?? 0}`}
             change="Jellyfin / filename"
-            data={trend}
-            categories={["Matched", "Review"]}
+            data={sourceTrend}
+            categories={["Jellyfin", "Filename"]}
+            colors={[...SOURCE_CHART_COLORS]}
           />
           <MediaChartCard
             title="Queue movement"

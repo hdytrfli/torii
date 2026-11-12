@@ -117,7 +117,7 @@ export function CategoryBarCard({
               <span className={`${item.color} size-2.5 rounded-sm`} aria-hidden="true" />
               <span className="text-gray-900">{item.title}</span>
               <span className="text-gray-600">
-                ({item.value} / {item.percentage}%)
+                ({item.value} / {Math.round(item.percentage)}%)
               </span>
             </li>
           ))}

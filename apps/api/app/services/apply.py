@@ -209,3 +209,62 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
     verb = {"move": "Moved", "copy": "Copied", "hardlink": "Linked"}[chosen_action]
     logger.info("%s %s to %s", verb, source, target)
     return True, f"{verb} to {target}", target
+
+
+def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, str]:
+    if job.get("status") != "moved":
+        return False, "Only applied jobs can be undone."
+    target = Path(job.get("target_path") or "")
+    source = Path(job["source_path"])
+    if not target.is_file():
+        db.update_job(
+            job["id"],
+            status="needs_review",
+            target_path=None,
+            error="Target file is missing; job returned to review.",
+        )
+        return False, "Target file is missing; job returned to review."
+
+    if not any(
+        _is_relative(target, root) for root in cfg.library_dirs
+    ):
+        return False, "Target is outside the library; refusing to touch it."
+
+    sidecars = _sidecars(target)
+    try:
+        if source.exists():
+            target.unlink()
+            for sidecar in sidecars:
+                sidecar.unlink(missing_ok=True)
+            message = "Target copy removed; source retained."
+        else:
+            source.parent.mkdir(parents=True, exist_ok=True)
+            if source.exists():
+                return False, "Source path already exists."
+            shutil.move(str(target), str(source))
+            for sidecar in sidecars:
+                sidecar_source = source.with_name(f"{source.stem}{sidecar.suffix}")
+                if not sidecar_source.exists():
+                    shutil.move(str(sidecar), str(sidecar_source))
+            message = "Target moved back to the source path."
+    except OSError as exc:
+        return False, f"Undo failed: {exc}"
+
+    stat = source.stat()
+    db.update_job(
+        job["id"],
+        status="needs_review",
+        target_path=None,
+        source_size=stat.st_size,
+        source_mtime=stat.st_mtime,
+        error=None,
+        reason=f"Undo: {message}",
+    )
+    return True, message
+
+
+def _is_relative(path: Path, root: Path) -> bool:
+    try:
+        return path.resolve().is_relative_to(root.resolve())
+    except OSError:
+        return False

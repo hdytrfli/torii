@@ -187,7 +187,7 @@ function UserRow({
             {isSelf ? <span className="ml-2 text-xs font-normal text-gray-400">you</span> : null}
           </p>
           <p className="truncate text-xs text-gray-500">
-            {account.is_admin ? "Administrator" : "Reviewer"} · added{" "}
+            {account.is_admin ? "Administrator" : "Reviewer"} - added{" "}
             {account.created_at?.slice(0, 10) ?? "—"}
           </p>
         </div>

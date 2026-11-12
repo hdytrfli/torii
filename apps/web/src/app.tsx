@@ -1,8 +1,8 @@
-import { lazy, Suspense } from "react"
+import { lazy } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AppShell } from "./components/app-shell"
-import { AppLoading, PageLoading } from "./components/loading"
+import { AppLoading } from "./components/loading"
 import { AuthProvider, useAuth } from "./lib/auth"
 import { queryClient } from "./lib/query-client"
 import { LoginPage } from "./pages/login-page"
@@ -24,7 +24,6 @@ function AppRoutes() {
   if (!user) return <LoginPage />
 
   return (
-    <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route element={<AppShell />}>
         <Route index element={<DashboardPage />} />
@@ -38,7 +37,6 @@ function AppRoutes() {
         <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </Suspense>
   )
 }
 

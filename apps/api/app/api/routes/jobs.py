@@ -228,6 +228,18 @@ def ask_ai(request: Request, job_id: int):
     return deps.db.job_json(deps.db.get_job(job_id) or job)
 
 
+@router.post("/jobs/{job_id}/undo")
+def undo(request: Request, job_id: int):
+    deps.current_session(request)
+    job = deps.db.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    ok, message = apply.undo_job(deps.cfg, settings_mod.load(deps.db), deps.db, job)
+    if not ok:
+        raise HTTPException(status_code=400, detail=message)
+    return {"ok": True, "message": message, "job": deps.db.job_json(deps.db.get_job(job_id) or job)}
+
+
 @router.post("/jobs/{job_id}/reject")
 def reject(request: Request, job_id: int):
     deps.current_session(request)

@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, ApiError } from "../lib/api"
 import type { Settings } from "../lib/types"
 import { Divider } from "../components/tremor/divider"
-import { Button, Field, Input, Select, Skeleton, Toggle } from "../components/ui"
+import { DropdownSelect } from "../components/tremor/dropdown-select"
+import { Button, Field, Input, Skeleton, Toggle } from "../components/ui"
 
 export function SettingsPage() {
   const queryClient = useQueryClient()
@@ -51,7 +52,7 @@ export function SettingsPage() {
 
   if (!form) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="space-y-4">
         <Skeleton className="h-40" />
         <Skeleton className="h-56" />
         <Skeleton className="h-56" />
@@ -80,15 +81,14 @@ export function SettingsPage() {
   return (
     <form onSubmit={submit} className="min-w-0">
       <div className="space-y-10">
-
-        <section className="min-w-0 space-y-4">
+        <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
           <div>
             <h2 className="font-semibold text-gray-900">Scanning</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
               Control which files are picked up and how quickly.
             </p>
           </div>
-          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-4 md:col-span-2">
             <Field label="Minimum file size (MB)" hint="Use 0 for empty test files.">
               <Input
                 type="number"
@@ -117,79 +117,89 @@ export function SettingsPage() {
                 onChange={(event) => update("stable_seconds", Number(event.target.value))}
               />
             </Field>
+            <SaveRow pending={save.isPending} message={message} error={error} />
           </div>
         </section>
 
         <Divider />
 
-        <section className="min-w-0 space-y-4">
+        <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
           <div>
             <h2 className="font-semibold text-gray-900">Apply</h2>
             <p className="mt-1 text-sm leading-6 text-gray-500">
               Choose the file action and automation boundary.
             </p>
           </div>
-          <div className="min-w-0 space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Action">
-                <Select
-                  value={form.action}
-                  onChange={(event) => update("action", event.target.value as Settings["action"])}
-                >
-                  <option value="move">Move — source disappears</option>
-                  <option value="copy">Copy — source stays</option>
-                  <option value="hardlink">Hardlink — same filesystem</option>
-                </Select>
-              </Field>
-              <Field label="Auto-apply confidence" hint="0 to 1. Higher means fewer auto moves.">
-                <Input
-                  type="number"
-                  min={0}
-                  max={1}
-                  step="0.01"
-                  value={form.auto_apply_confidence}
-                  onChange={(event) => update("auto_apply_confidence", Number(event.target.value))}
-                />
-              </Field>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Toggle
-                label="Delete source after copy"
-                hint="Only applies when the action is copy."
-                checked={form.delete_source}
-                onChange={(value) => update("delete_source", value)}
+          <div className="min-w-0 space-y-4 md:col-span-2">
+            <Field label="Action">
+              <DropdownSelect
+                value={form.action}
+                onChange={(value) => update("action", value)}
+                options={[
+                  { value: "move", label: "Move - source disappears" },
+                  { value: "copy", label: "Copy - source stays" },
+                  { value: "hardlink", label: "Hardlink - same filesystem" },
+                ]}
               />
-              <Toggle
-                label="Clean up empty folders"
-                hint="Runs after any successful apply."
-                checked={form.cleanup_empty_dirs}
-                onChange={(value) => update("cleanup_empty_dirs", value)}
+            </Field>
+            <Field label="Auto-apply confidence" hint="0 to 1. Higher means fewer auto moves.">
+              <Input
+                type="number"
+                min={0}
+                max={1}
+                step="0.01"
+                value={form.auto_apply_confidence}
+                onChange={(event) => update("auto_apply_confidence", Number(event.target.value))}
               />
-              <Toggle
-                label="Dry run"
-                hint="Calculate the target without touching files."
-                checked={form.dry_run}
-                onChange={(value) => update("dry_run", value)}
-              />
-              <Toggle
-                label="Auto-apply high-confidence jobs"
-                hint="Only jobs at or above the threshold skip review."
-                checked={form.auto_apply}
-                onChange={(value) => update("auto_apply", value)}
-              />
-            </div>
+            </Field>
+            <Toggle
+              label="Delete source after copy"
+              hint="Only applies when the action is copy."
+              checked={form.delete_source}
+              onChange={(value) => update("delete_source", value)}
+            />
+            <Toggle
+              label="Clean up empty folders"
+              hint="Runs after any successful apply."
+              checked={form.cleanup_empty_dirs}
+              onChange={(value) => update("cleanup_empty_dirs", value)}
+            />
+            <Toggle
+              label="Dry run"
+              hint="Calculate the target without touching files."
+              checked={form.dry_run}
+              onChange={(value) => update("dry_run", value)}
+            />
+            <Toggle
+              label="Auto-apply high-confidence jobs"
+              hint="Only jobs at or above the threshold skip review."
+              checked={form.auto_apply}
+              onChange={(value) => update("auto_apply", value)}
+            />
+            <SaveRow pending={save.isPending} message={message} error={error} />
           </div>
         </section>
-
-        <Divider />
-        <div className="flex items-center justify-end gap-3">
-          {message ? <span className="text-xs text-gray-500">{message}</span> : null}
-          {error ? <span className="text-xs text-red-700">{error}</span> : null}
-          <Button type="submit" disabled={save.isPending}>
-            <Save size={14} /> {save.isPending ? "Saving…" : "Save settings"}
-          </Button>
-        </div>
       </div>
     </form>
+  )
+}
+
+function SaveRow({
+  pending,
+  message,
+  error,
+}: {
+  pending: boolean
+  message: string | null
+  error: string | null
+}) {
+  return (
+    <div className="flex items-center justify-end gap-3 pt-1">
+      {message ? <span className="text-xs text-gray-500">{message}</span> : null}
+      {error ? <span className="text-xs text-red-700">{error}</span> : null}
+      <Button type="submit" disabled={pending}>
+        <Save size={14} /> {pending ? "Saving…" : "Save changes"}
+      </Button>
+    </div>
   )
 }

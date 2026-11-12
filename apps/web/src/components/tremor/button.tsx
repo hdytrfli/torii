@@ -1,13 +1,13 @@
 // Tremor Button [v0.2.0]
 // Vendored from tremorlabs/template-overview, light presentation.
 import { Slot } from "@radix-ui/react-slot"
-import { Loader2 } from "lucide-react"
+import { Loader } from "lucide-react"
 import { forwardRef, type ComponentPropsWithoutRef } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { cn } from "../../lib/format"
 
 const buttonVariants = tv({
-  base: "relative inline-flex items-center justify-center whitespace-nowrap rounded-md border px-3 py-2 text-center text-sm font-medium shadow-sm outline outline-offset-2 outline-0 transition-all duration-100 ease-in-out focus-visible:outline-2 focus-visible:outline-gray-900 disabled:pointer-events-none disabled:shadow-none",
+  base: "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3 py-2 text-center text-sm font-medium shadow-sm outline outline-offset-2 outline-0 transition-all duration-100 ease-in-out focus-visible:outline-2 focus-visible:outline-gray-900 disabled:pointer-events-none disabled:shadow-none",
   variants: {
     variant: {
       primary: "border-transparent bg-brand text-brand-ink hover:bg-brand/90 disabled:bg-gray-300",
@@ -61,7 +61,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading ? (
           <>
-            <Loader2 className="mr-2 size-4 shrink-0 animate-spin" aria-hidden="true" />
+            <Loader className="size-4 shrink-0 animate-spin" aria-hidden="true" />
             {loadingText ?? "Loading..."}
           </>
         ) : (

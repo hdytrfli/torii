@@ -74,7 +74,7 @@ export function LayoutBuilder({
               key={token}
               type="button"
               onClick={() => insert(token)}
-              className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 font-mono text-[11px] text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+              className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 font-mono text-xs text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
             >
               {token}
             </button>
@@ -110,7 +110,7 @@ export function LayoutBuilder({
 
         <div className="grid gap-3">
           <Preview label="Movie preview" example="Spirited Away (2001)" path={preview.data?.movie} error={preview.error} />
-          <Preview label="Show preview" example="Dark (2017) · S01E01" path={preview.data?.shows} error={preview.error} />
+          <Preview label="Show preview" example="Dark (2017) - S01E01" path={preview.data?.shows} error={preview.error} />
         </div>
       </div>
     </div>
@@ -138,7 +138,7 @@ function Preview({
       {error ? (
         <p className="mt-2 text-xs text-red-700">{error.message}</p>
       ) : (
-        <div className="mt-2 space-y-1 font-mono text-[11px] leading-5">
+        <div className="mt-2 space-y-1 font-mono text-xs leading-5">
           {parts.length ? (
             parts.map((part, index) => (
               <div key={`${part}-${index}`} className="flex min-w-0 items-center gap-1.5 text-gray-600">
