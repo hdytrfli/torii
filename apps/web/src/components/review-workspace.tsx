@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
-import { Search } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import type { Group } from "../lib/types"
 import { BulkBar } from "./bulk-bar"
 import { GroupedJobTable } from "./tremor/job-table"
 import { JobDrawer } from "./job-drawer"
-import { EmptyState, Input, Skeleton } from "./ui"
+import { EmptyState, Skeleton } from "./ui"
 import { TabNavigation, TabNavigationLink } from "./tremor/tab-navigation"
 
 const tabs: Array<{ key: string; label: string }> = [
@@ -104,18 +103,6 @@ export function ReviewWorkspace({
               </TabNavigationLink>
             ))}
           </TabNavigation>
-          <div className="relative ml-auto w-full max-w-xs">
-            <Search
-              size={14}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
-            />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Filter shows, collections, movies…"
-              className="pl-8"
-            />
-          </div>
         </div>
       ) : null}
 
@@ -141,6 +128,8 @@ export function ReviewWorkspace({
           onToggle={toggle}
           onToggleGroup={toggleGroup}
           onOpen={(job) => setOpenJob(job.id)}
+          search={search}
+          onSearch={setSearch}
         />
       )}
 

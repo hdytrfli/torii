@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import type { Group, Job } from "../../lib/types"
+import { Search } from "lucide-react"
 import { jobMeta, pct } from "../../lib/format"
-import { Checkbox, SourceBadge, StatusBadge } from "../ui"
+import { Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
 import { cn } from "../../lib/format"
 import {
   Table,
@@ -19,6 +20,8 @@ export function GroupedJobTable({
   onToggle,
   onToggleGroup,
   onOpen,
+  search = "",
+  onSearch,
   readOnly = false,
   pageSize = 10,
 }: {
@@ -27,6 +30,8 @@ export function GroupedJobTable({
   onToggle?: (id: number) => void
   onToggleGroup?: (group: Group, checked: boolean) => void
   onOpen?: (job: Job) => void
+  search?: string
+  onSearch?: (value: string) => void
   readOnly?: boolean
   pageSize?: number
 }) {
@@ -51,6 +56,19 @@ export function GroupedJobTable({
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative w-full max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+          <Input
+            type="search"
+            value={search}
+            onChange={(event) => onSearch?.(event.target.value)}
+            placeholder="Search groups and files..."
+            className="[&>input]:pl-8"
+          />
+        </div>
+        <span className="text-sm text-gray-500">{groups.length} groups</span>
+      </div>
       <div className="relative overflow-hidden overflow-x-auto">
         <Table className="table-fixed">
           <TableHead>
