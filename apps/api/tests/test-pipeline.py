@@ -125,6 +125,60 @@ def test_undo_with_missing_source_and_target_marks_failed(tmp_path: Path):
     assert restored["error"] == "Source and target files are missing."
 
 
+def test_apply_blocks_duplicate_target(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    cfg.movie_library_dir.mkdir(parents=True)
+    db = DB(tmp_path / "state.db")
+    settings = settings_mod.load(db)
+    first_source = cfg.movie_watch_dir / "Same.2024.one.mkv"
+    second_source = cfg.movie_watch_dir / "Same.2024.two.mkv"
+    first_source.write_bytes(b"1")
+    second_source.write_bytes(b"2")
+    target_path = str(cfg.movie_library_dir / "Same (2024)" / "Same.mkv")
+    first_id = db.create_job(
+        first_source,
+        1,
+        0,
+        status="needs_review",
+        title="Same",
+        year=2024,
+        media_type="movie",
+        confidence=0.95,
+        target_path=target_path,
+    )
+    second_id = db.create_job(
+        second_source,
+        1,
+        0,
+        status="needs_review",
+        title="Same",
+        year=2024,
+        media_type="movie",
+        confidence=0.95,
+        target_path=target_path,
+        error="Duplicate target with Same.2024.one.mkv",
+        auto_apply_eligible=0,
+    )
+    second = db.get_job(second_id) or {}
+    first = db.get_job(first_id) or {}
+
+    ok, message, _ = apply.apply_job(
+        cfg, settings, db, second,
+        second["title"], second["year"], second["media_type"],
+        second["season"], second["episode"],
+    )
+    assert not ok
+    assert "Duplicate target" in message
+
+    ok, message, _ = apply.apply_job(
+        cfg, settings, db, first,
+        first["title"], first["year"], first["media_type"],
+        first["season"], first["episode"],
+    )
+    assert ok, message
+
+
 def test_scanner_marks_duplicate_targets(tmp_path: Path):
     cfg = make_config(tmp_path)
     cfg.movie_watch_dir.mkdir(parents=True)

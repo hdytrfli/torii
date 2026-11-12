@@ -145,6 +145,21 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
     except ValueError as exc:
         return False, str(exc), None
 
+    duplicate = db.get_job_by_target(str(target), exclude_id=int(job["id"]))
+    if duplicate:
+        duplicate_is_marked = str(duplicate.get("error") or "").startswith(
+            "Duplicate target with "
+        )
+        if not duplicate_is_marked:
+            message = f"Duplicate target with {Path(duplicate['source_path']).name}"
+            db.update_job(
+                job["id"],
+                status="needs_review",
+                error=message,
+                auto_apply_eligible=0,
+            )
+            return False, message, None
+
     if target.exists():
         db.update_job(job["id"], status="needs_review", error=f"Target exists: {target}")
         return False, f"Target already exists: {target}", None
