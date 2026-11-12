@@ -14,7 +14,7 @@ import {
   type SortingState,
   type Table as TanStackTable,
 } from "@tanstack/react-table"
-import { ChevronDown, ChevronUp, Download, MoreHorizontal, Plus, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, ChevronUp, MoreHorizontal, Plus, SlidersHorizontal } from "lucide-react"
 import type { Job } from "../../lib/types"
 import { cn, episodeLabel, pct } from "../../lib/format"
 import { BulkBar } from "../bulk-bar"
@@ -269,36 +269,6 @@ function Filterbar({ table }: { table: TanStackTable<Job> }) {
     return () => window.clearTimeout(timeout)
   }, [searchTerm, table])
 
-  const exportFiltered = () => {
-    const rows = table.getFilteredRowModel().rows.map((row) => row.original)
-    const header = ["Title", "Year", "Type", "Source", "Match", "Status", "Source path"]
-    const body = rows.map((job) => [
-      job.title ?? "",
-      job.year ?? "",
-      job.media_type === "tv" ? "Shows" : "Movie",
-      job.source,
-      Math.round(job.confidence * 100),
-      job.status,
-      job.source_path,
-    ])
-    const csv = [header, ...body]
-      .map((row) =>
-        row
-          .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-          .join(","),
-      )
-      .join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement("a")
-    anchor.href = url
-    anchor.download = "torii-queue.csv"
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(url)
-  }
-
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-x-6">
       <div className="flex w-full flex-col gap-2 sm:w-fit sm:flex-row sm:items-center">
@@ -337,14 +307,6 @@ function Filterbar({ table }: { table: TanStackTable<Job> }) {
         ) : null}
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
-          className="hidden lg:flex"
-          onClick={exportFiltered}
-        >
-          <Download className="size-4 shrink-0" aria-hidden="true" />
-          Export
-        </Button>
         <ViewOptions table={table} />
       </div>
     </div>
