@@ -48,6 +48,7 @@ def test_analyze_and_move(tmp_path: Path):
     assert job["year"] == 2001
     assert job["media_type"] == "movie"
     assert job["status"] == "needs_review"
+    assert job["source"] == "guessit"
 
     ok, message, target = apply.apply_job(
         cfg,
@@ -65,3 +66,70 @@ def test_analyze_and_move(tmp_path: Path):
     assert target is not None and target.exists()
     assert not source.exists()
     assert db.get_job(job["id"])["status"] == "moved"
+
+
+class FakeJellyfin:
+    enabled = True
+
+    def __init__(self, candidates):
+        self.candidates = candidates
+
+    def search(self, title, year, kind):
+        return list(self.candidates)
+
+
+class FakeLLM:
+    enabled = True
+
+    def __init__(self, decision=None):
+        self.decision = decision
+        self.calls = 0
+
+    def normalize(self, release, parsed, candidates):
+        self.calls += 1
+        return self.decision
+
+
+def test_jellyfin_match_does_not_call_ai(tmp_path: Path):
+    from app.providers import Candidate
+
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Spirited.Away.2001.1080p.mkv"
+    source.write_bytes(b"")
+    db = DB(tmp_path / "state.db")
+    llm = FakeLLM({"title": "Wrong AI Title", "year": 1999, "media_type": "movie"})
+    jellyfin = FakeJellyfin([
+        Candidate(
+            provider="jellyfin",
+            provider_id="129",
+            title="Spirited Away",
+            year=2001,
+            overview="",
+            image=None,
+            kind="movie",
+            score=100.0,
+        )
+    ])
+
+    job = pipeline.analyze(cfg, settings_mod.load(db), db, source, jellyfin, llm)
+
+    assert job["source"] == "jellyfin"
+    assert job["title"] == "Spirited Away"
+    assert llm.calls == 0
+
+
+def test_ai_is_used_only_without_provider_candidates(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Unknown.Movie.2020.mkv"
+    source.write_bytes(b"")
+    db = DB(tmp_path / "state.db")
+    llm = FakeLLM({"title": "Resolved Movie", "year": 2020, "media_type": "movie", "reason": "AI"})
+    jellyfin = FakeJellyfin([])
+
+    job = pipeline.analyze(cfg, settings_mod.load(db), db, source, jellyfin, llm)
+
+    assert job["source"] == "llm"
+    assert job["title"] == "Resolved Movie"
+    assert llm.calls == 1

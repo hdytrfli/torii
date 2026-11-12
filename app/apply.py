@@ -169,9 +169,20 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
         db.update_job(job["id"], status="needs_review", error=str(exc))
         return False, f"File operation failed: {exc}", None
 
+    rename_source = job.get("source") or "guessit"
+    if (
+        job.get("title") != title
+        or job.get("year") != year
+        or job.get("media_type") != media_type
+        or job.get("season") != season
+        or job.get("episode") != episode
+    ):
+        rename_source = "manual"
+
     db.update_job(
         job["id"],
         status="moved",
+        source=rename_source,
         target_path=str(target),
         title=title,
         year=year,

@@ -36,6 +36,14 @@ scanner = Scanner(cfg, db, jellyfin, llm)
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 templates.env.filters["basename"] = lambda value: Path(str(value)).name
 templates.env.filters["pct"] = lambda value: f"{float(value or 0) * 100:.0f}%"
+SOURCE_LABELS = {
+    "guessit": "Filename (guessit)",
+    "jellyfin": "Jellyfin",
+    "nfo": "Local NFO",
+    "llm": "AI fallback",
+    "manual": "Manual edit",
+}
+templates.env.filters["source_label"] = lambda value: SOURCE_LABELS.get(value or "", "Unknown")
 
 OPEN_PATHS = {"/login", "/setup", "/api/login", "/api/health"}
 
@@ -442,6 +450,7 @@ async def use_candidate(request: Request, job_id: int):
 
     db.update_job(
         job_id,
+        source=candidate.get("provider") if candidate.get("provider") in {"jellyfin", "nfo"} else "manual",
         title=candidate.get("title"),
         year=candidate.get("year"),
         media_type=candidate.get("kind") or job["media_type"],

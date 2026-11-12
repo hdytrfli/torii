@@ -9,9 +9,14 @@
   </div>
   <div class="job-meta">
     <span class="badge {{ job.status }}">{{ job.status }}</span>
+    <span class="source-badge {{ job.source }}">{{ job.source|source_label }}</span>
     <span class="confidence">{{ job.confidence|pct }}</span>
   </div>
 </div>
+
+{% if job.reason %}
+  <p class="muted small">Matched with {{ job.source|source_label }}: {{ job.reason }}</p>
+{% endif %}
 
 {% if job.error %}
   <div class="notice error">{{ job.error }}</div>

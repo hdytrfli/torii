@@ -46,6 +46,8 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
     parsed = guess.parse(path)
     local = nfo.read(path)
     nfo_candidate = None
+    source = "guessit"
+    ai_attempted = False
 
     if local:
         if local.get("title"):
@@ -74,6 +76,7 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
                 score=100.0,
                 raw={"path": local["path"], "provider_ids": ids},
             )
+            source = "nfo"
 
     if forced_kind in {"movie", "tv"}:
         parsed.kind = forced_kind
@@ -94,10 +97,14 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
         ]
 
     best = _candidate_best(candidates)
+    if best is not None and best.provider != "nfo":
+        source = "jellyfin"
     confidence = _confidence(parsed, best, candidates)
     decision: dict[str, Any] | None = None
 
-    if parsed.title and (best is None or confidence < settings.auto_apply_confidence):
+    # AI is the last resort: only ask it when there are no provider or NFO candidates.
+    if parsed.title and not candidates and llm.enabled:
+        ai_attempted = True
         decision = llm.normalize(path.stem, parsed, candidates)
         if decision and decision.get("title"):
             decision_title = str(decision["title"])
@@ -115,13 +122,11 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
                 best = _candidate_best(candidates)
                 if best is not None:
                     confidence = max(confidence, best.score / 100.0)
-
-    if best is not None and llm.enabled and len(candidates) > 1:
-        margin = candidates[0].score - candidates[1].score
-        if margin < 10:
-            verdict = llm.verify(path.stem, parsed, best)
-            if verdict is not None and verdict.get("match") is False:
-                confidence = max(0.0, confidence - 0.2)
+                    source = "jellyfin" if best.provider != "nfo" else "nfo"
+                else:
+                    source = "llm"
+            else:
+                source = "llm"
 
     title = (best.title if best else None) or (decision.get("title") if decision else None) \
         or parsed.title or path.stem
@@ -180,17 +185,21 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
     parsed_payload["nfo"] = local
 
     payload = {
+        "source": source,
         "media_type": media_type,
         "title": str(title),
         "year": int(year) if year else None,
         "season": season,
         "episode": episode,
         "confidence": round(confidence, 3),
-        "reason": (decision.get("reason") if decision else None) or (
-            "Local NFO metadata selected."
-            if nfo_candidate
-            else ("Provider candidate selected." if best else "Parsed from filename.")
-        ),
+        "reason": (decision.get("reason") if decision and decision.get("title") else None)
+        or {
+            "nfo": "Local NFO metadata selected.",
+            "jellyfin": "Jellyfin candidate selected.",
+            "llm": "AI fallback selected.",
+            "guessit": "Parsed from filename."
+            + (" AI fallback returned no usable match." if ai_attempted and not decision else ""),
+        }.get(source, "Parsed from filename."),
         "parsed_json": json.dumps(parsed_payload, ensure_ascii=False),
         "candidates_json": json.dumps([candidate.to_dict() for candidate in candidates], ensure_ascii=False),
         "llm_json": json.dumps(decision, ensure_ascii=False) if decision else None,

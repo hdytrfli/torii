@@ -18,7 +18,8 @@ See [SPEC.md](./SPEC.md) for the design and the later phases.
 - Reads local `.nfo` metadata first, when present.
 - Optionally asks Jellyfin for metadata candidates.
 - Optionally asks a cheap LLM for ambiguous names.
-- Shows a review page with the source, parsed values, candidates, and target path.
+- Shows a review page with the source, parsed values, candidates, match source,
+  and target path.
 - Moves, copies, or hardlinks the file only after approval.
 - Stores jobs and settings in SQLite.
 - Exposes the same operations over JSON for a future mobile client.
@@ -163,6 +164,21 @@ The OpenCode key needs **Models: Request** permission. A key with only
 **Models: Read** can list models but returns `permission_error` when called.
 Free-tier chat models require the OpenCode client itself; direct calls need a
 paid model or OpenCode Go.
+
+### Match source and AI policy
+
+Every job shows where its match came from:
+
+- **Filename (guessit)**: parsed from the release name.
+- **Jellyfin**: accepted a provider candidate above the score threshold.
+- **Local NFO**: local metadata took priority.
+- **AI fallback**: no provider candidates existed, so the LLM was asked.
+- **Manual edit**: a human changed the metadata before approving.
+
+AI is the last resort. It is not called when Jellyfin returns candidates, even
+weak ones, and it is not called for verification. Weak candidates stay in the
+review UI for a human. This keeps AI calls to the cases where there is truly
+nothing else to match.
 
 ## API
 

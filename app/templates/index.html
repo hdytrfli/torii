@@ -43,6 +43,7 @@
         </div>
         <div class="job-meta">
           <span class="badge {{ job.status }}">{{ job.status }}</span>
+          <span class="source-badge {{ job.source }}">{{ job.source|source_label }}</span>
           <span class="confidence">{{ job.confidence|pct }}</span>
         </div>
         <div class="job-target muted small">

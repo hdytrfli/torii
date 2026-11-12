@@ -12,6 +12,7 @@ JOB_FIELDS = {
     "source_size",
     "source_mtime",
     "status",
+    "source",
     "media_type",
     "title",
     "year",
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     source_size INTEGER NOT NULL,
     source_mtime REAL NOT NULL,
     status TEXT NOT NULL DEFAULT 'analyzing',
+    source TEXT,
     media_type TEXT,
     title TEXT,
     year INTEGER,
@@ -105,6 +107,9 @@ class DB:
     def _init(self) -> None:
         with self._connect() as conn:
             conn.executescript(SCHEMA)
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)")}
+            if "source" not in columns:
+                conn.execute("ALTER TABLE jobs ADD COLUMN source TEXT")
 
     # settings ---------------------------------------------------------
 

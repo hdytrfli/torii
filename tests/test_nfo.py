@@ -87,6 +87,7 @@ def test_pipeline_prefers_local_nfo(tmp_path: Path):
     assert job["year"] == 2001
     assert job["media_type"] == "movie"
     assert job["confidence"] == 1.0
+    assert job["source"] == "nfo"
     assert "NFO" in (job["reason"] or "")
     candidates = db.job_json(job)["candidates_json"]
     assert candidates[0]["provider"] == "nfo"
