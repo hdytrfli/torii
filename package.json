@@ -1,0 +1,12 @@
+{
+  "name": "torii",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.5.1",
+  "scripts": {
+    "dev": "pnpm --filter @torii/web dev",
+    "build": "pnpm --filter @torii/web build",
+    "lint": "pnpm --filter @torii/web lint",
+    "preview": "pnpm --filter @torii/web preview"
+  }
+}

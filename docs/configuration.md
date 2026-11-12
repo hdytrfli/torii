@@ -180,10 +180,11 @@ page or remove `torii.db` to start from the YAML defaults again.
 ## Validation
 
 ```bash
-python -m app.main --check-config
+(cd apps/api && uv run python -m app.main --check-config)
 docker compose config --quiet
 ```
 
 The first command validates types, required keys, known keys, extensions,
-actions, naming templates, and provider environment details. The second
+actions, naming templates, and provider environment details. Run it from the
+`apps/api` project with `uv`. The second
 validates the Compose file and mount syntax.
