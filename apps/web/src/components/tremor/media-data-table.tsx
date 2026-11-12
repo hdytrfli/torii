@@ -16,7 +16,7 @@ import {
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronUp, MoreHorizontal, Plus, SlidersHorizontal } from "lucide-react"
 import type { Job } from "../../lib/types"
-import { cn, episodeLabel, pct } from "../../lib/format"
+import { cn, episodeLabel } from "../../lib/format"
 import { BulkBar } from "../bulk-bar"
 import { Button, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown"
@@ -313,6 +313,31 @@ function Filterbar({ table }: { table: TanStackTable<Job> }) {
   )
 }
 
+function MatchIndicator({ value }: { value: number }) {
+  const percentage = Math.round((value ?? 0) * 100)
+  const bars = percentage >= 85 ? 3 : percentage >= 60 ? 2 : percentage > 0 ? 1 : 0
+
+  return (
+    <div
+      className="flex items-center gap-2"
+      aria-label={`${percentage}% match`}
+    >
+      <span className="w-8 tabular-nums text-gray-600">{percentage}%</span>
+      <div className="flex gap-0.5" aria-hidden="true">
+        {[0, 1, 2].map((index) => (
+          <div
+            key={index}
+            className={cn(
+              "h-3.5 w-1 rounded-sm",
+              index < bars ? "bg-brand" : "bg-gray-300",
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function JobRowActions({ job, onOpen }: { job: Job; onOpen?: (job: Job) => void }) {
   return (
     <DropdownMenu>
@@ -469,7 +494,7 @@ export function MediaDataTable({
         id: "confidence",
         accessorKey: "confidence",
         header: ({ column }) => <DataTableColumnHeader column={column} title="Match" />,
-        cell: ({ row }) => <span>{pct(row.original.confidence)}</span>,
+        cell: ({ row }) => <MatchIndicator value={row.original.confidence} />,
         enableSorting: true,
         meta: { displayName: "Match" },
       },
