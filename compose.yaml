@@ -1,0 +1,18 @@
+services:
+  renamer:
+    build: .
+    image: media-renamer:latest
+    container_name: media-renamer
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      WATCH_DIR: /downloads
+      LIBRARY_DIR: /library
+      STATE_DIR: /data
+    ports:
+      - "127.0.0.1:8090:8000"
+    volumes:
+      - ${WATCH_HOST:-/mnt/atlas/downloads}:/downloads
+      - ${LIBRARY_HOST:-/mnt/atlas/media}:/library
+      - ./data:/data
