@@ -1,17 +1,13 @@
-import {
-  forwardRef,
-  type InputHTMLAttributes,
-  type ReactNode,
-  type SelectHTMLAttributes,
-} from "react"
+import { type ReactNode } from "react"
 import { cn, sourceLabel, statusLabel } from "../lib/format"
 import type { Source } from "../lib/types"
 import { Badge } from "./tremor/badge"
 import { Checkbox } from "./tremor/checkbox"
+import { Input } from "./tremor/input"
 import { Button } from "./tremor/button"
 import { Card } from "./tremor/card"
 
-export { Badge, Button, Card, Checkbox }
+export { Badge, Button, Card, Checkbox, Input }
 
 export function AssessedBadge({
   label,
@@ -57,32 +53,6 @@ export function SourceBadge({ source }: { source: Source }) {
   const level =
     source === "jellyfin" ? "medium" : source === "nfo" ? "high" : source === "llm" ? "low" : "none"
   return <AssessedBadge label={sourceLabel(source)} level={level} />
-}
-
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, ...props }, ref) => (
-    <input
-      ref={ref}
-      className={cn(
-        "h-10 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-ink focus:ring-2 focus:ring-ink/10",
-        className,
-      )}
-      {...props}
-    />
-  ),
-)
-Input.displayName = "Input"
-
-export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      className={cn(
-        "h-10 min-w-0 w-full rounded-control border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-ink focus:ring-2 focus:ring-ink/10",
-        className,
-      )}
-      {...props}
-    />
-  )
 }
 
 export function Field({
