@@ -67,7 +67,7 @@ export function NamingPage() {
       <PageHeader
         eyebrow="Naming"
         title="Shape the library paths."
-        description="Define where movies and shows land. Use the tokens to keep the layout readable and predictable."
+        description="Compose movie and episode patterns with live previews. Tokens insert at the cursor in the active layout."
       />
 
       <div className="mt-10">
