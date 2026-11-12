@@ -3,10 +3,17 @@ import { useQuery } from "@tanstack/react-query"
 import { ChevronRight, GripVertical } from "lucide-react"
 import { api } from "../lib/api"
 import { cn } from "../lib/format"
-import { TOKEN_DRAG_TYPE, TOKEN_GROUPS, tokenLabel } from "../lib/naming-tokens"
+import {
+  TOKEN_DEFS,
+  TOKEN_DRAG_TYPE,
+  TOKEN_GROUPS,
+  tokenLabel,
+  type TokenName,
+} from "../lib/naming-tokens"
 import { Card, Field } from "./ui"
 import { InlineTokenEditor, type InlineTokenEditorHandle } from "./inline-token-editor"
 import { Divider } from "./tremor/divider"
+import { Popover, PopoverContent, PopoverTrigger } from "./tremor/popover"
 
 export function LayoutBuilder({
   movie,
@@ -102,24 +109,7 @@ export function LayoutBuilder({
                   <div className="mb-2 text-[11px] font-medium text-gray-500">{group.label}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {group.tokens.map((token) => (
-                      <button
-                        key={token}
-                        type="button"
-                        draggable
-                        onDragStart={(event) => {
-                          event.dataTransfer.setData(TOKEN_DRAG_TYPE, token)
-                          event.dataTransfer.effectAllowed = "copy"
-                        }}
-                        onClick={() => insert(token)}
-                        title={`Insert {${token}}`}
-                        className="group inline-flex cursor-grab items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 active:cursor-grabbing"
-                      >
-                        <GripVertical
-                          className="size-3 text-gray-300 transition group-hover:text-gray-400"
-                          aria-hidden="true"
-                        />
-                        {tokenLabel(token)}
-                      </button>
+                      <TokenButton key={token} token={token} onInsert={() => insert(token)} />
                     ))}
                   </div>
                 </div>
@@ -143,14 +133,7 @@ export function LayoutBuilder({
           </p>
         </div>
         <div className="min-w-0 space-y-4 md:col-span-2">
-          <Field
-            label="Movie path template"
-            hint={
-              <span className="font-mono">
-                {"{folder} = Title (Year) · {title} = title only · {ext} is optional"}
-              </span>
-            }
-          >
+          <Field label="Movie path template">
             <InlineTokenEditor
               ref={movieRef}
               value={movie}
@@ -180,14 +163,7 @@ export function LayoutBuilder({
           </p>
         </div>
         <div className="min-w-0 space-y-4 md:col-span-2">
-          <Field
-            label="Show path template"
-            hint={
-              <span className="font-mono">
-                {"{episode_tag} = S01E01 · {folder} = Title (Year) · {ext} is optional"}
-              </span>
-            }
-          >
+          <Field label="Show path template">
             <InlineTokenEditor
               ref={showRef}
               value={shows}
@@ -207,6 +183,77 @@ export function LayoutBuilder({
         </div>
       </section>
     </div>
+  )
+}
+
+function TokenButton({ token, onInsert }: { token: TokenName; onInsert: () => void }) {
+  const [open, setOpen] = useState(false)
+  const closeTimer = useRef<number | null>(null)
+  const definition = TOKEN_DEFS[token]
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
+    }
+  }, [])
+
+  const openNow = () => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+    setOpen(true)
+  }
+
+  const closeSoon = () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
+    closeTimer.current = window.setTimeout(() => {
+      setOpen(false)
+      closeTimer.current = null
+    }, 120)
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.setData(TOKEN_DRAG_TYPE, token)
+            event.dataTransfer.effectAllowed = "copy"
+          }}
+          onClick={() => {
+            onInsert()
+            setOpen(false)
+          }}
+          onMouseEnter={openNow}
+          onMouseLeave={closeSoon}
+          onFocus={openNow}
+          onBlur={closeSoon}
+          className="group inline-flex cursor-grab items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 active:cursor-grabbing"
+        >
+          <GripVertical
+            className="size-3 text-gray-300 transition group-hover:text-gray-400"
+            aria-hidden="true"
+          />
+          {tokenLabel(token)}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={6}
+        className="w-60 p-3"
+        onMouseEnter={openNow}
+        onMouseLeave={closeSoon}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
+        <div className="text-xs font-medium text-gray-900">{definition.label}</div>
+        <p className="mt-1 text-xs leading-5 text-gray-500">{definition.hint}</p>
+        <p className="mt-2 font-mono text-[10px] text-gray-400">{`{${token}}`}</p>
+      </PopoverContent>
+    </Popover>
   )
 }
 
