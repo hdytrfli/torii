@@ -124,9 +124,17 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
   })
 
   const editable = job?.status !== "moved"
-  const reviewable = job ? isReviewable(job) : false
+  const layoutReady =
+    Boolean(target) && !target.startsWith("Invalid layout:")
+  const reviewable = job
+    ? isReviewable(job) ||
+      (job.blocked_reason === "invalid_layout" && layoutReady)
+    : false
   const rejectable =
     job != null && job.status !== "moved" && job.status !== "rejected"
+  const showBlockedMessage =
+    Boolean(job?.blocked_reason || job?.error || error) &&
+    !(job?.blocked_reason === "invalid_layout" && layoutReady)
 
   return (
     <Drawer open onOpenChange={(open) => { if (!open) onClose() }}>
@@ -284,7 +292,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                   </>
                 ) : null}
 
-                {job.blocked_reason || job.error || error ? (
+                {showBlockedMessage ? (
                   <div className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger">
                     {job.blocked_reason ? (
                       <div className="font-medium">
