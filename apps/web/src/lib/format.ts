@@ -69,3 +69,5 @@ export function episodeLabel(job: Job) {
 export function totalCounts(counts: Partial<Record<string, number>>) {
   return Object.values(counts).reduce<number>((total, value) => total + (value ?? 0), 0)
 }
+
+export const cx = cn

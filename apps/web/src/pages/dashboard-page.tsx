@@ -1,29 +1,29 @@
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { RefreshCw } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
-import { Button, Card, Skeleton } from "../components/ui"
-import { CategoryBar } from "../components/tremor/category-bar"
-import { Divider } from "../components/tremor/divider"
+import { Button, Card, Select } from "../components/ui"
+import { CategoryBarCard, ProgressBarCard } from "../components/tremor/dashboard-cards"
 import { GroupedJobTable } from "../components/tremor/job-table"
-import { ProgressCircle } from "../components/tremor/progress-circle"
-import { Sparkline } from "../components/tremor/sparkline"
+import { MediaChartCard } from "../components/tremor/media-chart-card"
 
 export function DashboardPage() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: api.stats })
   const groupsQuery = useQuery({ queryKey: ["groups", "all"], queryFn: () => api.groups("all") })
   const queryClient = useQueryClient()
+  const [sourceFilter, setSourceFilter] = useState("all")
   const scan = useMutation({
     mutationFn: api.scan,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["stats"] })
       void queryClient.invalidateQueries({ queryKey: ["groups"] })
+      void queryClient.invalidateQueries({ queryKey: ["stats"] })
     },
   })
 
   const groups = groupsQuery.data ?? []
   const jobs = groups.flatMap((group) => group.jobs)
-  const total = stats.data?.total ?? jobs.length
+  const total = jobs.length
   const review = stats.data?.needs_review ?? 0
   const ready = stats.data?.ready ?? 0
   const moved = stats.data?.moved ?? 0
@@ -32,131 +32,174 @@ export function DashboardPage() {
     : 0
 
   const sourceCounts = jobs.reduce<Record<string, number>>((counts, job) => {
-    const label = job.source ?? "guessit"
-    counts[label] = (counts[label] ?? 0) + 1
+    const key = job.source ?? "guessit"
+    counts[key] = (counts[key] ?? 0) + 1
     return counts
   }, {})
-  const sourceValues = [
-    sourceCounts.jellyfin ?? 0,
-    sourceCounts.guessit ?? 0,
-    sourceCounts.nfo ?? 0,
-    sourceCounts.llm ?? 0,
+
+  const statusData = [
+    { title: "Needs review", percentage: total ? (review / total) * 100 : 0, current: review, allowed: total },
+    { title: "Ready", percentage: total ? (ready / total) * 100 : 0, current: ready, allowed: total },
+    { title: "Moved / linked", percentage: total ? (moved / total) * 100 : 0, current: moved, allowed: total },
   ]
+
+  const qualityData = [
+    {
+      title: "85% and above",
+      percentage: confidence,
+      current: jobs.filter((job) => job.confidence >= 0.85).length,
+      allowed: total,
+    },
+    {
+      title: "60–84%",
+      percentage: total
+        ? (jobs.filter((job) => job.confidence >= 0.6 && job.confidence < 0.85).length / total) * 100
+        : 0,
+      current: jobs.filter((job) => job.confidence >= 0.6 && job.confidence < 0.85).length,
+      allowed: total,
+    },
+    {
+      title: "Below 60%",
+      percentage: total ? (jobs.filter((job) => job.confidence < 0.6).length / total) * 100 : 0,
+      current: jobs.filter((job) => job.confidence < 0.6).length,
+      allowed: total,
+    },
+  ]
+
+  const sourceData = [
+    { title: "Jellyfin", percentage: total ? ((sourceCounts.jellyfin ?? 0) / total) * 100 : 0, value: String(sourceCounts.jellyfin ?? 0), color: "bg-gray-900" },
+    { title: "Filename", percentage: total ? ((sourceCounts.guessit ?? 0) / total) * 100 : 0, value: String(sourceCounts.guessit ?? 0), color: "bg-gray-500" },
+    { title: "NFO / AI", percentage: total ? (((sourceCounts.nfo ?? 0) + (sourceCounts.llm ?? 0)) / total) * 100 : 0, value: String((sourceCounts.nfo ?? 0) + (sourceCounts.llm ?? 0)), color: "bg-gray-300" },
+  ]
+
+  const trend = useMemo(() => {
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date()
+      date.setDate(date.getDate() - (6 - index))
+      return date.toISOString().slice(0, 10)
+    })
+    return days.map((date) => ({
+      date: date.slice(5),
+      Matched: jobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source !== "guessit").length,
+      Review: jobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "guessit").length,
+    }))
+  }, [jobs])
+
+  const filteredGroups =
+    sourceFilter === "all"
+      ? groups
+      : groups.filter((group) => group.jobs.some((job) => (job.source ?? "guessit") === sourceFilter))
 
   return (
     <main>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Library Overview</h1>
-          <p className="text-gray-500 sm:text-sm/6">
-            Real-time monitoring of the rename queue and metadata matches
-          </p>
+      <section aria-labelledby="current-queue">
+        <h1 id="current-queue" className="scroll-mt-10 text-lg font-semibold text-gray-900 sm:text-xl">
+          Current queue
+        </h1>
+        <div className="mt-4 grid grid-cols-1 gap-14 sm:mt-8 sm:grid-cols-2 lg:mt-10 xl:grid-cols-3">
+          <Card>
+            <ProgressBarCard
+              title="Queue health"
+              change={review ? `${review} waiting` : "clear"}
+              value={`${total}`}
+              valueDescription="files in the current scan"
+              ctaDescription="Files are grouped before review."
+              ctaText="Open queue."
+              data={statusData}
+            />
+          </Card>
+          <Card>
+            <ProgressBarCard
+              title="Match quality"
+              change={`${confidence}% strong`}
+              value={`${confidence}%`}
+              valueDescription="at or above 85% confidence"
+              ctaDescription="Jellyfin and NFO are preferred."
+              ctaText="Review weak matches."
+              data={qualityData}
+            />
+          </Card>
+          <Card>
+            <CategoryBarCard
+              title="Match sources"
+              change="last scan"
+              value={`${total}`}
+              valueDescription="matched jobs"
+              subtitle="Where the metadata came from"
+              ctaDescription="AI runs only when there are no candidates."
+              ctaText="Ask AI manually."
+              data={sourceData}
+            />
+          </Card>
         </div>
-        <div className="flex gap-2">
+      </section>
+
+      <section aria-labelledby="usage-overview">
+        <div className="mt-16 flex items-center justify-between">
+          <h2 id="usage-overview" className="scroll-mt-8 text-lg font-semibold text-gray-900 sm:text-xl">
+            Overview
+          </h2>
           <Button variant="secondary" onClick={() => scan.mutate()} disabled={scan.isPending}>
             <RefreshCw size={15} className={scan.isPending ? "animate-spin" : ""} />
             Scan now
           </Button>
-          <Link to="/queue">
-            <Button>Review queue</Button>
-          </Link>
         </div>
-      </div>
 
-      <Divider />
+        <div className="sticky top-16 z-20 flex items-center justify-between border-b border-gray-200 bg-white pb-4 pt-4 sm:pt-6 lg:top-0 lg:pt-8">
+          <div className="flex items-center gap-2">
+            <Select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)} className="w-44">
+              <option value="all">All sources</option>
+              <option value="jellyfin">Jellyfin</option>
+              <option value="guessit">Filename</option>
+              <option value="nfo">Local NFO</option>
+              <option value="llm">AI fallback</option>
+            </Select>
+            <Link to="/queue">
+              <Button variant="light">Review queue</Button>
+            </Link>
+          </div>
+          <p className="hidden text-sm text-gray-500 sm:block">
+            {filteredGroups.length} groups · {jobs.length} jobs
+          </p>
+        </div>
 
-      <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <dt className="text-sm font-medium text-gray-900">Current Queue</dt>
-          <dd className="mt-1 text-3xl font-semibold text-gray-900">{review}</dd>
-          <CategoryBar
-            values={[review, ready, moved]}
-            className="mt-6"
-            colors={["blue", "lightGray", "red"]}
+        <dl className="mt-10 grid grid-cols-1 gap-14 md:grid-cols-2 xl:grid-cols-3">
+          <MediaChartCard
+            title="Scan activity"
+            value={`${jobs.length}`}
+            previous={`${review}`}
+            change="7 days"
+            data={trend}
+            categories={["Matched", "Review"]}
           />
-          <ul role="list" className="mt-4 flex flex-wrap gap-x-10 gap-y-4 text-sm">
-            <li>
-              <span className="text-base font-semibold text-gray-900">{review}</span>
-              <div className="flex items-center gap-2">
-                <span className="size-2.5 shrink-0 rounded-sm bg-gray-900" aria-hidden="true" />
-                <span className="text-sm">Needs review</span>
-              </div>
-            </li>
-            <li>
-              <span className="text-base font-semibold text-gray-900">{ready}</span>
-              <div className="flex items-center gap-2">
-                <span className="size-2.5 shrink-0 rounded-sm bg-gray-400" aria-hidden="true" />
-                <span className="text-sm">Ready</span>
-              </div>
-            </li>
-            <li>
-              <span className="text-base font-semibold text-gray-900">{moved}</span>
-              <div className="flex items-center gap-2">
-                <span className="size-2.5 shrink-0 rounded-sm bg-gray-300" aria-hidden="true" />
-                <span className="text-sm">Moved</span>
-              </div>
-            </li>
-          </ul>
-        </Card>
+          <MediaChartCard
+            title="Source split"
+            value={`${sourceCounts.jellyfin ?? 0}`}
+            previous={`${sourceCounts.guessit ?? 0}`}
+            change="Jellyfin / filename"
+            data={trend}
+            categories={["Matched", "Review"]}
+          />
+          <MediaChartCard
+            title="Queue movement"
+            value={`${moved}`}
+            previous={`${ready}`}
+            change="moved / ready"
+            data={trend}
+            categories={["Matched", "Review"]}
+          />
+        </dl>
+      </section>
 
-        <Card>
-          <dt className="text-sm font-medium text-gray-900">Match Confidence</dt>
-          <div className="mt-4 flex flex-nowrap items-center justify-between gap-y-4">
-            <dd className="space-y-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-900" aria-hidden="true" />
-                  <span className="text-sm">At or above 85%</span>
-                </div>
-                <span className="mt-1 block text-2xl font-semibold text-gray-900">{confidence}%</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-300" aria-hidden="true" />
-                  <span className="text-sm text-gray-900">Below threshold</span>
-                </div>
-                <span className="mt-1 block text-2xl font-semibold text-gray-900">
-                  {100 - confidence}%
-                </span>
-              </div>
-            </dd>
-            <ProgressCircle value={confidence} radius={45} strokeWidth={7} />
-          </div>
-        </Card>
-
-        <Card>
-          <dt className="text-sm font-medium text-gray-900">Match Sources</dt>
-          <div className="mt-4 flex items-center gap-x-8 gap-y-4">
-            <dd className="space-y-3 whitespace-nowrap">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-900" aria-hidden="true" />
-                  <span className="text-sm">Jellyfin</span>
-                </div>
-                <span className="mt-1 block text-2xl font-semibold text-gray-900">
-                  {sourceCounts.jellyfin ?? 0}
-                </span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-400" aria-hidden="true" />
-                  <span className="text-sm">Filename</span>
-                </div>
-                <span className="mt-1 block text-2xl font-semibold text-gray-900">
-                  {sourceCounts.guessit ?? 0}
-                </span>
-              </div>
-            </dd>
-            <Sparkline values={sourceValues} />
-          </div>
-        </Card>
-      </dl>
-
-      {groupsQuery.isLoading ? (
-        <Skeleton className="mt-8 h-72" />
-      ) : (
-        <GroupedJobTable groups={groups} readOnly pageSize={6} />
-      )}
+      <section aria-labelledby="queue-details">
+        <div className="mt-16 flex items-center justify-between">
+          <h2 id="queue-details" className="text-lg font-semibold text-gray-900 sm:text-xl">
+            Details
+          </h2>
+          <p className="text-sm text-gray-500">Grouped by show, collection, and movie</p>
+        </div>
+        <GroupedJobTable groups={filteredGroups} readOnly pageSize={6} />
+      </section>
     </main>
   )
 }
