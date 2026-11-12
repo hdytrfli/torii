@@ -50,9 +50,20 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function SourceBadge({ source }: { source: Source }) {
-  const level =
-    source === "jellyfin" ? "medium" : source === "nfo" ? "high" : source === "llm" ? "low" : "none"
-  return <AssessedBadge label={sourceLabel(source)} level={level} />
+  const dot =
+    source === "jellyfin"
+      ? "bg-emerald-500"
+      : source === "nfo"
+        ? "bg-blue-500"
+        : source === "llm"
+          ? "bg-yellow-500"
+          : "bg-gray-400"
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+      <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />
+      {sourceLabel(source)}
+    </span>
+  )
 }
 
 export function Field({
