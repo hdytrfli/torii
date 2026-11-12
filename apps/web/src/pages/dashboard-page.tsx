@@ -189,9 +189,9 @@ export function DashboardPage() {
                 { value: "llm", label: "AI fallback" },
               ]}
             />
-            <Link to="/queue">
-              <Button variant="light">Review queue</Button>
-            </Link>
+            <Button asChild variant="primary">
+              <Link to="/queue">Review queue</Link>
+            </Button>
           </div>
           <p className="hidden text-sm text-gray-500 sm:block">
             {filteredGroups.length} groups - {jobs.length} jobs

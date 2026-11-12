@@ -3,7 +3,7 @@ import { Check, RefreshCw, Sparkles, Undo2, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { pct, sourceLabel } from "../lib/format"
-import { Badge, Button, Field, Input, SourceBadge } from "./ui"
+import { Badge, Button, Card, Field, Input, SourceBadge } from "./ui"
 import { DropdownSelect } from "./tremor/dropdown-select"
 import {
   Drawer,
@@ -281,26 +281,40 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                     <div className="mb-2 text-xs font-medium text-gray-500">Provider candidates</div>
                     <div className="flex flex-col gap-2">
                       {job.candidates_json.map((candidate, index) => (
-                        <button
+                        <Card
                           key={`${candidate.provider}-${candidate.provider_id}-${index}`}
-                          type="button"
-                          onClick={() => {
-                            setTitle(candidate.title)
-                            setYear(candidate.year == null ? "" : String(candidate.year))
-                            setMediaType(candidate.kind === "tv" ? "tv" : "movie")
-                          }}
-                          className="rounded-control border border-line bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-muted"
+                          className="overflow-hidden p-0"
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-medium text-gray-900">
-                              {candidate.title} {candidate.year ? `(${candidate.year})` : ""}
-                            </span>
-                            <Badge variant="default">{pct(candidate.score / 100)}</Badge>
+                          <div className="px-4 pb-4 pt-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-xs font-medium text-gray-900">
+                                {candidate.title} {candidate.year ? `(${candidate.year})` : ""}
+                              </span>
+                              <Badge variant="default">{pct(candidate.score / 100)}</Badge>
+                            </div>
+                            {candidate.overview ? (
+                              <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                                {candidate.overview}
+                              </p>
+                            ) : null}
                           </div>
-                          {candidate.overview ? (
-                            <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">{candidate.overview}</p>
-                          ) : null}
-                        </button>
+                          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-2">
+                            <span className="text-[10px] uppercase text-gray-500">
+                              {candidate.provider}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setTitle(candidate.title)
+                                setYear(candidate.year == null ? "" : String(candidate.year))
+                                setMediaType(candidate.kind === "tv" ? "tv" : "movie")
+                              }}
+                            >
+                              Use
+                            </Button>
+                          </div>
+                        </Card>
                       ))}
                     </div>
                   </section>
