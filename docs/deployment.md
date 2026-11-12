@@ -31,12 +31,6 @@ Replace the `build: .` line in `docker-compose.yml` with:
 image: ghcr.io/hdytrfli/torii:latest
 ```
 
-If the package is private, authenticate first:
-
-```bash
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u <github-user> --password-stdin
-```
-
 Then run:
 
 ```bash

@@ -7,8 +7,8 @@ library.
 
 It is built for libraries managed without Sonarr or Radarr, where release names
 are inconsistent and a wrong match is worse than a queued file. Torii automates
-the repetitive parts — parsing, metadata lookup, path generation, and file
-operations — while preserving an explicit human approval step.
+the repetitive parts: parsing, metadata lookup, path generation, and file
+operations, while preserving an explicit human approval step.
 
 ## How it works
 
