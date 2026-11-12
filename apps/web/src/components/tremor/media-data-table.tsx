@@ -325,12 +325,12 @@ function Filterbar({ table }: { table: TanStackTable<Job> }) {
         />
         {isFiltered ? (
           <Button
-            variant="ghost"
+            variant="secondary"
+            size="sm"
             onClick={() => {
               table.resetColumnFilters()
               setSearchTerm("")
             }}
-            className="border border-gray-200 px-2 font-semibold text-gray-900 sm:border-none sm:py-1"
           >
             Clear filters
           </Button>

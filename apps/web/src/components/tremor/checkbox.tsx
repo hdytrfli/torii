@@ -20,18 +20,17 @@ const Checkbox = React.forwardRef<
         // base
         "relative inline-flex size-4 shrink-0 appearance-none items-center justify-center rounded shadow-card outline-none ring-1 ring-inset transition duration-100 enabled:cursor-pointer",
         // text color
-        "text-white dark:text-gray-50",
+        "text-brand-ink",
         // background color
-        "bg-white dark:bg-gray-950",
+        "bg-surface",
         // ring color
-        "ring-gray-300 dark:ring-gray-800",
+        "ring-line",
         // disabled
-        "data-[disabled]:bg-gray-100 data-[disabled]:text-gray-400 data-[disabled]:ring-gray-300",
-        "data-[disabled]:dark:bg-gray-800 data-[disabled]:dark:text-gray-500 data-[disabled]:dark:ring-gray-700",
+        "data-[disabled]:bg-surface-muted data-[disabled]:text-ink-muted data-[disabled]:ring-line",
         // checked and enabled
-        "enabled:data-[state=checked]:bg-blue-500 enabled:data-[state=checked]:ring-0 enabled:data-[state=checked]:ring-transparent",
+        "enabled:data-[state=checked]:bg-brand enabled:data-[state=checked]:ring-0 enabled:data-[state=checked]:ring-transparent",
         // indeterminate
-        "enabled:data-[state=indeterminate]:bg-blue-500 enabled:data-[state=indeterminate]:ring-0 enabled:data-[state=indeterminate]:ring-transparent",
+        "enabled:data-[state=indeterminate]:bg-brand enabled:data-[state=indeterminate]:ring-0 enabled:data-[state=indeterminate]:ring-transparent",
         // focus
         focusRing,
         className,
