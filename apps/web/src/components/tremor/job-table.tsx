@@ -180,16 +180,13 @@ function GroupRows({
         {!readOnly ? (
           <TableCell onClick={(event) => event.stopPropagation()}>
             <Checkbox
-              checked={allSelected}
-              ref={(node) => {
-                if (node) node.indeterminate = someSelected && !allSelected
-              }}
-              onChange={(event) => onToggleGroup?.(group, event.target.checked)}
+              checked={someSelected && !allSelected ? "indeterminate" : allSelected}
+              onCheckedChange={(value) => onToggleGroup?.(group, value === true)}
               aria-label={`Select ${group.label}`}
             />
           </TableCell>
         ) : null}
-        <TableCell colSpan={5} className="font-semibold text-gray-900">
+        <TableCell colSpan={5} className="text-gray-900">
           <span>{group.label}</span>
           <span className="ml-2 text-xs font-normal text-gray-500">
             {group.total} files
@@ -208,7 +205,7 @@ function GroupRows({
                 <TableCell onClick={(event) => event.stopPropagation()}>
                   <Checkbox
                     checked={selected?.has(job.id) ?? false}
-                    onChange={() => onToggle?.(job.id)}
+                    onCheckedChange={() => onToggle?.(job.id)}
                     aria-label={`Select ${job.title}`}
                   />
                 </TableCell>

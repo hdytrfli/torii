@@ -7,10 +7,11 @@ import {
 import { cn, sourceLabel, statusLabel } from "../lib/format"
 import type { Source } from "../lib/types"
 import { Badge } from "./tremor/badge"
+import { Checkbox } from "./tremor/checkbox"
 import { Button } from "./tremor/button"
 import { Card } from "./tremor/card"
 
-export { Badge, Button, Card }
+export { Badge, Button, Card, Checkbox }
 
 export function AssessedBadge({
   label,
@@ -83,21 +84,6 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
     />
   )
 }
-
-export const Checkbox = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, ...props }, ref) => (
-    <input
-      ref={ref}
-      type="checkbox"
-      className={cn(
-        "h-4 w-4 rounded border-line text-brand accent-[rgb(var(--color-brand))]",
-        className,
-      )}
-      {...props}
-    />
-  ),
-)
-Checkbox.displayName = "Checkbox"
 
 export function Field({
   label,

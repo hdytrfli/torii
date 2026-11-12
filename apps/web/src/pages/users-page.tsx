@@ -119,7 +119,7 @@ export function UsersPage() {
                     </Field>
                   </div>
                   <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
-                    <Checkbox checked={isAdmin} onChange={(event) => setIsAdmin(event.target.checked)} />
+                    <Checkbox checked={isAdmin} onCheckedChange={(value) => setIsAdmin(value === true)} />
                     Administrator
                   </label>
                   {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}

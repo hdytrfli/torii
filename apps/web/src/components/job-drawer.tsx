@@ -161,7 +161,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               ) : null}
 
               {job.status === "moved" ? (
-                <div className="rounded-control border border-line bg-surface-muted/50 p-3">
+                <div className="space-y-1">
                   <div className="text-xs font-medium text-gray-500">Applied target</div>
                   <p className="mt-1 break-all font-mono text-xs text-gray-700">{job.target_path ?? "-"}</p>
                   <p className="mt-2 text-xs text-gray-500">
@@ -206,8 +206,8 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
 
               {job.status !== "moved" ? (
                 <>
-              <section className="rounded-control border border-line bg-surface-muted/50 p-3">
-                <div className="mb-2 text-xs font-medium text-gray-500">
+              <section className="space-y-2">
+                <div className="text-xs font-medium text-gray-500">
                   Identify by provider ID
                 </div>
                 <div className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-2">
