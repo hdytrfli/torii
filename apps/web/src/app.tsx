@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7"
 import { AppShell } from "./components/app-shell"
 import { AppLoading } from "./components/loading"
+import { HoverPopoverProvider } from "./components/tremor/hover-popover"
 import { AuthProvider, useAuth } from "./lib/auth"
 import { queryClient } from "./lib/query-client"
 import { LoginPage } from "./pages/login-page"
@@ -47,7 +48,9 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <NuqsAdapter>
-            <AppRoutes />
+            <HoverPopoverProvider>
+              <AppRoutes />
+            </HoverPopoverProvider>
           </NuqsAdapter>
         </BrowserRouter>
       </AuthProvider>

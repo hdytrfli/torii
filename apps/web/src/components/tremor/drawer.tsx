@@ -54,14 +54,10 @@ const DrawerOverlay = React.forwardRef<
         // background color
         "bg-black/30 backdrop-blur-sm",
         // transition
-        "data-[state=closed]:animate-hide data-[state=open]:animate-dialogOverlayShow",
+        "torii-overlay",
         className,
       )}
       {...props}
-      style={{
-        animationDuration: "400ms",
-        animationFillMode: "backwards",
-      }}
     />
   )
 })
@@ -85,7 +81,7 @@ const DrawerContent = React.forwardRef<
             // background color
             "bg-white dark:bg-[#090E1A]",
             // transition
-            "data-[state=closed]:animate-drawerSlideRightAndFade data-[state=open]:animate-drawerSlideLeftAndFade",
+            "torii-drawer",
             focusRing,
             className,
           )}

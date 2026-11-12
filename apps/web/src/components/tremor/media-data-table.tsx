@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { createPortal } from "react-dom"
+import { useEffect, useMemo, useState } from "react"
 import { createParser, parseAsString, useQueryStates } from "nuqs"
 import {
   flexRender,
@@ -21,7 +20,8 @@ import { ChevronDown, ChevronUp, Plus, SlidersHorizontal } from "lucide-react"
 import type { Job } from "../../lib/types"
 import { basename, cn, episodeLabel, statusLabel } from "../../lib/format"
 import { BulkBar } from "../bulk-bar"
-import { Button, Card, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
+import { Button, Checkbox, Input, SourceBadge, StatusBadge } from "../ui"
+import { HoverPopover } from "./hover-popover"
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "./popover"
 import {
   Table,
@@ -396,36 +396,6 @@ export function MediaDataTable({
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize })
-  const [hovered, setHovered] = useState<{ job: Job; x: number; y: number } | null>(null)
-  const hoverTimer = useRef<number | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current)
-    }
-  }, [])
-
-  const clearHover = () => {
-    if (hoverTimer.current !== null) {
-      window.clearTimeout(hoverTimer.current)
-      hoverTimer.current = null
-    }
-    setHovered(null)
-  }
-
-  const scheduleHover = (job: Job, rect: DOMRect) => {
-    if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current)
-    hoverTimer.current = window.setTimeout(() => {
-      const width = 384
-      const height = 180
-      const left = Math.max(16, Math.min(rect.left + 24, window.innerWidth - width - 16))
-      const top =
-        rect.bottom + 8 + height > window.innerHeight
-          ? Math.max(16, rect.top - height - 8)
-          : rect.bottom + 8
-      setHovered({ job, x: left, y: top })
-    }, 350)
-  }
 
   const parsers = useMemo(
     () => ({
@@ -702,31 +672,62 @@ export function MediaDataTable({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
+                <HoverPopover
                   key={row.id}
-                  onClick={() => row.toggleSelected(!row.getIsSelected())}
-                  onMouseEnter={(event) =>
-                    scheduleHover(row.original, event.currentTarget.getBoundingClientRect())
+                  id={`job-${row.id}`}
+                  delay={350}
+                  closeDelay={0}
+                  contentClassName="w-96"
+                  content={
+                    <>
+                      <div className="space-y-3 p-4">
+                        <div>
+                          <div className="text-[11px] font-medium text-gray-500">
+                            Original filename
+                          </div>
+                          <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+                            {basename(row.original.source_path) || row.original.source_path}
+                          </p>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-medium text-gray-500">
+                            Target path
+                          </div>
+                          <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+                            {row.original.target_path
+                              ? targetSubpath(row.original.target_path, row.original.media_type)
+                              : "Not calculated yet"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
+                        {mediaTypeLabel(row.original.media_type)} ·{" "}
+                        {statusLabel(row.original.status)}
+                      </div>
+                    </>
                   }
-                  onMouseLeave={clearHover}
-                  className="group select-none hover:bg-gray-50"
                 >
-                  {row.getVisibleCells().map((cell, index) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        row.getIsSelected() ? "bg-gray-50" : "",
-                        "relative whitespace-nowrap py-1 text-gray-600 first:w-10",
-                        cell.column.columnDef.meta?.className,
-                      )}
-                    >
-                      {index === 0 && row.getIsSelected() ? (
-                        <div className="absolute inset-y-0 left-0 w-0.5 bg-gray-900" />
-                      ) : null}
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                  <TableRow
+                    onClick={() => row.toggleSelected(!row.getIsSelected())}
+                    className="group select-none hover:bg-gray-50"
+                  >
+                    {row.getVisibleCells().map((cell, index) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          row.getIsSelected() ? "bg-gray-50" : "",
+                          "relative whitespace-nowrap py-1 text-gray-600 first:w-10",
+                          cell.column.columnDef.meta?.className,
+                        )}
+                      >
+                        {index === 0 && row.getIsSelected() ? (
+                          <div className="absolute inset-y-0 left-0 w-0.5 bg-gray-900" />
+                        ) : null}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </HoverPopover>
               ))
             ) : (
               <TableRow>
@@ -762,41 +763,6 @@ export function MediaDataTable({
         }}
       />
 
-      {hovered
-        ? createPortal(
-            <div
-              className="pointer-events-none fixed z-[60]"
-              style={{ left: hovered.x, top: hovered.y }}
-            >
-              <Card className="w-96 min-w-0 overflow-hidden p-0 shadow-lg">
-                <div className="space-y-3 p-4">
-                  <div>
-                    <div className="text-[11px] font-medium text-gray-500">
-                      Original filename
-                    </div>
-                    <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
-                      {basename(hovered.job.source_path) || hovered.job.source_path}
-                    </p>
-                  </div>
-                  <div>
-                    <div className="text-[11px] font-medium text-gray-500">
-                      Target path
-                    </div>
-                    <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
-                      {hovered.job.target_path
-                        ? targetSubpath(hovered.job.target_path, hovered.job.media_type)
-                        : "Not calculated yet"}
-                    </p>
-                  </div>
-                </div>
-                <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
-                  {mediaTypeLabel(hovered.job.media_type)} · {statusLabel(hovered.job.status)}
-                </div>
-              </Card>
-            </div>,
-            document.body,
-          )
-        : null}
     </div>
   )
 }

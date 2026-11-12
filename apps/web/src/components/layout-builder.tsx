@@ -13,7 +13,7 @@ import {
 import { Card, Field } from "./ui"
 import { InlineTokenEditor, type InlineTokenEditorHandle } from "./inline-token-editor"
 import { Divider } from "./tremor/divider"
-import { Popover, PopoverContent, PopoverTrigger } from "./tremor/popover"
+import { HoverPopover } from "./tremor/hover-popover"
 
 export function LayoutBuilder({
   movie,
@@ -151,73 +151,45 @@ export function LayoutBuilder({
 }
 
 function TokenButton({ token, onInsert }: { token: TokenName; onInsert: () => void }) {
-  const [open, setOpen] = useState(false)
-  const closeTimer = useRef<number | null>(null)
   const definition = TOKEN_DEFS[token]
 
-  useEffect(() => {
-    return () => {
-      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
-    }
-  }, [])
-
-  const openNow = () => {
-    if (closeTimer.current !== null) {
-      window.clearTimeout(closeTimer.current)
-      closeTimer.current = null
-    }
-    setOpen(true)
-  }
-
-  const closeSoon = () => {
-    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current)
-    closeTimer.current = window.setTimeout(() => {
-      setOpen(false)
-      closeTimer.current = null
-    }, 120)
-  }
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          draggable
-          onDragStart={(event) => {
-            event.dataTransfer.setData(TOKEN_DRAG_TYPE, token)
-            event.dataTransfer.effectAllowed = "copy"
-          }}
-          onClick={() => {
-            onInsert()
-            setOpen(false)
-          }}
-          onMouseEnter={openNow}
-          onMouseLeave={closeSoon}
-          onFocus={openNow}
-          onBlur={closeSoon}
-          className="group inline-flex cursor-grab items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 active:cursor-grabbing"
-        >
-          <GripVertical
-            className="size-3 text-gray-300 transition group-hover:text-gray-400"
-            aria-hidden="true"
-          />
-          {tokenLabel(token)}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="top"
-        align="start"
-        sideOffset={6}
-        className="w-60 p-3"
-        onMouseEnter={openNow}
-        onMouseLeave={closeSoon}
-        onOpenAutoFocus={(event) => event.preventDefault()}
+    <HoverPopover
+      id={`token-${token}`}
+      side="top"
+      align="start"
+      delay={120}
+      closeDelay={120}
+      contentClassName="w-72"
+      content={
+        <>
+          <div className="p-3">
+            <div className="text-xs font-medium text-gray-900">{definition.label}</div>
+            <p className="mt-1 text-xs leading-5 text-gray-500">{definition.hint}</p>
+          </div>
+          <div className="border-t border-gray-200 bg-gray-50 px-3 py-2 font-mono text-[10px] text-gray-500">
+            {`{${token}}`}
+          </div>
+        </>
+      }
+    >
+      <button
+        type="button"
+        draggable
+        onDragStart={(event) => {
+          event.dataTransfer.setData(TOKEN_DRAG_TYPE, token)
+          event.dataTransfer.effectAllowed = "copy"
+        }}
+        onClick={onInsert}
+        className="group inline-flex cursor-grab items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 active:cursor-grabbing"
       >
-        <div className="text-xs font-medium text-gray-900">{definition.label}</div>
-        <p className="mt-1 text-xs leading-5 text-gray-500">{definition.hint}</p>
-        <p className="mt-2 font-mono text-[10px] text-gray-400">{`{${token}}`}</p>
-      </PopoverContent>
-    </Popover>
+        <GripVertical
+          className="size-3 text-gray-300 transition group-hover:text-gray-400"
+          aria-hidden="true"
+        />
+        {tokenLabel(token)}
+      </button>
+    </HoverPopover>
   )
 }
 

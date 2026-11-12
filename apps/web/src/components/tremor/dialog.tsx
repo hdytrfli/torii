@@ -40,7 +40,7 @@ const DialogOverlay = React.forwardRef<
         // background color
         "bg-black/70",
         // transition
-        "data-[state=open]:animate-dialogOverlayShow",
+        "torii-overlay",
         className,
       )}
       {...props}
@@ -67,7 +67,7 @@ const DialogContent = React.forwardRef<
             // background color
             "bg-white dark:bg-[#090E1A]",
             // transition
-            "data-[state=open]:animate-dialogContentShow",
+            "torii-dialog",
             focusRing,
             className,
           )}

@@ -65,7 +65,7 @@ const PopoverContent = React.forwardRef<
           collisionPadding={collisionPadding}
           avoidCollisions
           className={cn(
-            "z-50 max-h-[var(--radix-popper-available-height)] min-w-60 overflow-hidden rounded-md border border-gray-200 bg-white p-2.5 text-sm text-gray-900 shadow-md outline-none",
+            "torii-popover z-50 max-h-[var(--radix-popper-available-height)] min-w-60 overflow-hidden rounded-md border border-gray-200 bg-white p-2.5 text-sm text-gray-900 shadow-md outline-none",
             className,
           )}
           {...props}
