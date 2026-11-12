@@ -60,6 +60,18 @@ function mediaTypeLabel(value: Job["media_type"]) {
   return value === "tv" ? "Shows" : "Movie"
 }
 
+function targetSubpath(path: string | null, mediaType: Job["media_type"]) {
+  if (!path) return ""
+  const normalized = path.replaceAll("\\", "/")
+  const markers =
+    mediaType === "tv" ? ["/shows/"] : mediaType === "movie" ? ["/movies/"] : ["/movies/", "/shows/"]
+  for (const marker of markers) {
+    const index = normalized.lastIndexOf(marker)
+    if (index >= 0) return normalized.slice(index + marker.length)
+  }
+  return normalized
+}
+
 const arrayFilter: FilterFn<Job> = (row, columnId, filterValue) => {
   const values = Array.isArray(filterValue) ? (filterValue as string[]) : []
   if (!values.length) return true
@@ -771,7 +783,9 @@ export function MediaDataTable({
                       Target path
                     </div>
                     <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
-                      {hovered.job.target_path || "Not calculated yet"}
+                      {hovered.job.target_path
+                        ? targetSubpath(hovered.job.target_path, hovered.job.media_type)
+                        : "Not calculated yet"}
                     </p>
                   </div>
                 </div>
