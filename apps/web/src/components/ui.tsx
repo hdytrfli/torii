@@ -129,29 +129,34 @@ export function Toggle({
   hint?: string
 }) {
   return (
-    <label className="flex cursor-pointer items-start justify-between gap-4 rounded-control border border-line bg-surface px-3 py-3">
-      <span>
-        <span className="block text-sm font-medium text-ink">{label}</span>
-        {hint ? <span className="mt-0.5 block text-[11px] text-ink-muted">{hint}</span> : null}
-      </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={cn(
-          "relative mt-0.5 h-5 w-9 shrink-0 rounded-full border transition-colors",
-          checked ? "border-brand bg-brand" : "border-line bg-surface-muted",
-        )}
-      >
-        <span
+    <Card className="overflow-hidden p-0">
+      <div className="px-4 pb-5 pt-4">
+        <div className="text-sm font-semibold text-gray-900">{label}</div>
+        {hint ? <p className="mt-1 text-sm leading-6 text-gray-500">{hint}</p> : null}
+      </div>
+      <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
+        <span className="text-xs font-medium text-gray-600">
+          {checked ? "Enabled" : "Disabled"}
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          onClick={() => onChange(!checked)}
           className={cn(
-            "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-surface shadow-sm transition-transform",
-            checked ? "left-[18px]" : "left-0.5",
+            "relative h-5 w-9 shrink-0 rounded-full border transition-colors",
+            checked ? "border-gray-900 bg-gray-900" : "border-gray-300 bg-gray-200",
           )}
-        />
-      </button>
-    </label>
+        >
+          <span
+            className={cn(
+              "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform",
+              checked ? "left-[18px]" : "left-0.5",
+            )}
+          />
+        </button>
+      </div>
+    </Card>
   )
 }
 

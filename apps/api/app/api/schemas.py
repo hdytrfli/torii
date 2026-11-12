@@ -26,7 +26,7 @@ class ApproveBody(BaseModel):
 
 class BulkBody(BaseModel):
     ids: list[int] = Field(min_length=1)
-    action: Literal["approve", "reject"]
+    action: Literal["approve", "reject", "undo"]
 
 
 class SettingsBody(BaseModel):

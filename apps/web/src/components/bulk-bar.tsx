@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react"
+import { Check, Undo2, X } from "lucide-react"
 import { Button } from "./ui"
 
 export function BulkBar({
@@ -6,12 +6,18 @@ export function BulkBar({
   onClear,
   onApprove,
   onReject,
+  onUndo,
+  showReview,
+  showUndo,
   busy,
 }: {
   count: number
   onClear: () => void
   onApprove: () => void
   onReject: () => void
+  onUndo: () => void
+  showReview: boolean
+  showUndo: boolean
   busy?: boolean
 }) {
   if (count === 0) return null
@@ -21,12 +27,21 @@ export function BulkBar({
       <Button variant="ghost" size="sm" onClick={onClear}>
         Clear
       </Button>
-      <Button variant="secondary" size="sm" onClick={onReject} disabled={busy}>
-        <X size={13} /> Reject
-      </Button>
-      <Button size="sm" onClick={onApprove} disabled={busy}>
-        <Check size={13} /> Approve
-      </Button>
+      {showReview ? (
+        <>
+          <Button variant="secondary" size="sm" onClick={onReject} disabled={busy}>
+            <X size={13} /> Reject
+          </Button>
+          <Button size="sm" onClick={onApprove} disabled={busy}>
+            <Check size={13} /> Approve
+          </Button>
+        </>
+      ) : null}
+      {showUndo ? (
+        <Button variant="secondary" size="sm" onClick={onUndo} disabled={busy}>
+          <Undo2 size={13} /> Undo
+        </Button>
+      ) : null}
     </div>
   )
 }

@@ -250,6 +250,11 @@ def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, st
     except OSError as exc:
         return False, f"Undo failed: {exc}"
 
+    if settings.cleanup_empty_dirs:
+        root = next((item for item in cfg.library_dirs if _is_relative(target, item)), None)
+        if root is not None:
+            _cleanup_empty(target.parent, root)
+
     stat = source.stat()
     db.update_job(
         job["id"],

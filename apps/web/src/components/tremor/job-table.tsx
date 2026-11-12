@@ -49,7 +49,7 @@ export function GroupedJobTable({
   }
 
   return (
-    <div className="mt-8 space-y-3">
+    <div className="space-y-3">
       <div className="relative overflow-hidden overflow-x-auto">
         <Table className="table-fixed">
           <TableHead>
@@ -68,7 +68,6 @@ export function GroupedJobTable({
               const ids = group.jobs.map((job) => job.id)
               const allSelected = selected ? ids.every((id) => selected.has(id)) : false
               const someSelected = selected ? ids.some((id) => selected.has(id)) : false
-              const reviewCount = group.counts.needs_review ?? 0
 
               if (group.total === 1) {
                 return (
@@ -95,7 +94,6 @@ export function GroupedJobTable({
                   onToggle={onToggle}
                   onToggleGroup={onToggleGroup}
                   onOpen={onOpen}
-                  reviewCount={reviewCount}
                   readOnly={readOnly}
                 />
               )
@@ -158,7 +156,6 @@ function GroupRows({
   onToggle,
   onToggleGroup,
   onOpen,
-  reviewCount,
   readOnly,
 }: {
   group: Group
@@ -170,13 +167,12 @@ function GroupRows({
   onToggle?: (id: number) => void
   onToggleGroup?: (group: Group, checked: boolean) => void
   onOpen?: (job: Job) => void
-  reviewCount: number
   readOnly: boolean
 }) {
   return (
     <>
       <TableRow
-        className="cursor-pointer bg-gray-50/70"
+        className="cursor-pointer border-y border-gray-300 bg-gray-100 hover:bg-gray-200/70"
         onClick={onToggleExpanded}
         aria-expanded={isOpen}
         title={isOpen ? "Collapse group" : "Expand group"}
@@ -193,15 +189,11 @@ function GroupRows({
             />
           </TableCell>
         ) : null}
-        <TableCell className="font-medium text-gray-900">
+        <TableCell colSpan={5} className="font-semibold text-gray-900">
           <span>{group.label}</span>
-          <span className="ml-1.5 text-xs font-normal text-gray-400">{group.total}</span>
-        </TableCell>
-        <TableCell className="capitalize">{group.type}</TableCell>
-        <TableCell><SourceBadge source={group.source} /></TableCell>
-        <TableCell>{pct(group.confidence)}</TableCell>
-        <TableCell className="text-xs text-gray-500">
-          {reviewCount > 0 ? `${reviewCount} to review` : "clear"}
+          <span className="ml-2 text-xs font-normal text-gray-500">
+            {group.total} files
+          </span>
         </TableCell>
       </TableRow>
 

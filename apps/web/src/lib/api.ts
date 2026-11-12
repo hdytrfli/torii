@@ -65,7 +65,7 @@ export const api = {
       id: externalId,
       media_type: mediaType,
     })).data,
-  bulk: async (ids: number[], action: "approve" | "reject") =>
+  bulk: async (ids: number[], action: "approve" | "reject" | "undo") =>
     (await http.post<{ results: Array<{ id: number; ok: boolean; message: string; target?: string | null }> }>("/api/jobs/bulk", { ids, action })).data,
 
   previewLayout: async (data: {

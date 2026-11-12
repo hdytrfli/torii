@@ -223,6 +223,8 @@ def test_undo_move_restores_source(tmp_path: Path):
     assert ok, message
     assert source.exists()
     assert not target.exists()
+    assert not target.parent.exists()
+    assert not target.parent.exists()
     assert db.get_job(job["id"])["status"] == "needs_review"
 
 

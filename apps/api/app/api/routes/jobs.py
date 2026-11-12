@@ -285,6 +285,10 @@ def bulk(request: Request, body: BulkBody):
             deps.db.update_job(job_id, status="rejected", error=None)
             results.append({"id": job_id, "ok": True, "message": "Rejected"})
             continue
+        if body.action == "undo":
+            ok, message = apply.undo_job(deps.cfg, current_settings, deps.db, job)
+            results.append({"id": job_id, "ok": ok, "message": message})
+            continue
         ok, message, target = apply.apply_job(
             deps.cfg,
             current_settings,

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "../lib/api"
-import { Badge, Field, Input } from "./ui"
+import { Badge, Card, Field, Input } from "./ui"
 
 const TOKENS = [
   "{title}",
@@ -130,7 +130,7 @@ function Preview({
 }) {
   const parts = path?.replaceAll("\\", "/").split("/").filter(Boolean) ?? []
   return (
-    <div className="min-w-0 overflow-hidden rounded-md border border-gray-200 bg-gray-50/60 p-3">
+    <Card className="min-w-0 overflow-hidden bg-gray-50/60 p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium text-gray-500">{label}</span>
         <Badge variant="neutral">{example}</Badge>
@@ -151,6 +151,6 @@ function Preview({
           )}
         </div>
       )}
-    </div>
+    </Card>
   )
 }

@@ -42,7 +42,7 @@ export function ReviewWorkspace({
   }
 
   const bulk = useMutation({
-    mutationFn: ({ ids, action }: { ids: number[]; action: "approve" | "reject" }) =>
+    mutationFn: ({ ids, action }: { ids: number[]; action: "approve" | "reject" | "undo" }) =>
       api.bulk(ids, action),
     onSuccess: () => {
       setSelected(new Set())
@@ -144,13 +144,27 @@ export function ReviewWorkspace({
         />
       )}
 
-      <BulkBar
-        count={selected.size}
-        onClear={() => setSelected(new Set())}
-        onApprove={() => bulk.mutate({ ids: [...selected], action: "approve" })}
-        onReject={() => bulk.mutate({ ids: [...selected], action: "reject" })}
-        busy={bulk.isPending}
-      />
+      {(() => {
+        const selectedJobs = groups
+          .flatMap((group) => group.jobs)
+          .filter((job) => selected.has(job.id))
+        const reviewable = selectedJobs.every(
+          (job) => job.status === "needs_review" || job.status === "ready",
+        )
+        const movable = selectedJobs.every((job) => job.status === "moved")
+        return (
+          <BulkBar
+            count={selected.size}
+            onClear={() => setSelected(new Set())}
+            onApprove={() => bulk.mutate({ ids: [...selected], action: "approve" })}
+            onReject={() => bulk.mutate({ ids: [...selected], action: "reject" })}
+            onUndo={() => bulk.mutate({ ids: [...selected], action: "undo" })}
+            showReview={selectedJobs.length > 0 && reviewable}
+            showUndo={selectedJobs.length > 0 && movable}
+            busy={bulk.isPending}
+          />
+        )
+      })()}
 
       {openJob != null ? <JobDrawer jobId={openJob} onClose={() => setOpenJob(null)} /> : null}
     </div>
