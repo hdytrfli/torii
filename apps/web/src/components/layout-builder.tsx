@@ -44,12 +44,6 @@ export function LayoutBuilder({
     retry: false,
   })
 
-  const chooseActive = (next: "movie" | "shows") => {
-    setActive(next)
-    const editor = next === "movie" ? movieRef.current : showRef.current
-    editor?.focus()
-  }
-
   const insert = (token: string) => {
     const editor = active === "movie" ? movieRef.current : showRef.current
     editor?.insertToken(token)
@@ -61,46 +55,16 @@ export function LayoutBuilder({
         <div>
           <h2 className="font-semibold text-gray-900">Tokens</h2>
           <p className="mt-1 text-sm leading-6 text-gray-500">
-            Drag a token into a layout, or click to insert it at the cursor.
+            Drag a token into a layout, or click to insert it into the last focused template.
           </p>
         </div>
         <div className="md:col-span-2">
           <Card className="overflow-hidden p-0">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
-              <div>
-                <div className="text-sm font-medium text-gray-900">Token palette</div>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Chips become real values in the preview.
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => chooseActive("movie")}
-                  title="Insert tokens into the Movie layout"
-                  className={cn(
-                    "rounded-md px-2 py-1 text-xs font-medium transition",
-                    active === "movie"
-                      ? "bg-brand text-brand-ink"
-                      : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
-                  )}
-                >
-                  Movies
-                </button>
-                <button
-                  type="button"
-                  onClick={() => chooseActive("shows")}
-                  title="Insert tokens into the Show layout"
-                  className={cn(
-                    "rounded-md px-2 py-1 text-xs font-medium transition",
-                    active === "shows"
-                      ? "bg-brand text-brand-ink"
-                      : "text-gray-500 hover:bg-gray-100 hover:text-gray-900",
-                  )}
-                >
-                  Shows
-                </button>
-              </div>
+            <div className="border-b border-gray-200 px-4 py-3">
+              <div className="text-sm font-medium text-gray-900">Token palette</div>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Chips become real values in the preview.
+              </p>
             </div>
 
             <div className="space-y-4 px-4 py-4">
