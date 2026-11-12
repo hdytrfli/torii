@@ -162,22 +162,10 @@ export function SettingsPage() {
               />
             </Field>
             <Toggle
-              label="Delete source after copy"
-              hint="Only applies when the action is copy."
-              checked={form.delete_source}
-              onChange={(value) => update("delete_source", value)}
-            />
-            <Toggle
               label="Clean up empty folders"
               hint="Runs after any successful apply."
               checked={form.cleanup_empty_dirs}
               onChange={(value) => update("cleanup_empty_dirs", value)}
-            />
-            <Toggle
-              label="Dry run"
-              hint="Calculate the target without touching files."
-              checked={form.dry_run}
-              onChange={(value) => update("dry_run", value)}
             />
             <Toggle
               label="Auto-apply high-confidence jobs"
