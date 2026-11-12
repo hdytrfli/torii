@@ -6,8 +6,8 @@ export function QueuePage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         eyebrow="Queue"
-        title="Review by group, act in bulk."
-        description="Shows are grouped across seasons. Movie folders become collections. Select a group or individual files, then approve or reject once."
+        title="Review files, act in bulk."
+        description="Select individual files, then approve or reject once. Use the file name or row menu to edit details, match metadata, or undo an applied job."
       />
       <ReviewWorkspace />
     </div>

@@ -9,7 +9,7 @@ const hasErrorInput = "border-red-500 ring-2 ring-red-200"
 
 const inputStyles = tv({
   base: [
-    "relative block w-full min-w-0 appearance-none truncate rounded-md border px-2.5 py-2 shadow-sm outline-none transition sm:text-sm",
+    "relative block w-full min-w-0 appearance-none truncate rounded-md border px-2.5 py-2 shadow-card outline-none transition sm:text-sm",
     "border-gray-300 text-gray-900 placeholder-gray-400 bg-white",
     "disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400",
     "file:-my-2 file:-ml-2.5 file:cursor-pointer file:rounded-l-[5px] file:rounded-r-none file:border-0 file:px-3 file:py-2 file:outline-none file:border-solid file:border-gray-300 file:bg-gray-50 file:text-gray-500 file:hover:bg-gray-100",

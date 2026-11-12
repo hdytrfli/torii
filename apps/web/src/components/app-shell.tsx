@@ -130,7 +130,7 @@ export function AppShell() {
         </aside>
       </nav>
 
-      <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm lg:hidden">
+      <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-card lg:hidden">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded-md bg-gray-900 text-xs font-semibold text-white">
             T
