@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -55,6 +56,27 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    csrf_token TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions(token_hash);
+CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions(user_id);
 """
 
 
@@ -77,6 +99,7 @@ class DB:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("PRAGMA foreign_keys=ON")
         return conn
 
     def _init(self) -> None:
@@ -105,6 +128,103 @@ class DB:
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                 list(values.items()),
             )
+
+    # users and sessions ----------------------------------------------
+
+    def count_users(self) -> int:
+        with self._connect() as conn:
+            row = conn.execute("SELECT COUNT(*) AS total FROM users").fetchone()
+        return int(row["total"]) if row else 0
+
+    def count_admins(self) -> int:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS total FROM users WHERE is_admin = 1"
+            ).fetchone()
+        return int(row["total"]) if row else 0
+
+    def list_users(self) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, username, is_admin, created_at, updated_at "
+                "FROM users ORDER BY username"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_user(self, user_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM users WHERE username = ?", (username,)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def create_user(
+        self, username: str, password_hash: str, is_admin: bool = False
+    ) -> dict[str, Any]:
+        timestamp = now()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO users "
+                "(username, password_hash, is_admin, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (username, password_hash, 1 if is_admin else 0, timestamp, timestamp),
+            )
+            user_id = int(cursor.lastrowid)
+        user = self.get_user(user_id)
+        if user is None:
+            raise RuntimeError("Created user could not be read back")
+        return user
+
+    def update_user_password(self, user_id: int, password_hash: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+                (password_hash, now(), user_id),
+            )
+
+    def delete_user(self, user_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    def create_session(
+        self, user_id: int, token_hash: str, csrf_token: str, expires_at: int
+    ) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO sessions "
+                "(user_id, token_hash, csrf_token, created_at, expires_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (user_id, token_hash, csrf_token, now(), expires_at),
+            )
+            return int(cursor.lastrowid)
+
+    def get_session(self, token_hash: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT s.id AS session_id, s.user_id, s.csrf_token, s.expires_at, "
+                "u.username, u.is_admin "
+                "FROM sessions s JOIN users u ON u.id = s.user_id "
+                "WHERE s.token_hash = ? AND s.expires_at > ?",
+                (token_hash, int(time.time())),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def delete_session(self, token_hash: str) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM sessions WHERE token_hash = ?", (token_hash,))
+
+    def delete_user_sessions(self, user_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+    def purge_expired_sessions(self) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (int(time.time()),))
 
     # jobs -------------------------------------------------------------
 

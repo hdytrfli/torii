@@ -10,9 +10,16 @@
     <header class="topbar">
       <a class="brand" href="/">media-renamer</a>
       <nav>
-        <a href="/">Jobs</a>
-        <a href="/settings">Settings</a>
-        {% if auth_enabled %}<a href="/logout">Logout</a>{% endif %}
+        {% if current_user %}
+          <a href="/">Jobs</a>
+          <a href="/settings">Settings</a>
+          {% if current_user.is_admin %}<a href="/users">Users</a>{% endif %}
+          <a href="/account">{{ current_user.username }}</a>
+          <form method="post" action="/logout" class="inline">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+            <button class="link-button" type="submit">Sign out</button>
+          </form>
+        {% endif %}
       </nav>
     </header>
 

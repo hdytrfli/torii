@@ -1,12 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="login">
+<div class="auth-card">
   <h1>Sign in</h1>
-  <p class="muted">Enter the token configured in <code>APP_TOKEN</code>.</p>
+  <p class="muted">Use your media-renamer account.</p>
   <form method="post" action="/login">
-    <label>Token
-      <input type="password" name="token" autofocus required>
+    <label>Username
+      <input type="text" name="username" autocomplete="username" autofocus required>
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="current-password" required>
     </label>
     <button class="button" type="submit">Sign in</button>
   </form>

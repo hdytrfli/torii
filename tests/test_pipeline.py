@@ -14,7 +14,7 @@ def make_config(tmp_path: Path) -> Config:
         host="127.0.0.1",
         port=8000,
         log_level="INFO",
-        app_token=None,
+        session_days=30,
         jellyfin_url=None,
         jellyfin_api_key=None,
         llm_base_url=None,

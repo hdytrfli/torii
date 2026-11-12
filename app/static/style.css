@@ -437,16 +437,86 @@ pre {
   background: var(--paper);
 }
 
-.login {
-  max-width: 360px;
+.auth-card {
+  max-width: 380px;
   margin: 60px auto;
 }
 
-.login form {
+.auth-card form {
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin-top: 18px;
+}
+
+.inline {
+  display: inline;
+  margin: 0;
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-button:hover {
+  color: var(--ink);
+}
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-row:last-child {
+  border-bottom: 0;
+}
+
+.user-identity {
+  flex: 1;
+  min-width: 140px;
+}
+
+.user-reset {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-reset input {
+  width: 140px;
+}
+
+.badge.admin {
+  background: #e7e7e3;
+  color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  .user-row {
+    flex-wrap: wrap;
+  }
+
+  .user-reset input {
+    width: 110px;
+  }
 }
 
 @media (max-width: 760px) {

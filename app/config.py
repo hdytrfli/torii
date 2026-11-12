@@ -25,7 +25,7 @@ class Config:
     host: str
     port: int
     log_level: str
-    app_token: str | None
+    session_days: int
     jellyfin_url: str | None
     jellyfin_api_key: str | None
     llm_base_url: str | None
@@ -47,7 +47,7 @@ class Config:
             host=_env("HOST", "0.0.0.0") or "0.0.0.0",
             port=int(_env("PORT", "8000") or "8000"),
             log_level=(_env("LOG_LEVEL", "INFO") or "INFO").upper(),
-            app_token=_env("APP_TOKEN"),
+            session_days=max(1, int(_env("SESSION_DAYS", "30") or "30")),
             jellyfin_url=(_env("JELLYFIN_URL") or "").rstrip("/") or None,
             jellyfin_api_key=_env("JELLYFIN_API_KEY"),
             llm_base_url=_env("LLM_BASE_URL"),

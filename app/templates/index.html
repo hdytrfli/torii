@@ -7,6 +7,7 @@
     <p class="muted">Files waiting for a decision, plus the ones already handled.</p>
   </div>
   <form method="post" action="/scan">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
     <button class="button" type="submit">Scan now</button>
   </form>
 </div>

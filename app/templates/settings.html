@@ -5,6 +5,7 @@
 <p class="muted">These values live in SQLite and apply on the next scan.</p>
 
 <form method="post" action="/settings" class="settings-form">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
   <section class="panel">
     <h2>Scanning</h2>
     <div class="grid">
