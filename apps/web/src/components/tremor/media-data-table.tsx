@@ -126,45 +126,45 @@ function DataTableFilter({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
+        <Button
           type="button"
+          variant="secondary"
           className={cn(
-            "flex w-full items-center gap-x-1.5 whitespace-nowrap rounded-md border border-gray-300 px-2 py-1.5 font-medium text-gray-600 hover:bg-gray-50 sm:w-fit sm:text-xs",
-            active ? "" : "border-dashed",
-            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900",
+            "w-full justify-between gap-x-1.5 font-normal sm:w-fit",
+            active ? "" : "border-dashed text-gray-600",
           )}
         >
-          <span
-            aria-hidden="true"
-            onClick={(event) => {
-              if (active) {
-                event.stopPropagation()
-                column?.setFilterValue(undefined)
-                setSelected([])
-              }
-            }}
-          >
-            <Plus
-              className={cn(
-                "-ml-px size-5 shrink-0 transition sm:size-4",
-                active && "rotate-45 hover:text-red-500",
-              )}
+          <span className="flex min-w-0 items-center gap-x-1.5">
+            <span
               aria-hidden="true"
-            />
-          </span>
-          {active ? (
-            <>
+              onClick={(event) => {
+                if (active) {
+                  event.stopPropagation()
+                  column?.setFilterValue(undefined)
+                  setSelected([])
+                }
+              }}
+            >
+              <Plus
+                className={cn(
+                  "size-4 shrink-0 transition",
+                  active && "rotate-45 hover:text-red-500",
+                )}
+                aria-hidden="true"
+              />
+            </span>
+            {active ? (
+              <>
+                <span>{title}</span>
+                <span className="h-4 w-px bg-gray-300" aria-hidden="true" />
+                <span className="truncate font-medium text-gray-900">{labelText}</span>
+              </>
+            ) : (
               <span>{title}</span>
-              <span className="h-4 w-px bg-gray-300" aria-hidden="true" />
-              <span className="w-full truncate text-left font-semibold text-gray-900 sm:w-fit">
-                {labelText}
-              </span>
-            </>
-          ) : (
-            <span className="w-full text-left sm:w-fit">{title}</span>
-          )}
-          <ChevronDown className="size-5 shrink-0 text-gray-500 sm:size-4" aria-hidden="true" />
-        </button>
+            )}
+          </span>
+          <ChevronDown className="size-4 shrink-0 text-gray-400" aria-hidden="true" />
+        </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -197,7 +197,7 @@ function DataTableFilter({
           <PopoverClose asChild>
             <Button
               type="button"
-              className="w-full sm:py-1"
+              className="w-full"
               onClick={() => column?.setFilterValue(selected.length ? selected : undefined)}
             >
               Apply
@@ -206,7 +206,7 @@ function DataTableFilter({
           {active ? (
             <Button
               variant="secondary"
-              className="w-full sm:py-1"
+              className="w-full"
               type="button"
               onClick={() => {
                 setSelected([])
@@ -228,24 +228,26 @@ function ViewOptions({ table }: { table: TanStackTable<Job> }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant="secondary"
-          className="ml-auto hidden gap-x-2 px-2 py-1.5 text-sm sm:text-xs lg:flex"
-        >
+        <Button variant="secondary" className="ml-auto hidden lg:flex">
           <SlidersHorizontal className="size-4 shrink-0" aria-hidden="true" />
           View
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" sideOffset={7} className="z-50 w-fit space-y-2">
-        <span className="font-medium text-gray-900">Display properties</span>
-        <div className="flex flex-col gap-2">
+      <PopoverContent align="end" sideOffset={7} className="z-50 w-60 p-1">
+        <div className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500">
+          Display properties
+        </div>
+        <div className="flex flex-col">
           {columns.map((column) => (
-            <label key={column.id} className="flex items-center gap-2">
+            <label
+              key={column.id}
+              className="flex cursor-pointer items-center gap-2 rounded py-1.5 pl-2 pr-1 text-sm text-gray-900 hover:bg-gray-100"
+            >
               <Checkbox
                 checked={column.getIsVisible()}
                 onCheckedChange={() => column.toggleVisibility()}
               />
-              <span className="text-sm text-gray-900">
+              <span>
                 {(column.columnDef.meta?.displayName as string | undefined) ?? column.id}
               </span>
             </label>
@@ -321,12 +323,10 @@ function Filterbar({ table }: { table: TanStackTable<Job> }) {
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           className="w-full sm:max-w-[250px]"
-          inputClassName="h-[30px] border-transparent bg-gray-100"
         />
         {isFiltered ? (
           <Button
             variant="secondary"
-            size="sm"
             onClick={() => {
               table.resetColumnFilters()
               setSearchTerm("")
@@ -339,7 +339,7 @@ function Filterbar({ table }: { table: TanStackTable<Job> }) {
       <div className="flex items-center gap-2">
         <Button
           variant="secondary"
-          className="hidden gap-x-2 px-2 py-1.5 text-sm sm:text-xs lg:flex"
+          className="hidden lg:flex"
           onClick={exportFiltered}
         >
           <Download className="size-4 shrink-0" aria-hidden="true" />
