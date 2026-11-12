@@ -206,5 +206,6 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
         "EPISODE": str(episode or ""),
     })
 
-    logger.info("Moved %s to %s", source, target)
-    return True, f"Moved to {target}", target
+    verb = {"move": "Moved", "copy": "Copied", "hardlink": "Linked"}[chosen_action]
+    logger.info("%s %s to %s", verb, source, target)
+    return True, f"{verb} to {target}", target

@@ -1,11 +1,11 @@
 paths:
   state: /data
   watch:
-    movies: /downloads/movies
-    shows: /downloads/shows
+    movies: /media/downloads/movies
+    shows: /media/downloads/shows
   library:
-    movies: /library/movies
-    shows: /library/shows
+    movies: /media/library/movies
+    shows: /media/library/shows
 
 server:
   port: 8000

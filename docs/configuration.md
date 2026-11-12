@@ -36,11 +36,11 @@ Container paths. The host side is configured by `compose.yaml`.
 ```yaml
 paths:
   watch:
-    movies: /downloads/movies
-    shows: /downloads/shows
+    movies: /media/downloads/movies
+    shows: /media/downloads/shows
   library:
-    movies: /library/movies
-    shows: /library/shows
+    movies: /media/library/movies
+    shows: /media/library/shows
   state: /data
 ```
 
@@ -48,10 +48,7 @@ The default Compose mounts are:
 
 | Container | Host |
 | --- | --- |
-| `/downloads/movies` | `./temp/downloads/movies` |
-| `/downloads/shows` | `./temp/downloads/shows` |
-| `/library/movies` | `./temp/library/movies` |
-| `/library/shows` | `./temp/library/shows` |
+| `/media` | `./temp` |
 | `/data` | `.` |
 
 The last mount is why `torii.db` appears in the project root.

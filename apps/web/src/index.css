@@ -12,7 +12,7 @@
   --color-ink: rgb(28 25 23);
   --color-ink-muted: rgb(120 113 108);
   --color-line: rgb(231 229 228);
-  --color-brand: rgb(41 37 36);
+  --color-brand: rgb(59 130 246);
   --color-brand-ink: rgb(255 255 255);
 
   --color-success: rgb(21 128 61);
@@ -24,9 +24,9 @@
   --color-info: rgb(29 78 216);
   --color-info-soft: rgb(219 234 254);
 
-  --radius-card: 16px;
-  --radius-control: 10px;
-  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 8px 24px rgb(28 25 23 / 0.04);
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.05);
   --spacing-sidebar: 15rem;
 }
 

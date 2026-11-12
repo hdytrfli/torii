@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from app.core.config import Config
@@ -169,3 +170,39 @@ def test_copy_action_keeps_source(tmp_path: Path):
     assert source.exists()
     assert target is not None and target.exists()
     assert db.get_job(job["id"])["status"] == "moved"
+
+
+def test_hardlink_action_links_source(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Spirited.Away.2001.1080p.mkv"
+    source.write_bytes(b"")
+    db = DB(tmp_path / "state.db")
+    settings = settings_mod.load(db)
+
+    job = pipeline.analyze(
+        cfg,
+        settings,
+        db,
+        source,
+        JellyfinProvider(None, None),
+        LLM(None, None, None),
+    )
+    ok, message, target = apply.apply_job(
+        cfg,
+        settings,
+        db,
+        job,
+        job["title"],
+        job["year"],
+        job["media_type"],
+        job["season"],
+        job["episode"],
+        action="hardlink",
+    )
+
+    assert ok, message
+    assert "Linked" in message
+    assert source.exists()
+    assert target is not None and target.exists()
+    assert os.path.samefile(source, target)

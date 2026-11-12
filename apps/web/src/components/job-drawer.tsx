@@ -8,6 +8,7 @@ import { Badge, Button, Field, Input, Select, SourceBadge } from "./ui"
 export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => void }) {
   const queryClient = useQueryClient()
   const { data: job } = useQuery({ queryKey: ["job", jobId], queryFn: () => api.job(jobId) })
+  const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: api.settings })
   const [title, setTitle] = useState("")
   const [year, setYear] = useState("")
   const [mediaType, setMediaType] = useState<"movie" | "tv">("movie")
@@ -18,6 +19,10 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
   const [error, setError] = useState<string | null>(null)
   const [provider, setProvider] = useState<"tmdb" | "imdb" | "tvdb">("tmdb")
   const [externalId, setExternalId] = useState("")
+
+  useEffect(() => {
+    if (settingsQuery.data) setAction(settingsQuery.data.action)
+  }, [settingsQuery.data])
 
   useEffect(() => {
     if (!job) return

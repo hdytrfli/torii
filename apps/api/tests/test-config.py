@@ -13,9 +13,9 @@ from app.domain import settings
 
 def test_repository_config_is_valid():
     data = deployment.load()
-    assert data["paths"]["watch"]["movies"] == "/downloads/movies"
-    assert data["paths"]["watch"]["shows"] == "/downloads/shows"
-    assert data["paths"]["library"]["shows"] == "/library/shows"
+    assert data["paths"]["watch"]["movies"] == "/media/downloads/movies"
+    assert data["paths"]["watch"]["shows"] == "/media/downloads/shows"
+    assert data["paths"]["library"]["shows"] == "/media/library/shows"
     assert data["scan"]["poll_interval"] >= 1
     assert data["apply"]["action"] == "move"
     assert "{season}" in data["layout"]["shows"]

@@ -44,8 +44,9 @@ Change it after signing in. If `DEFAULT_USERNAME` / `DEFAULT_PASSWORD` are
 removed, the first visit shows the setup screen instead.
 
 Behavioral settings live in `config.yaml`. `.env` contains only the Jellyfin
-and AI provider details. Compose mounts `./temp/downloads/movies` and `./temp/downloads/shows`, the
-matching `./temp/library` folders, and the project root at `/data`. The SQLite
+and AI provider details. Compose mounts `./temp` at `/media` and the project root at `/data`. The
+container then uses `/media/downloads/movies`, `/media/downloads/shows`,
+`/media/library/movies`, and `/media/library/shows`. The SQLite
 database is `torii.db` in the project root.
 
 Validate both layers before starting:
@@ -151,16 +152,15 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-The default mounts are `./temp/downloads/movies`, `./temp/downloads/shows`,
-`./temp/library/movies`, and `./temp/library/shows`. For the atlas deployment,
-edit the volume sources in `compose.yaml`.
+The default mount is `./temp` at `/media`. For the atlas deployment, mount the
+atlas root once at `/media` so hardlinks work across downloads and library.
 
 Open the UI and create the first administrator. The compose file publishes on
 `127.0.0.1:8090`. Put it behind NetBird, Cloudflare Tunnel with Access, or a
 reverse proxy. Do not expose the bare port publicly.
 
-For hardlink mode, the download and library mounts must be on the same
-filesystem.
+For hardlink mode, downloads and library must live under the same `/media`
+mount; separate bind mounts return `EXDEV`.
 
 ## Metadata
 

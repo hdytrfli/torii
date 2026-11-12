@@ -1,89 +1,162 @@
 import { Link } from "react-router-dom"
-import { ArrowUpRight, ScanLine } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { RefreshCw } from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
-import { ReviewWorkspace } from "../components/review-workspace"
-import { SourceSummary } from "../components/group-list"
-import { Button, Card, StatCard, Skeleton } from "../components/ui"
+import { Button, Card, Skeleton } from "../components/ui"
+import { CategoryBar } from "../components/tremor/category-bar"
+import { Divider } from "../components/tremor/divider"
+import { JobTable } from "../components/tremor/job-table"
+import { ProgressCircle } from "../components/tremor/progress-circle"
+import { Sparkline } from "../components/tremor/sparkline"
 
 export function DashboardPage() {
   const stats = useQuery({ queryKey: ["stats"], queryFn: api.stats })
-  const groups = useQuery({ queryKey: ["groups", "all"], queryFn: () => api.groups("all") })
+  const jobsQuery = useQuery({ queryKey: ["jobs", "all"], queryFn: () => api.jobs("all") })
+  const queryClient = useQueryClient()
+  const scan = useMutation({
+    mutationFn: api.scan,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["jobs"] })
+      void queryClient.invalidateQueries({ queryKey: ["stats"] })
+      void queryClient.invalidateQueries({ queryKey: ["groups"] })
+    },
+  })
 
+  const jobs = jobsQuery.data ?? []
+  const total = stats.data?.total ?? jobs.length
   const review = stats.data?.needs_review ?? 0
+  const ready = stats.data?.ready ?? 0
   const moved = stats.data?.moved ?? 0
-  const total = stats.data?.total ?? 0
+  const confidence = total
+    ? Math.round((jobs.filter((job) => job.confidence >= 0.85).length / total) * 100)
+    : 0
+
+  const sourceCounts = jobs.reduce<Record<string, number>>((counts, job) => {
+    const label = job.source ?? "guessit"
+    counts[label] = (counts[label] ?? 0) + 1
+    return counts
+  }, {})
+  const sourceValues = [
+    sourceCounts.jellyfin ?? 0,
+    sourceCounts.guessit ?? 0,
+    sourceCounts.nfo ?? 0,
+    sourceCounts.llm ?? 0,
+  ]
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <main>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-muted">
-            Library operations
-          </div>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
-            Keep the queue moving.
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Grouped by show, collection, and individual movie so a season pack or a batch folder
-            is one decision instead of twenty.
+          <h1 className="text-2xl font-semibold text-gray-900">Library Overview</h1>
+          <p className="text-gray-500 sm:text-sm/6">
+            Real-time monitoring of the rename queue and metadata matches
           </p>
         </div>
-        <Link to="/queue">
-          <Button variant="secondary">
-            Open full queue <ArrowUpRight size={14} />
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => scan.mutate()} disabled={scan.isPending}>
+            <RefreshCw size={15} className={scan.isPending ? "animate-spin" : ""} />
+            Scan now
           </Button>
-        </Link>
+          <Link to="/queue">
+            <Button>Review queue</Button>
+          </Link>
+        </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.isLoading ? (
-          Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-28" />)
-        ) : (
-          <>
-            <StatCard label="Needs review" value={review} accent="warning" hint="Waiting for a decision" />
-            <StatCard label="Moved" value={moved} accent="success" hint="Cleaned and filed" />
-            <StatCard label="Total jobs" value={total} hint="All time" />
-            <StatCard
-              label="Reviewed"
-              value={Math.max(0, total - review)}
-              hint={`${total ? Math.round(((total - review) / total) * 100) : 0}% of jobs`}
-            />
-          </>
-        )}
-      </section>
+      <Divider />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <section className="min-w-0">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-muted">
-                Review queue
+      <dl className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <dt className="text-sm font-medium text-gray-900">Current Queue</dt>
+          <dd className="mt-1 text-3xl font-semibold text-gray-900">{review}</dd>
+          <CategoryBar
+            values={[review, ready, moved]}
+            className="mt-6"
+            colors={["blue", "lightGray", "red"]}
+          />
+          <ul role="list" className="mt-4 flex flex-wrap gap-x-10 gap-y-4 text-sm">
+            <li>
+              <span className="text-base font-semibold text-gray-900">{review}</span>
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 shrink-0 rounded-sm bg-blue-500" aria-hidden="true" />
+                <span className="text-sm">Needs review</span>
               </div>
-              <div className="mt-0.5 text-sm font-semibold text-ink">Recent groups</div>
-            </div>
-            <Link to="/queue" className="text-xs font-medium text-ink-muted hover:text-ink">
-              View all →
-            </Link>
-          </div>
-          <ReviewWorkspace compact />
-        </section>
+            </li>
+            <li>
+              <span className="text-base font-semibold text-gray-900">{ready}</span>
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 shrink-0 rounded-sm bg-gray-400" aria-hidden="true" />
+                <span className="text-sm">Ready</span>
+              </div>
+            </li>
+            <li>
+              <span className="text-base font-semibold text-gray-900">{moved}</span>
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 shrink-0 rounded-sm bg-red-500" aria-hidden="true" />
+                <span className="text-sm">Moved</span>
+              </div>
+            </li>
+          </ul>
+        </Card>
 
-        <aside className="flex flex-col gap-3">
-          <SourceSummary groups={groups.data ?? []} />
-          <Card className="p-4">
-            <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.12em] text-ink-muted">
-              <ScanLine size={13} /> Workflow
-            </div>
-            <ol className="mt-3 flex list-decimal flex-col gap-2 pl-4 text-xs leading-5 text-ink-muted">
-              <li>Stable files are scanned from movies or shows.</li>
-              <li>NFO, Jellyfin, then guessit decide the match.</li>
-              <li>AI runs only when there are no candidates.</li>
-              <li>You approve; sidecars follow the file.</li>
-            </ol>
-          </Card>
-        </aside>
-      </div>
-    </div>
+        <Card>
+          <dt className="text-sm font-medium text-gray-900">Match Confidence</dt>
+          <div className="mt-4 flex flex-nowrap items-center justify-between gap-y-4">
+            <dd className="space-y-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 shrink-0 rounded-sm bg-blue-500" aria-hidden="true" />
+                  <span className="text-sm">At or above 85%</span>
+                </div>
+                <span className="mt-1 block text-2xl font-semibold text-gray-900">{confidence}%</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 shrink-0 rounded-sm bg-red-500" aria-hidden="true" />
+                  <span className="text-sm text-gray-900">Below threshold</span>
+                </div>
+                <span className="mt-1 block text-2xl font-semibold text-gray-900">
+                  {100 - confidence}%
+                </span>
+              </div>
+            </dd>
+            <ProgressCircle value={confidence} radius={45} strokeWidth={7} />
+          </div>
+        </Card>
+
+        <Card>
+          <dt className="text-sm font-medium text-gray-900">Match Sources</dt>
+          <div className="mt-4 flex items-center gap-x-8 gap-y-4">
+            <dd className="space-y-3 whitespace-nowrap">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 shrink-0 rounded-sm bg-blue-500" aria-hidden="true" />
+                  <span className="text-sm">Jellyfin</span>
+                </div>
+                <span className="mt-1 block text-2xl font-semibold text-gray-900">
+                  {sourceCounts.jellyfin ?? 0}
+                </span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 shrink-0 rounded-sm bg-gray-400" aria-hidden="true" />
+                  <span className="text-sm">Filename</span>
+                </div>
+                <span className="mt-1 block text-2xl font-semibold text-gray-900">
+                  {sourceCounts.guessit ?? 0}
+                </span>
+              </div>
+            </dd>
+            <Sparkline values={sourceValues} />
+          </div>
+        </Card>
+      </dl>
+
+      {jobsQuery.isLoading ? (
+        <Skeleton className="mt-8 h-72" />
+      ) : (
+        <JobTable jobs={jobs} />
+      )}
+    </main>
   )
 }

@@ -18,8 +18,5 @@ services:
       start_period: 15s
       retries: 3
     volumes:
-      - ./temp/downloads/movies:/downloads/movies
-      - ./temp/downloads/shows:/downloads/shows
-      - ./temp/library/movies:/library/movies
-      - ./temp/library/shows:/library/shows
+      - ./temp:/media
       - .:/data
