@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Check, RefreshCw, Sparkles, Undo2, X } from "lucide-react"
+import { Astroid, Check, RefreshCw, Undo2, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { pct, providerLabel, sourceLabel } from "../lib/format"
@@ -148,17 +148,25 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               </div>
 
               <div className="mb-6 grid gap-3 sm:grid-cols-2">
-                <Card className="min-w-0 p-4">
-                  <div className="text-xs font-medium text-gray-500">Original path</div>
-                  <p className="mt-2 break-all font-mono text-[11px] leading-5 text-gray-700">
-                    {job.source_path}
-                  </p>
+                <Card className="min-w-0 overflow-hidden p-0">
+                  <div className="px-4 pb-4 pt-4">
+                    <p className="break-all font-mono text-[11px] leading-5 text-gray-700">
+                      {job.source_path}
+                    </p>
+                  </div>
+                  <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500">
+                    Original path
+                  </div>
                 </Card>
-                <Card className="min-w-0 p-4">
-                  <div className="text-xs font-medium text-gray-500">Target path</div>
-                  <p className="mt-2 break-all font-mono text-[11px] leading-5 text-gray-700">
-                    {target || job.target_path || "—"}
-                  </p>
+                <Card className="min-w-0 overflow-hidden p-0">
+                  <div className="px-4 pb-4 pt-4">
+                    <p className="break-all font-mono text-[11px] leading-5 text-gray-700">
+                      {target || job.target_path || "—"}
+                    </p>
+                  </div>
+                  <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500">
+                    Target path
+                  </div>
                 </Card>
               </div>
 
@@ -339,7 +347,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                     <Check size={14} /> Approve
                   </Button>
                   <Button variant="secondary" onClick={() => askAi.mutate()} disabled={askAi.isPending}>
-                    <Sparkles size={14} /> Ask AI
+                    <Astroid size={14} /> Ask AI
                   </Button>
                   <Button variant="secondary" onClick={() => retry.mutate()} disabled={retry.isPending}>
                     <RefreshCw size={14} className={retry.isPending ? "animate-spin" : ""} /> Retry
