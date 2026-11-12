@@ -147,19 +147,19 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 <span>{pct(job.confidence)} match</span>
               </div>
 
-              <div className="mb-6 grid divide-y divide-gray-200 overflow-hidden rounded-control border border-line bg-surface-muted text-xs md:grid-cols-2 md:divide-x md:divide-y-0">
-                <div className="min-w-0 p-3">
-                  <div className="mb-1 font-medium text-gray-500">Original path</div>
-                  <p className="break-all font-mono text-[11px] text-gray-700">
+              <div className="mb-6 grid gap-3 sm:grid-cols-2">
+                <Card className="min-w-0 p-4">
+                  <div className="text-xs font-medium text-gray-500">Original path</div>
+                  <p className="mt-2 break-all font-mono text-[11px] leading-5 text-gray-700">
                     {job.source_path}
                   </p>
-                </div>
-                <div className="min-w-0 p-3">
-                  <div className="mb-1 font-medium text-gray-500">Target path</div>
-                  <p className="break-all font-mono text-[11px] text-gray-700">
+                </Card>
+                <Card className="min-w-0 p-4">
+                  <div className="text-xs font-medium text-gray-500">Target path</div>
+                  <p className="mt-2 break-all font-mono text-[11px] leading-5 text-gray-700">
                     {target || job.target_path || "—"}
                   </p>
-                </div>
+                </Card>
               </div>
 
               <div className="grid min-w-0 gap-8 md:grid-cols-[minmax(0,1fr)_20rem]">
