@@ -150,9 +150,10 @@ class DB:
         **fields: Any,
     ) -> int:
         timestamp = now()
-        columns = ["source_path", "source_size", "source_mtime", "status",
-                   "created_at", "updated_at"]
-        values: list[Any] = [str(source_path), size, mtime, status, timestamp, timestamp]
+        fields = dict(fields)
+        fields.setdefault("status", status)
+        columns = ["source_path", "source_size", "source_mtime", "created_at", "updated_at"]
+        values: list[Any] = [str(source_path), size, mtime, timestamp, timestamp]
         for key, value in fields.items():
             if key in JOB_FIELDS:
                 columns.append(key)
