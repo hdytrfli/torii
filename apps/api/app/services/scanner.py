@@ -83,6 +83,9 @@ class Scanner:
                 if key not in seen:
                     self._pending.pop(key, None)
 
+            if settings.auto_apply:
+                self._auto_apply_existing(settings)
+
             return processed
 
     def _iter_files(self, settings: settings_mod.Settings, root: Path):
@@ -158,18 +161,40 @@ class Scanner:
             return False
 
         if settings.auto_apply and job.get("status") == "ready":
-            ok, message, _ = apply.apply_job(
-                self.cfg,
-                settings,
-                self.db,
-                job,
-                job["title"],
-                job["year"],
-                job["media_type"],
-                job["season"],
-                job["episode"],
-            )
-            if not ok:
-                logger.warning("Auto apply failed for %s: %s", path, message)
+            self._apply_auto(settings, job, path)
 
         return True
+
+    def _auto_apply_existing(self, settings: settings_mod.Settings) -> None:
+        for job in self.db.list_jobs(limit=1000):
+            if job.get("status") not in {"needs_review", "ready"}:
+                continue
+            if job.get("error") or not job.get("title"):
+                continue
+            if job.get("media_type") not in {"movie", "tv"}:
+                continue
+            if float(job.get("confidence") or 0) < settings.auto_apply_confidence:
+                continue
+            source = Path(job["source_path"])
+            if not source.exists():
+                continue
+            self._apply_auto(settings, job, source)
+
+    def _apply_auto(
+        self, settings: settings_mod.Settings, job: dict, source: Path
+    ) -> None:
+        ok, message, _ = apply.apply_job(
+            self.cfg,
+            settings,
+            self.db,
+            job,
+            job["title"],
+            job["year"],
+            job["media_type"],
+            job["season"],
+            job["episode"],
+        )
+        if ok:
+            logger.info("Auto applied %s: %s", source, message)
+        else:
+            logger.warning("Auto apply failed for %s: %s", source, message)
