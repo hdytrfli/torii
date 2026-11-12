@@ -58,3 +58,14 @@ class IdentifyBody(BaseModel):
     provider: Literal["tmdb", "imdb", "tvdb"]
     id: str
     media_type: Literal["movie", "tv"] | None = None
+
+
+class LayoutPreviewBody(BaseModel):
+    movie_template: str
+    tv_template: str
+    movie_title: str = "Spirited Away"
+    movie_year: int | None = 2001
+    show_title: str = "Dark"
+    show_year: int | None = 2017
+    season: int = 1
+    episode: int = 1

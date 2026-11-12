@@ -3,9 +3,8 @@ import { Link } from "react-router-dom"
 import { RefreshCw } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
-import { Button, Card, Select } from "../components/ui"
+import { Button, Select } from "../components/ui"
 import { CategoryBarCard, ProgressBarCard } from "../components/tremor/dashboard-cards"
-import { GroupedJobTable } from "../components/tremor/job-table"
 import { MediaChartCard } from "../components/tremor/media-chart-card"
 
 export function DashboardPage() {
@@ -97,7 +96,7 @@ export function DashboardPage() {
           Current queue
         </h1>
         <div className="mt-4 grid grid-cols-1 gap-14 sm:mt-8 sm:grid-cols-2 lg:mt-10 xl:grid-cols-3">
-          <Card>
+          <div>
             <ProgressBarCard
               title="Queue health"
               change={review ? `${review} waiting` : "clear"}
@@ -107,8 +106,8 @@ export function DashboardPage() {
               ctaText="Open queue."
               data={statusData}
             />
-          </Card>
-          <Card>
+          </div>
+          <div>
             <ProgressBarCard
               title="Match quality"
               change={`${confidence}% strong`}
@@ -118,8 +117,8 @@ export function DashboardPage() {
               ctaText="Review weak matches."
               data={qualityData}
             />
-          </Card>
-          <Card>
+          </div>
+          <div>
             <CategoryBarCard
               title="Match sources"
               change="last scan"
@@ -130,7 +129,7 @@ export function DashboardPage() {
               ctaText="Ask AI manually."
               data={sourceData}
             />
-          </Card>
+          </div>
         </div>
       </section>
 
@@ -189,16 +188,6 @@ export function DashboardPage() {
             categories={["Matched", "Review"]}
           />
         </dl>
-      </section>
-
-      <section aria-labelledby="queue-details">
-        <div className="mt-16 flex items-center justify-between">
-          <h2 id="queue-details" className="text-lg font-semibold text-gray-900 sm:text-xl">
-            Details
-          </h2>
-          <p className="text-sm text-gray-500">Grouped by show, collection, and movie</p>
-        </div>
-        <GroupedJobTable groups={filteredGroups} readOnly pageSize={6} />
       </section>
     </main>
   )

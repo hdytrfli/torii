@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
-import type { Group, Job } from "../lib/types"
+import type { Group } from "../lib/types"
 import { BulkBar } from "./bulk-bar"
 import { GroupedJobTable } from "./tremor/job-table"
 import { JobDrawer } from "./job-drawer"
@@ -86,15 +86,6 @@ export function ReviewWorkspace({
     })
   }
 
-  const approveOne = (job: Job) => {
-    setSelected(new Set([job.id]))
-    bulk.mutate({ ids: [job.id], action: "approve" })
-  }
-
-  const rejectOne = (job: Job) => {
-    bulk.mutate({ ids: [job.id], action: "reject" })
-  }
-
   return (
     <div className="flex flex-col gap-4">
       {!compact ? (
@@ -151,12 +142,6 @@ export function ReviewWorkspace({
           onToggle={toggle}
           onToggleGroup={toggleGroup}
           onOpen={(job) => setOpenJob(job.id)}
-          onApprove={approveOne}
-          onReject={rejectOne}
-          onApproveGroup={(group) =>
-            bulk.mutate({ ids: group.jobs.map((job) => job.id), action: "approve" })
-          }
-          busy={bulk.isPending}
         />
       )}
 

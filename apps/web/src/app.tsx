@@ -1,22 +1,14 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AppShell } from "./components/app-shell"
 import { AuthProvider, useAuth } from "./lib/auth"
+import { queryClient } from "./lib/query-client"
 import { DashboardPage } from "./pages/dashboard-page"
 import { LoginPage } from "./pages/login-page"
 import { QueuePage } from "./pages/queue-page"
 import { SettingsPage } from "./pages/settings-page"
 import { UsersPage } from "./pages/users-page"
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 10_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-})
 
 function AppRoutes() {
   const { user, loading } = useAuth()

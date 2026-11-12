@@ -1,5 +1,4 @@
 import { ReviewWorkspace } from "../components/review-workspace"
-import { SourceLegend } from "../components/ui"
 
 export function QueuePage() {
   return (
@@ -15,9 +14,6 @@ export function QueuePage() {
           Shows are grouped across seasons. Movie folders become collections. Select a group or
           individual files, then approve or reject once.
         </p>
-        <div className="mt-3">
-          <SourceLegend />
-        </div>
       </div>
       <ReviewWorkspace />
     </div>

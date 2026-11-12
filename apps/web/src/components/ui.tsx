@@ -12,41 +12,60 @@ import { Card } from "./tremor/card"
 
 export { Badge, Button, Card }
 
+export function AssessedBadge({
+  label,
+  level = "medium",
+}: {
+  label: string
+  level?: "high" | "medium" | "low" | "none"
+}) {
+  const dot =
+    level === "high"
+      ? "bg-gray-900"
+      : level === "medium"
+        ? "bg-gray-500"
+        : level === "low"
+          ? "bg-gray-300"
+          : "bg-gray-200"
+  return (
+    <Badge variant="neutral" className="gap-1.5 font-normal capitalize text-gray-700">
+      <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />
+      {label}
+    </Badge>
+  )
+}
+
 export function StatusBadge({ status }: { status: string }) {
-  const tone =
-    status === "ready"
-      ? "success"
-      : status === "failed" || status === "rejected"
-        ? "error"
-        : status === "needs_review"
-          ? "warning"
-          : "neutral"
-  return <Badge variant={tone}>{statusLabel(status)}</Badge>
+  const level =
+    status === "needs_review"
+      ? "high"
+      : status === "ready"
+        ? "medium"
+        : status === "failed" || status === "rejected"
+          ? "high"
+          : "low"
+  return <AssessedBadge label={statusLabel(status)} level={level} />
 }
 
 export function SourceBadge({ source }: { source: Source }) {
-  const variant =
-    source === "jellyfin"
-      ? "success"
-      : source === "nfo"
-        ? "default"
-        : source === "llm"
-          ? "warning"
-          : "neutral"
-  return <Badge variant={variant}>{sourceLabel(source)}</Badge>
+  const level =
+    source === "jellyfin" ? "high" : source === "nfo" ? "medium" : source === "llm" ? "low" : "medium"
+  return <AssessedBadge label={sourceLabel(source)} level={level} />
 }
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return (
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+  ({ className, ...props }, ref) => (
     <input
+      ref={ref}
       className={cn(
         "h-10 w-full rounded-control border border-line bg-surface px-3 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-ink focus:ring-2 focus:ring-ink/10",
         className,
       )}
       {...props}
     />
-  )
-}
+  ),
+)
+Input.displayName = "Input"
 
 export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
@@ -180,16 +199,5 @@ export function StatCard({
       </div>
       {hint ? <div className="mt-1 text-xs text-ink-muted">{hint}</div> : null}
     </Card>
-  )
-}
-
-export function SourceLegend() {
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
-      <span>Match source:</span>
-      {(["jellyfin", "guessit", "nfo", "llm", "manual"] as Source[]).map((source) => (
-        <SourceBadge key={source} source={source} />
-      ))}
-    </div>
   )
 }
