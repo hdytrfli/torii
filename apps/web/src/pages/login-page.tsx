@@ -49,25 +49,28 @@ export function LoginPage() {
             A clean library starts with one honest match.
           </h1>
           <p className="mt-4 max-w-md text-sm leading-6 text-brand-ink/70">
-            Guessit parses the release. Jellyfin confirms the metadata. AI only steps in when
-            there is nothing else to match. You approve the final rename.
+            Guessit parses the release name first. Jellyfin or a local NFO fills
+            in gaps only when needed. AI is a last resort, and you approve the
+            final rename.
           </p>
           <div className="mt-10 space-y-5">
             {[
               {
                 icon: FileSearch,
-                title: "Filename parsed first",
-                description: "Release names are read before any provider lookup.",
+                title: "Filename first",
+                description:
+                  "Title, year, season, and episode are read from the release name.",
               },
               {
                 icon: Server,
-                title: "Jellyfin confirms",
-                description: "First choice for candidate metadata.",
+                title: "Providers fill the gaps",
+                description:
+                  "Jellyfin or a local NFO is only needed when the filename is ambiguous.",
               },
               {
                 icon: Sparkles,
-                title: "AI steps in last",
-                description: "Only when there are no candidates to compare.",
+                title: "AI is the last resort",
+                description: "Only used when no provider candidates exist.",
               },
               {
                 icon: UserRoundCheck,

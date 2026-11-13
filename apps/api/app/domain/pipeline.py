@@ -20,6 +20,18 @@ def _candidate_best(candidates: list[providers.Candidate]) -> providers.Candidat
     return None
 
 
+def _filename_has_enough_detail(parsed: guess.Parsed) -> bool:
+    if not parsed.title:
+        return False
+    if parsed.kind == "tv":
+        return (
+            parsed.season is not None
+            and parsed.episode is not None
+            and parsed.confidence >= 0.8
+        )
+    return parsed.year is not None and parsed.confidence >= 0.7
+
+
 def _int(value: Any) -> int | None:
     try:
         return int(value) if value is not None and str(value).strip() else None
@@ -86,7 +98,12 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
             parsed.episode = None
             parsed.episode_end = None
 
-    candidates = jellyfin.search(parsed.title, parsed.year, parsed.kind)
+    providers_checked = False
+    if _filename_has_enough_detail(parsed):
+        candidates = []
+    else:
+        providers_checked = True
+        candidates = jellyfin.search(parsed.title, parsed.year, parsed.kind)
     if nfo_candidate is not None:
         candidates = [nfo_candidate] + [
             candidate
@@ -103,8 +120,8 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
     confidence = _confidence(parsed, best, candidates)
     decision: dict[str, Any] | None = None
 
-    # AI is the last resort: only ask it when there are no provider or NFO candidates.
-    if parsed.title and not candidates and llm.enabled:
+    # AI is the last resort: only ask it after provider lookup returned nothing.
+    if parsed.title and not candidates and llm.enabled and providers_checked:
         ai_attempted = True
         decision = llm.normalize(path.stem, parsed, candidates)
         if decision and decision.get("title"):
@@ -216,7 +233,11 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
             "nfo": "Local NFO metadata selected.",
             "jellyfin": "Jellyfin candidate selected.",
             "llm": "AI fallback selected.",
-            "guessit": "Parsed from filename."
+            "guessit": (
+                "Parsed from filename; provider lookup skipped."
+                if not providers_checked
+                else "Parsed from filename."
+            )
             + (" AI fallback returned no usable match." if ai_attempted and not decision else ""),
         }.get(source, "Parsed from filename."),
         "parsed_json": json.dumps(parsed_payload, ensure_ascii=False),
