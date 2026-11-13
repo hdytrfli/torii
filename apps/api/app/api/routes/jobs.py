@@ -100,9 +100,9 @@ def approve(request: Request, job_id: int, body: ApproveBody):
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    active = deps.db.active_operation_for_job(job_id)
+    active = deps.db.active_work_for_job(job_id)
     if active is not None:
-        raise HTTPException(status_code=409, detail="Job is already queued for apply.")
+        raise HTTPException(status_code=409, detail="Job is already queued for work.")
     if job.get("status") not in {"needs_review", "ready"}:
         raise HTTPException(status_code=400, detail="Job is not reviewable.")
 
@@ -327,10 +327,16 @@ def undo(request: Request, job_id: int):
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    ok, message = apply.undo_job(deps.cfg, settings_mod.load(deps.db), deps.db, job)
-    if not ok:
-        raise HTTPException(status_code=400, detail=message)
-    return {"ok": True, "message": message, "job": deps.db.job_json(deps.db.get_job(job_id) or job)}
+    try:
+        deps.operations.enqueue_revert(job)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "ok": True,
+        "queued": True,
+        "message": "Revert queued.",
+        "job": deps.db.job_json(deps.db.get_job(job_id) or job),
+    }
 
 
 @router.post("/jobs/{job_id}/reject")
@@ -341,9 +347,9 @@ def reject(request: Request, job_id: int):
         raise HTTPException(status_code=404, detail="Job not found")
     if job.get("status") == "moved":
         raise HTTPException(status_code=400, detail="Undo applied jobs before rejecting them.")
-    active = deps.db.active_operation_for_job(job_id)
+    active = deps.db.active_work_for_job(job_id)
     if active is not None and active["status"] == "running":
-        raise HTTPException(status_code=409, detail="Job is currently applying.")
+        raise HTTPException(status_code=409, detail="Job is currently processing.")
     lifecycle.reject(deps.db, job_id)
     return {"ok": True}
 
@@ -354,9 +360,9 @@ def delete(request: Request, job_id: int):
     job = deps.db.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    active = deps.db.active_operation_for_job(job_id)
+    active = deps.db.active_work_for_job(job_id)
     if active is not None and active["status"] == "running":
-        raise HTTPException(status_code=409, detail="Job is currently applying.")
+        raise HTTPException(status_code=409, detail="Job is currently processing.")
     ok, message = apply.delete_job(
         deps.cfg, settings_mod.load(deps.db), deps.db, job
     )
@@ -405,7 +411,7 @@ def bulk(request: Request, body: BulkBody):
             results.append({"id": job_id, "ok": False, "message": "Job not found"})
             continue
         if body.action == "reject":
-            active = deps.db.active_operation_for_job(job_id)
+            active = deps.db.active_work_for_job(job_id)
             if job.get("status") == "moved" or (
                 active is not None and active["status"] == "running"
             ):
@@ -425,8 +431,15 @@ def bulk(request: Request, body: BulkBody):
             results.append({"id": job_id, "ok": True, "message": "Rejected"})
             continue
         if body.action == "undo":
-            ok, message = apply.undo_job(deps.cfg, current_settings, deps.db, job)
-            results.append({"id": job_id, "ok": ok, "message": message})
+            try:
+                deps.operations.enqueue_revert(job)
+                results.append(
+                    {"id": job_id, "ok": True, "message": "Revert queued."}
+                )
+            except ValueError as exc:
+                results.append(
+                    {"id": job_id, "ok": False, "message": str(exc)}
+                )
             continue
         try:
             operation_id = deps.operations.enqueue_apply(

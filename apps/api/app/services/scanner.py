@@ -4,11 +4,9 @@ import logging
 import threading
 import time
 from pathlib import Path
-from typing import Callable
 
-from ..domain import lifecycle, pipeline
+from ..domain import lifecycle
 from ..domain import settings as settings_mod
-from . import apply
 from .providers import JellyfinProvider, LLM
 
 logger = logging.getLogger(__name__)
@@ -23,13 +21,11 @@ class Scanner:
         db,
         jellyfin: JellyfinProvider,
         llm: LLM,
-        enqueue_apply: Callable[[settings_mod.Settings, dict], int] | None = None,
     ):
         self.cfg = cfg
         self.db = db
         self.jellyfin = jellyfin
         self.llm = llm
-        self.enqueue_apply = enqueue_apply
         self._stop = threading.Event()
         self._wake = threading.Event()
         self._thread: threading.Thread | None = None
@@ -139,9 +135,6 @@ class Scanner:
 
             self._set_status(stage="reconciling", current=None)
             self._reconcile_jobs()
-            if settings.auto_apply:
-                self._set_status(stage="applying")
-                self._auto_apply_existing(settings)
             self._set_status(stage="finished")
 
             return processed
@@ -201,33 +194,52 @@ class Scanner:
                 existing["source_size"] == stat.st_size
                 and existing["source_mtime"] == stat.st_mtime
             )
-            recovering = (
-                existing["status"] == "failed"
-                and existing.get("error") == "Source file is missing."
+            if unchanged:
+                if existing.get("status") == "analyzing":
+                    if self.db.active_work_for_job(int(existing["id"]), "metadata"):
+                        return False
+                    self.db.enqueue_work("metadata", int(existing["id"]), 3)
+                    return True
+                if (
+                    existing.get("status") == "failed"
+                    and existing.get("error") == "Source file is missing."
+                ):
+                    self.db.update_job(
+                        int(existing["id"]),
+                        status="analyzing",
+                        error=None,
+                        blocked_reason=None,
+                        target_path=None,
+                    )
+                    self.db.enqueue_work("metadata", int(existing["id"]), 3)
+                    return True
+                if existing.get("status") in {
+                    "moved", "rejected", "ready", "needs_review"
+                }:
+                    return False
+
+            lifecycle.release(self.db, int(existing["id"]))
+            self.db.update_job(
+                int(existing["id"]),
+                source_size=stat.st_size,
+                source_mtime=stat.st_mtime,
+                status="analyzing",
+                target_path=None,
+                error=None,
+                blocked_reason=None,
+                auto_apply_eligible=1,
             )
-            if unchanged and not recovering and existing["status"] in {
-                "moved", "rejected", "needs_review", "ready", "failed"
-            }:
-                return False
+            self.db.enqueue_work("metadata", int(existing["id"]), 3)
+            return True
 
-        job = pipeline.analyze(
-            self.cfg,
-            settings,
-            self.db,
+        job_id = self.db.create_job(
             path,
-            self.jellyfin,
-            self.llm,
-            forced_kind=forced_kind,
+            stat.st_size,
+            stat.st_mtime,
+            status="analyzing",
+            media_type="tv" if forced_kind == "tv" else "movie",
         )
-        if not job:
-            return False
-
-        lifecycle.set_target(self.db, int(job["id"]), job.get("target_path"))
-        job = self.db.get_job(int(job["id"])) or job
-
-        if settings.auto_apply and job.get("status") == "ready":
-            self._apply_auto(settings, job, path)
-
+        self.db.enqueue_work("metadata", job_id, 3)
         return True
 
     def _reconcile_jobs(self) -> None:
@@ -308,48 +320,3 @@ class Scanner:
                 status="failed",
             )
             self.db.update_job(job_id, target_path=None)
-
-    def _auto_apply_existing(self, settings: settings_mod.Settings) -> None:
-        for job in self.db.list_jobs(limit=1000):
-            if job.get("status") not in {"needs_review", "ready"}:
-                continue
-            if not job.get("auto_apply_eligible", 1) or job.get("blocked_reason"):
-                continue
-            if job.get("error") or not job.get("title"):
-                continue
-            if job.get("media_type") not in {"movie", "tv"}:
-                continue
-            if float(job.get("confidence") or 0) < settings.auto_apply_confidence:
-                continue
-            source = Path(job["source_path"])
-            if not source.exists():
-                continue
-            self._set_status(current=str(source))
-            self._apply_auto(settings, job, source)
-        self._set_status(current=None)
-
-    def _apply_auto(
-        self, settings: settings_mod.Settings, job: dict, source: Path
-    ) -> None:
-        if self.enqueue_apply is not None:
-            try:
-                operation_id = self.enqueue_apply(settings, job)
-                logger.info("Queued auto apply %s as operation %s", source, operation_id)
-            except ValueError as exc:
-                logger.warning("Auto apply skipped for %s: %s", source, exc)
-            return
-        ok, message, _ = apply.apply_job(
-            self.cfg,
-            settings,
-            self.db,
-            job,
-            job["title"],
-            job["year"],
-            job["media_type"],
-            job["season"],
-            job["episode"],
-        )
-        if ok:
-            logger.info("Auto applied %s: %s", source, message)
-        else:
-            logger.warning("Auto apply failed for %s: %s", source, message)

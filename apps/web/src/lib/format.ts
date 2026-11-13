@@ -52,6 +52,7 @@ export function sourceTone(source: Source) {
 
 export function statusLabel(status: string) {
   if (status === "ready") return "Ready to apply"
+  if (status === "waiting_revert") return "Waiting to revert"
   return status.replaceAll("_", " ")
 }
 

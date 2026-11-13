@@ -18,8 +18,8 @@ cfg = Config.load()
 db = DB(cfg.db_path)
 jellyfin = JellyfinProvider(cfg.jellyfin_url, cfg.jellyfin_api_key)
 llm = LLM(cfg.llm_base_url, cfg.llm_api_key, cfg.llm_model)
-operations = OperationQueue(cfg, db)
-scanner = Scanner(cfg, db, jellyfin, llm, enqueue_apply=operations.enqueue_auto)
+operations = OperationQueue(cfg, db, jellyfin, llm)
+scanner = Scanner(cfg, db, jellyfin, llm)
 
 
 def ensure_default_admin() -> None:

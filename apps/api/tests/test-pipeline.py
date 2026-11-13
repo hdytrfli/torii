@@ -130,6 +130,112 @@ def test_promotion_queue_moves_high_confidence_jobs_to_ready(tmp_path: Path):
     assert db.get_job(low_id)["status"] == "needs_review"
 
 
+def test_durable_work_queue_claims_and_recovers(tmp_path: Path):
+    db = DB(tmp_path / "state.db")
+    source = tmp_path / "movie.mkv"
+    source.write_bytes(b"x")
+    job_id = db.create_job(
+        source,
+        1,
+        0,
+        status="analyzing",
+        media_type="movie",
+    )
+    first = db.enqueue_work("metadata", job_id, max_attempts=3)
+    second = db.enqueue_work("metadata", job_id, max_attempts=3)
+    assert first == second
+
+    claimed = db.claim_work("metadata", "worker-1", lease_seconds=60)
+    assert claimed is not None
+    assert claimed["status"] == "running"
+    assert claimed["attempts"] == 1
+    assert db.claim_work("metadata", "worker-2", lease_seconds=60) is None
+
+    db.recover_running_work()
+    claimed = db.claim_work("metadata", "worker-2", lease_seconds=60)
+    assert claimed is not None
+    assert claimed["attempts"] == 2
+    db.complete_work(int(claimed["id"]))
+    assert db.work_counts() == {}
+
+
+def test_metadata_queue_processes_a_job(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Queued.Metadata.2024.mkv"
+    source.write_bytes(b"x")
+    db = DB(tmp_path / "state.db")
+    job_id = db.create_job(
+        source,
+        source.stat().st_size,
+        source.stat().st_mtime,
+        status="analyzing",
+        media_type="movie",
+    )
+    db.enqueue_work("metadata", job_id, max_attempts=3)
+    queue = OperationQueue(
+        cfg, db, JellyfinProvider(None, None), LLM(None, None, None)
+    )
+    queue.start()
+    try:
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            job = db.get_job(job_id) or {}
+            if job.get("status") == "needs_review":
+                break
+            time.sleep(0.05)
+        job = db.get_job(job_id) or {}
+        assert job.get("status") == "needs_review"
+        assert job.get("title") == "Queued Metadata"
+    finally:
+        queue.stop()
+
+
+def test_revert_queue_restores_source(tmp_path: Path):
+    cfg = make_config(tmp_path)
+    cfg.movie_watch_dir.mkdir(parents=True)
+    cfg.movie_library_dir.mkdir(parents=True)
+    source = cfg.movie_watch_dir / "Revert.Me.2024.mkv"
+    source.write_bytes(b"x")
+    db = DB(tmp_path / "state.db")
+    settings = settings_mod.load(db)
+    job = pipeline.analyze(
+        cfg,
+        settings,
+        db,
+        source,
+        JellyfinProvider(None, None),
+        LLM(None, None, None),
+    )
+    ok, message, target = apply.apply_job(
+        cfg, settings, db, job,
+        job["title"], job["year"], job["media_type"],
+        job["season"], job["episode"],
+    )
+    assert ok, message
+    assert target is not None
+    applied = db.get_job(job["id"]) or {}
+
+    queue = OperationQueue(
+        cfg, db, JellyfinProvider(None, None), LLM(None, None, None)
+    )
+    queue.start()
+    try:
+        queue.enqueue_revert(applied)
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            restored = db.get_job(job["id"]) or {}
+            if restored.get("status") == "needs_review":
+                break
+            time.sleep(0.05)
+        restored = db.get_job(job["id"]) or {}
+        assert restored.get("status") == "needs_review"
+        assert source.exists()
+        assert not target.exists()
+    finally:
+        queue.stop()
+
+
 def test_operation_queue_applies_asynchronously(tmp_path: Path):
     cfg = make_config(tmp_path)
     cfg.movie_watch_dir.mkdir(parents=True)

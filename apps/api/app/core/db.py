@@ -84,6 +84,28 @@ CREATE TABLE IF NOT EXISTS job_operations (
 
 CREATE INDEX IF NOT EXISTS job_operations_job_idx ON job_operations(job_id);
 
+CREATE TABLE IF NOT EXISTS work_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'queued',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 1,
+    available_at REAL NOT NULL DEFAULT 0,
+    claimed_at REAL,
+    lease_until REAL,
+    worker_id TEXT,
+    last_error TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS work_items_active_unique
+ON work_items(kind, job_id) WHERE status IN ('queued', 'running');
+
+CREATE INDEX IF NOT EXISTS work_items_kind_status_idx
+ON work_items(kind, status, available_at);
+
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -458,6 +480,138 @@ class DB:
                 "updated_at = ? WHERE status = 'running'",
                 ("Interrupted by restart.", timestamp),
             )
+
+    # durable work queue ----------------------------------------------
+
+    def enqueue_work(
+        self, kind: str, job_id: int, max_attempts: int = 1
+    ) -> int:
+        timestamp = now()
+        with self._connect() as conn:
+            try:
+                cursor = conn.execute(
+                    "INSERT INTO work_items "
+                    "(kind, job_id, status, attempts, max_attempts, available_at, "
+                    "created_at, updated_at) VALUES (?, ?, 'queued', 0, ?, ?, ?, ?)",
+                    (kind, job_id, max_attempts, time.time(), timestamp, timestamp),
+                )
+                return int(cursor.lastrowid)
+            except sqlite3.IntegrityError:
+                row = conn.execute(
+                    "SELECT id FROM work_items WHERE kind = ? AND job_id = ? "
+                    "AND status IN ('queued', 'running') ORDER BY id LIMIT 1",
+                    (kind, job_id),
+                ).fetchone()
+                if row:
+                    return int(row["id"])
+                raise
+
+    def claim_work(
+        self, kind: str, worker_id: str, lease_seconds: float = 60
+    ) -> dict[str, Any] | None:
+        now_ts = time.time()
+        timestamp = now()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "UPDATE work_items SET status = 'failed', "
+                "last_error = COALESCE(last_error, 'Retry limit reached'), "
+                "updated_at = ? WHERE kind = ? "
+                "AND ((status = 'running' AND lease_until < ?) "
+                "OR status = 'queued') AND attempts >= max_attempts",
+                (timestamp, kind, now_ts),
+            )
+            row = conn.execute(
+                "SELECT * FROM work_items WHERE kind = ? AND attempts < max_attempts "
+                "AND ((status = 'queued' AND available_at <= ?) "
+                "OR (status = 'running' AND lease_until < ?)) "
+                "ORDER BY id LIMIT 1",
+                (kind, now_ts, now_ts),
+            ).fetchone()
+            if row is None:
+                conn.commit()
+                return None
+            conn.execute(
+                "UPDATE work_items SET status = 'running', attempts = attempts + 1, "
+                "claimed_at = ?, lease_until = ?, worker_id = ?, updated_at = ? "
+                "WHERE id = ?",
+                (now_ts, now_ts + lease_seconds, worker_id, timestamp, row["id"]),
+            )
+            claimed = conn.execute(
+                "SELECT * FROM work_items WHERE id = ?", (row["id"],)
+            ).fetchone()
+            conn.commit()
+        return dict(claimed) if claimed else None
+
+    def heartbeat_work(
+        self, work_id: int, worker_id: str, lease_seconds: float = 60
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE work_items SET lease_until = ?, updated_at = ? "
+                "WHERE id = ? AND worker_id = ? AND status = 'running'",
+                (time.time() + lease_seconds, now(), work_id, worker_id),
+            )
+
+    def complete_work(
+        self, work_id: int, status: str = "completed", error: str | None = None
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE work_items SET status = ?, last_error = ?, "
+                "lease_until = NULL, updated_at = ? WHERE id = ?",
+                (status, error, now(), work_id),
+            )
+
+    def cancel_work_for_job(self, job_id: int, kinds: tuple[str, ...] | None = None) -> None:
+        query = (
+            "UPDATE work_items SET status = 'cancelled', "
+            "last_error = 'Cancelled by user.', updated_at = ? "
+            "WHERE job_id = ? AND status = 'queued'"
+        )
+        args: list[Any] = [now(), job_id]
+        if kinds:
+            placeholders = ", ".join("?" for _ in kinds)
+            query += f" AND kind IN ({placeholders})"
+            args.extend(kinds)
+        with self._connect() as conn:
+            conn.execute(query, args)
+
+    def active_work_for_job(
+        self, job_id: int, kind: str | None = None
+    ) -> dict[str, Any] | None:
+        query = (
+            "SELECT * FROM work_items WHERE job_id = ? "
+            "AND status IN ('queued', 'running')"
+        )
+        args: list[Any] = [job_id]
+        if kind:
+            query += " AND kind = ?"
+            args.append(kind)
+        query += " ORDER BY id LIMIT 1"
+        with self._connect() as conn:
+            row = conn.execute(query, args).fetchone()
+        return dict(row) if row else None
+
+    def recover_running_work(self) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE work_items SET status = 'queued', available_at = ?, "
+                "claimed_at = NULL, lease_until = NULL, worker_id = NULL, "
+                "updated_at = ? WHERE status = 'running'",
+                (time.time(), now()),
+            )
+
+    def work_counts(self) -> dict[str, dict[str, int]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT kind, status, COUNT(*) AS total FROM work_items "
+                "WHERE status IN ('queued', 'running') GROUP BY kind, status"
+            ).fetchall()
+        result: dict[str, dict[str, int]] = {}
+        for row in rows:
+            result.setdefault(row["kind"], {})[row["status"]] = int(row["total"])
+        return result
 
     def list_jobs(self, status: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
         query = "SELECT * FROM jobs"

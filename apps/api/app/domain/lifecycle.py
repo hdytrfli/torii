@@ -83,6 +83,7 @@ def release(db, job_id: int) -> None:
 def reject(db, job_id: int) -> None:
     release(db, job_id)
     db.cancel_operations_for_job(job_id)
+    db.cancel_work_for_job(job_id)
     db.update_job(
         job_id,
         status="rejected",

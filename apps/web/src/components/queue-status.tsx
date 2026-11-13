@@ -20,7 +20,8 @@ export function QueueStatus() {
   const running = operations.data?.running ?? null
   const queued = operations.data?.queued ?? 0
   const promotion = operations.data?.promotion ?? 0
-  const activeCount = (running ? 1 : 0) + queued + promotion
+  const revert = operations.data?.revert ?? 0
+  const activeCount = (running ? 1 : 0) + queued + promotion + revert
 
   useEffect(() => {
     if (previousActive.current > 0 && activeCount === 0) {
@@ -42,7 +43,7 @@ export function QueueStatus() {
 
   const last = operations.data?.recent?.[0] ?? null
   const queueState =
-    running || queued > 0 || promotion > 0
+    running || queued > 0 || promotion > 0 || revert > 0
       ? {
           label: "Processing",
           dot: running
@@ -60,8 +61,8 @@ export function QueueStatus() {
         <p className="mt-1 text-[11px] leading-4 text-gray-500">
           {running
             ? `${running.kind === "copy" ? "Copying" : "Applying"} ${running.job_title ?? basename(running.source_path)}`
-            : queued + promotion > 0
-              ? `${queued + promotion} job${queued + promotion === 1 ? "" : "s"} waiting.`
+            : queued + promotion + revert > 0
+              ? `${queued + promotion + revert} job${queued + promotion + revert === 1 ? "" : "s"} waiting.`
               : last?.status === "failed"
                 ? "The last operation failed."
                 : "No active work."}
@@ -92,8 +93,8 @@ export function QueueStatus() {
         <span>
           {running
             ? `${percent}%`
-            : queued + promotion > 0
-              ? `${queued + promotion} waiting`
+            : queued + promotion + revert > 0
+              ? `${queued + promotion + revert} waiting`
               : null}
         </span>
       </div>

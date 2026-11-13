@@ -38,18 +38,25 @@ def _copy_with_progress(
 ) -> None:
     total = src.stat().st_size
     done = 0
-    with src.open("rb") as source, target.open("wb") as destination:
-        while True:
-            chunk = source.read(1024 * 1024)
-            if not chunk:
-                break
-            destination.write(chunk)
-            done += len(chunk)
-            if progress:
-                progress(done, total)
-    shutil.copystat(src, target)
-    if progress and total == 0:
-        progress(0, 0)
+    temporary = target.with_name(f"{target.name}.torii-part")
+    temporary.unlink(missing_ok=True)
+    try:
+        with src.open("rb") as source, temporary.open("wb") as destination:
+            while True:
+                chunk = source.read(1024 * 1024)
+                if not chunk:
+                    break
+                destination.write(chunk)
+                done += len(chunk)
+                if progress:
+                    progress(done, total)
+        shutil.copystat(src, temporary)
+        os.replace(temporary, target)
+        if progress and total == 0:
+            progress(0, 0)
+    except OSError:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def _apply_file(
@@ -341,7 +348,7 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
 
 
 def undo_job(cfg, settings: Settings, db, job: dict[str, Any]) -> tuple[bool, str]:
-    if job.get("status") != "moved":
+    if job.get("status") not in {"moved", "waiting_revert"}:
         return False, "Only applied jobs can be undone."
     target = Path(job.get("target_path") or "")
     source = Path(job["source_path"])

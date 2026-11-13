@@ -121,6 +121,7 @@ export const api = {
         queued: number
         ready?: number
         promotion?: number
+        revert?: number
         active: OperationRow[]
         recent: OperationRow[]
       }>("/api/operations")

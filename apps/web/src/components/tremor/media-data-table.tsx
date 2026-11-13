@@ -49,6 +49,7 @@ const STATUS_OPTIONS: FilterOption[] = [
   { value: "needs_review", label: "Needs review" },
   { value: "ready", label: "Ready to apply" },
   { value: "moved", label: "Moved" },
+  { value: "waiting_revert", label: "Waiting to revert" },
   { value: "rejected", label: "Rejected" },
   { value: "failed", label: "Failed" },
 ]

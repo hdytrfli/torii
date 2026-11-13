@@ -4,6 +4,7 @@ export type JobStatus =
   | "needs_review"
   | "ready"
   | "moved"
+  | "waiting_revert"
   | "rejected"
   | "failed"
   | "analyzing"

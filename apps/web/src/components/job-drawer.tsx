@@ -230,10 +230,12 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     ? isReviewable(job) ||
       (job.blocked_reason === "invalid_layout" && layoutReady)
     : false
-  const canRetry = job != null && !["moved", "ready"].includes(job.status)
+  const canRetry =
+    job != null && !["moved", "waiting_revert", "ready"].includes(job.status)
   const canAskAi = job?.status === "needs_review"
   const canReject =
-    job != null && !["moved", "rejected", "ready"].includes(job.status)
+    job != null &&
+    !["moved", "waiting_revert", "rejected", "ready"].includes(job.status)
   const showMore = canRetry || canAskAi || canReject
   const showBlockedMessage =
     Boolean(job?.blocked_reason || job?.error || error) &&
@@ -527,6 +529,10 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               ) : job.status === "ready" ? (
                 <Button variant="secondary" disabled>
                   Queued for apply
+                </Button>
+              ) : job.status === "waiting_revert" ? (
+                <Button variant="secondary" disabled>
+                  Waiting to revert
                 </Button>
               ) : reviewable ? (
                 <Button
