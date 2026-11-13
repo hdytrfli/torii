@@ -26,6 +26,7 @@ def defaults() -> dict[str, str]:
     scan = data["scan"]
     layout = data["layout"]
     apply = data["apply"]
+    queues = data["queues"]
     return {
         "min_size_mb": str(scan["min_size_mb"]),
         "extensions": ",".join(scan["extensions"]),
@@ -37,6 +38,10 @@ def defaults() -> dict[str, str]:
         "auto_apply_confidence": str(apply["automation"]["auto_apply_confidence"]),
         "poll_interval": str(scan["poll_interval"]),
         "stable_seconds": str(scan["stable_seconds"]),
+        "queue_metadata_poll": str(queues["metadata_poll_seconds"]),
+        "queue_promotion_poll": str(queues["promotion_poll_seconds"]),
+        "queue_execution_poll": str(queues["execution_poll_seconds"]),
+        "queue_revert_poll": str(queues["revert_poll_seconds"]),
     }
 
 
@@ -87,6 +92,10 @@ class Settings:
     auto_apply_confidence: float
     poll_interval: int
     stable_seconds: int
+    queue_metadata_poll: int
+    queue_promotion_poll: int
+    queue_execution_poll: int
+    queue_revert_poll: int
 
     @property
     def extension_set(self) -> set[str]:
@@ -147,6 +156,18 @@ def _settings_from_raw(raw: dict[str, str]) -> Settings:
         ),
         poll_interval=max(1, _int(raw, "poll_interval", int(base["poll_interval"]))),
         stable_seconds=max(0, _int(raw, "stable_seconds", int(base["stable_seconds"]))),
+        queue_metadata_poll=max(
+            1, _int(raw, "queue_metadata_poll", int(base["queue_metadata_poll"]))
+        ),
+        queue_promotion_poll=max(
+            1, _int(raw, "queue_promotion_poll", int(base["queue_promotion_poll"]))
+        ),
+        queue_execution_poll=max(
+            1, _int(raw, "queue_execution_poll", int(base["queue_execution_poll"]))
+        ),
+        queue_revert_poll=max(
+            1, _int(raw, "queue_revert_poll", int(base["queue_revert_poll"]))
+        ),
     )
 
 
@@ -185,6 +206,18 @@ def save(db, form: dict[str, str]) -> Settings:
         "auto_apply_confidence": str(confidence),
         "poll_interval": str(poll_interval),
         "stable_seconds": str(stable_seconds),
+        "queue_metadata_poll": str(
+            max(1, _int(form, "queue_metadata_poll", 1))
+        ),
+        "queue_promotion_poll": str(
+            max(1, _int(form, "queue_promotion_poll", 1))
+        ),
+        "queue_execution_poll": str(
+            max(1, _int(form, "queue_execution_poll", 1))
+        ),
+        "queue_revert_poll": str(
+            max(1, _int(form, "queue_revert_poll", 1))
+        ),
     }
     db.set_settings(values)
     return load(db)

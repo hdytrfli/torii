@@ -25,6 +25,10 @@ def update_settings(request: Request, body: SettingsBody):
         "extensions": ",".join(data["extensions"]),
         "cleanup_empty_dirs": str(data["cleanup_empty_dirs"]).lower(),
         "auto_apply": str(data["auto_apply"]).lower(),
+        "queue_metadata_poll": str(data["queue_metadata_poll"]),
+        "queue_promotion_poll": str(data["queue_promotion_poll"]),
+        "queue_execution_poll": str(data["queue_execution_poll"]),
+        "queue_revert_poll": str(data["queue_revert_poll"]),
     }
     try:
         settings_mod.save(deps.db, form)

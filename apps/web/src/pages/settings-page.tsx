@@ -16,7 +16,7 @@ import {
 } from "../components/tremor/dialog"
 import { Button, Card, Checkbox, Field, Input, Skeleton, Toggle } from "../components/ui"
 
-type SettingsSection = "scanning" | "apply"
+type SettingsSection = "scanning" | "apply" | "queues"
 
 export function SettingsPage() {
   const queryClient = useQueryClient()
@@ -53,6 +53,10 @@ export function SettingsPage() {
         auto_apply_confidence: data.auto_apply_confidence,
         poll_interval: data.poll_interval,
         stable_seconds: data.stable_seconds,
+        queue_metadata_poll: data.queue_metadata_poll,
+        queue_promotion_poll: data.queue_promotion_poll,
+        queue_execution_poll: data.queue_execution_poll,
+        queue_revert_poll: data.queue_revert_poll,
       }),
     onSuccess: (saved, { section }) => {
       setForm(saved)
@@ -215,6 +219,80 @@ export function SettingsPage() {
                 feedback?.section === "apply" ? feedback.error ?? null : null
               }
             />
+          </div>
+        </form>
+
+        <Divider />
+
+        <form
+          onSubmit={(event) => submit(event, "queues")}
+          className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3"
+        >
+          <div>
+            <h2 className="font-semibold text-gray-900">Queues</h2>
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              Tune how often each durable worker polls for pending work. File
+              workers still process one job at a time.
+            </p>
+          </div>
+          <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-2">
+            <Field label="Metadata poll (seconds)">
+              <Input
+                type="number"
+                min={1}
+                value={form.queue_metadata_poll}
+                onChange={(event) =>
+                  update("queue_metadata_poll", Number(event.target.value))
+                }
+              />
+            </Field>
+            <Field label="Promotion poll (seconds)">
+              <Input
+                type="number"
+                min={1}
+                value={form.queue_promotion_poll}
+                onChange={(event) =>
+                  update("queue_promotion_poll", Number(event.target.value))
+                }
+              />
+            </Field>
+            <Field label="Execution poll (seconds)">
+              <Input
+                type="number"
+                min={1}
+                value={form.queue_execution_poll}
+                onChange={(event) =>
+                  update("queue_execution_poll", Number(event.target.value))
+                }
+              />
+            </Field>
+            <Field label="Revert poll (seconds)">
+              <Input
+                type="number"
+                min={1}
+                value={form.queue_revert_poll}
+                onChange={(event) =>
+                  update("queue_revert_poll", Number(event.target.value))
+                }
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <SaveRow
+                pending={
+                  save.isPending && save.variables?.section === "queues"
+                }
+                message={
+                  feedback?.section === "queues"
+                    ? feedback.message ?? null
+                    : null
+                }
+                error={
+                  feedback?.section === "queues"
+                    ? feedback.error ?? null
+                    : null
+                }
+              />
+            </div>
           </div>
         </form>
       </div>

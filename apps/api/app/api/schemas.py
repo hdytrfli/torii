@@ -48,6 +48,10 @@ class SettingsBody(BaseModel):
     auto_apply_confidence: float = Field(ge=0, le=1)
     poll_interval: int = Field(ge=1)
     stable_seconds: int = Field(ge=0)
+    queue_metadata_poll: int = Field(ge=1)
+    queue_promotion_poll: int = Field(ge=1)
+    queue_execution_poll: int = Field(ge=1)
+    queue_revert_poll: int = Field(ge=1)
 
 
 class UserCreateBody(BaseModel):

@@ -14,6 +14,12 @@ server:
 
 session_days: 30
 
+queues:
+  metadata_poll_seconds: 1
+  promotion_poll_seconds: 1
+  execution_poll_seconds: 1
+  revert_poll_seconds: 1
+
 scan:
   min_size_mb: 0
   extensions:

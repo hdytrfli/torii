@@ -14,8 +14,13 @@ logger = logging.getLogger(__name__)
 
 LEASE_SECONDS = 120
 HEARTBEAT_SECONDS = 30
-POLL_SECONDS = 1.0
 QUEUE_KINDS = ("metadata", "execution", "revert")
+POLL_FIELDS = {
+    "metadata": "queue_metadata_poll",
+    "promotion": "queue_promotion_poll",
+    "execution": "queue_execution_poll",
+    "revert": "queue_revert_poll",
+}
 
 
 class OperationQueue:
@@ -64,12 +69,19 @@ class OperationQueue:
                 except OSError:
                     logger.warning("Could not remove partial file %s", path)
 
+    def _poll_seconds(self, kind: str) -> float:
+        field = POLL_FIELDS[kind]
+        try:
+            return float(max(1, getattr(settings_mod.load(self.db), field, 1)))
+        except Exception:
+            return 1.0
+
     def _worker_loop(self, kind: str) -> None:
         worker_id = f"{kind}:{uuid.uuid4().hex[:8]}"
         while not self._stop.is_set():
             item = self.db.claim_work(kind, worker_id, LEASE_SECONDS)
             if item is None:
-                self._wake[kind].wait(POLL_SECONDS)
+                self._wake[kind].wait(self._poll_seconds(kind))
                 self._wake[kind].clear()
                 continue
 
@@ -215,7 +227,7 @@ class OperationQueue:
                 self.enqueue_ready_jobs()
             except Exception:
                 logger.exception("Queue scheduler failed")
-            self._stop.wait(POLL_SECONDS)
+            self._stop.wait(self._poll_seconds("promotion"))
 
     def promotion_candidates(self, settings=None) -> list[dict]:
         current = settings or settings_mod.load(self.db)
@@ -358,16 +370,22 @@ class OperationQueue:
         ]
         counts = self.db.work_counts()
         promotion = len(self.promotion_candidates())
+        metadata = counts.get("metadata", {}).get("queued", 0) + counts.get(
+            "metadata", {}
+        ).get("running", 0)
         execution_queued = counts.get("execution", {}).get("queued", 0)
+        execution = max(execution_queued, len(ready_jobs))
         revert = counts.get("revert", {}).get("queued", 0) + counts.get(
             "revert", {}
         ).get("running", 0)
-        queued = max(execution_queued, len(ready_jobs))
+        queued = metadata + promotion + execution + revert
         return {
             "running": running,
             "queued": queued,
             "ready": len(ready_jobs),
+            "metadata": metadata,
             "promotion": promotion,
+            "execution": execution,
             "revert": revert,
             "active": active,
             "recent": self.db.list_operations(limit=10),

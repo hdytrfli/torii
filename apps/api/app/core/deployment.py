@@ -131,7 +131,7 @@ def _load_cached(path: str) -> dict[str, Any]:
     data = _mapping(
         raw,
         "config",
-        {"paths", "server", "session_days", "scan", "layout", "apply"},
+        {"paths", "server", "session_days", "queues", "scan", "layout", "apply"},
     )
 
     paths = _mapping(data["paths"], "paths", {"watch", "library", "state"})
@@ -157,6 +157,21 @@ def _load_cached(path: str) -> dict[str, Any]:
     }
     if server["log_level"] not in LOG_LEVELS:
         raise ConfigError(f"server.log_level must be one of {', '.join(sorted(LOG_LEVELS))}")
+
+    queues = _mapping(
+        data["queues"],
+        "queues",
+        {
+            "metadata_poll_seconds",
+            "promotion_poll_seconds",
+            "execution_poll_seconds",
+            "revert_poll_seconds",
+        },
+    )
+    queues = {
+        key: _integer(value, f"queues.{key}", 1)
+        for key, value in queues.items()
+    }
 
     scan = _mapping(
         data["scan"],
@@ -214,6 +229,7 @@ def _load_cached(path: str) -> dict[str, Any]:
         "paths": paths,
         "server": server,
         "session_days": _integer(data["session_days"], "session_days", 1),
+        "queues": queues,
         "scan": scan,
         "layout": layout,
         "apply": apply,

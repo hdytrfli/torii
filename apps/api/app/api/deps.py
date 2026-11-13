@@ -71,6 +71,10 @@ def settings_payload() -> dict[str, Any]:
         "auto_apply_below_threshold": below,
         "poll_interval": current.poll_interval,
         "stable_seconds": current.stable_seconds,
+        "queue_metadata_poll": current.queue_metadata_poll,
+        "queue_promotion_poll": current.queue_promotion_poll,
+        "queue_execution_poll": current.queue_execution_poll,
+        "queue_revert_poll": current.queue_revert_poll,
         "movie_preview": settings_mod.preview(current.movie_template),
         "tv_preview": settings_mod.preview(current.tv_template),
     }

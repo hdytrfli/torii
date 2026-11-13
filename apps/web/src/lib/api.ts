@@ -120,7 +120,9 @@ export const api = {
         running: OperationRow | null
         queued: number
         ready?: number
+        metadata?: number
         promotion?: number
+        execution?: number
         revert?: number
         active: OperationRow[]
         recent: OperationRow[]

@@ -37,6 +37,10 @@ export function NamingPage() {
         auto_apply_confidence: settings.auto_apply_confidence,
         poll_interval: settings.poll_interval,
         stable_seconds: settings.stable_seconds,
+        queue_metadata_poll: settings.queue_metadata_poll,
+        queue_promotion_poll: settings.queue_promotion_poll,
+        queue_execution_poll: settings.queue_execution_poll,
+        queue_revert_poll: settings.queue_revert_poll,
       })
     },
     onSuccess: (saved) => {

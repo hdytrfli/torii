@@ -67,6 +67,19 @@ server:
 How long browser and API sessions stay valid. Password changes revoke the
 user's other sessions.
 
+### `queues`
+
+Durable workers poll their own queues. All file operations still run one at a
+time.
+
+```yaml
+queues:
+  metadata_poll_seconds: 1
+  promotion_poll_seconds: 1
+  execution_poll_seconds: 1
+  revert_poll_seconds: 1
+```
+
 ### `scan`
 
 ```yaml

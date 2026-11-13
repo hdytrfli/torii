@@ -85,6 +85,10 @@ export interface Settings {
   auto_apply_below_threshold: number
   poll_interval: number
   stable_seconds: number
+  queue_metadata_poll: number
+  queue_promotion_poll: number
+  queue_execution_poll: number
+  queue_revert_poll: number
   movie_preview: string
   tv_preview: string
 }
