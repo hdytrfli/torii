@@ -8,6 +8,7 @@ import { HoverPopoverProvider } from "./components/tremor/hover-popover"
 import { ToastProvider } from "./components/toast"
 import { AuthProvider, useAuth } from "./lib/auth"
 import { queryClient } from "./lib/query-client"
+import { ThemeProvider } from "./lib/theme"
 import { LoginPage } from "./pages/login-page"
 
 
@@ -71,17 +72,19 @@ function AppRoutes() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <NuqsAdapter>
-            <HoverPopoverProvider>
-              <ToastProvider>
-                <AppRoutes />
-              </ToastProvider>
-            </HoverPopoverProvider>
-          </NuqsAdapter>
-        </BrowserRouter>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <NuqsAdapter>
+              <HoverPopoverProvider>
+                <ToastProvider>
+                  <AppRoutes />
+                </ToastProvider>
+              </HoverPopoverProvider>
+            </NuqsAdapter>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

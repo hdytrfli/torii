@@ -7,15 +7,15 @@ import { tv, type VariantProps } from "tailwind-variants"
 import { cn } from "../../lib/format"
 
 const buttonVariants = tv({
-  base: "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3 py-2 text-center text-sm font-medium shadow-card outline outline-offset-2 outline-0 transition-all duration-100 ease-in-out focus-visible:outline-2 focus-visible:outline-gray-900 disabled:pointer-events-none disabled:shadow-none",
+  base: "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3 py-2 text-center text-sm font-medium shadow-card transition-colors duration-100 ease-in-out disabled:pointer-events-none disabled:shadow-none",
   variants: {
     variant: {
-      primary: "border-transparent bg-brand text-brand-ink hover:bg-brand/90 disabled:bg-gray-300",
-      secondary: "border-gray-300 text-gray-900 bg-white hover:bg-gray-50 disabled:text-gray-400",
-      light: "border-transparent text-gray-900 bg-gray-200 shadow-none hover:bg-gray-300/70 disabled:bg-gray-100 disabled:text-gray-400",
-      ghost: "border-transparent text-gray-900 bg-transparent shadow-none hover:bg-gray-100 disabled:text-gray-400",
-      destructive: "border-transparent bg-gray-700 text-white hover:bg-gray-800 disabled:bg-gray-300",
-      danger: "border-transparent bg-gray-700 text-white hover:bg-gray-800 disabled:bg-gray-300",
+      primary: "border-transparent bg-brand text-brand-ink hover:bg-brand/90 disabled:bg-line",
+      secondary: "border-line text-ink bg-surface hover:bg-surface-muted disabled:text-ink-muted/70",
+      light: "border-transparent text-ink bg-line shadow-none hover:bg-line/70 disabled:bg-surface-muted disabled:text-ink-muted/70",
+      ghost: "border-transparent text-ink bg-transparent shadow-none hover:bg-surface-muted disabled:text-ink-muted/70",
+      destructive: "border-transparent bg-danger text-brand-ink hover:bg-danger/90 disabled:bg-line",
+      danger: "border-transparent bg-danger text-brand-ink hover:bg-danger/90 disabled:bg-line",
     },
     size: {
       md: "",

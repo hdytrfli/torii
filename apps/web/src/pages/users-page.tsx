@@ -61,7 +61,7 @@ export function UsersPage() {
   })
 
   if (!user?.is_admin) {
-    return <p className="text-sm text-gray-500">Administrator access required.</p>
+    return <p className="text-sm text-ink-muted">Administrator access required.</p>
   }
 
   return (
@@ -69,10 +69,10 @@ export function UsersPage() {
       <section aria-labelledby="existing-users">
         <div className="sm:flex sm:items-center sm:justify-between">
           <div>
-            <h3 id="existing-users" className="scroll-mt-10 font-semibold text-gray-900">
+            <h3 id="existing-users" className="scroll-mt-10 font-semibold text-ink">
               Users
             </h3>
-            <p className="text-sm leading-6 text-gray-500">
+            <p className="text-sm leading-6 text-ink-muted">
               Administrators can add, manage, and remove users.
             </p>
           </div>
@@ -118,11 +118,11 @@ export function UsersPage() {
                       />
                     </Field>
                   </div>
-                  <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
+                  <label className="mt-4 flex items-center gap-2 text-sm text-ink">
                     <Switch checked={isAdmin} onChange={setIsAdmin} />
                     Administrator
                   </label>
-                  {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}
+                  {error ? <p className="mt-3 text-xs text-danger">{error}</p> : null}
                 </DialogHeader>
                 <DialogFooter className="mt-6">
                   <DialogClose asChild>
@@ -142,7 +142,7 @@ export function UsersPage() {
         {users.isLoading ? (
           <Skeleton className="mt-6 h-40" />
         ) : (
-          <ul role="list" className="mt-6 divide-y divide-gray-200">
+          <ul role="list" className="mt-6 divide-y divide-line">
             {(users.data ?? []).map((account) => (
               <UserRow
                 key={account.id}
@@ -178,31 +178,31 @@ function UserRow({
   return (
     <li className="flex items-center justify-between gap-x-6 py-2.5">
       <div className="flex min-w-0 items-center gap-x-4">
-        <span className="hidden size-9 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-xs uppercase text-gray-700 sm:flex">
+        <span className="hidden size-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-xs uppercase text-ink sm:flex">
           {account.username.slice(0, 2)}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-gray-900">
+          <p className="truncate text-sm font-medium text-ink">
             {account.username}
-            {isSelf ? <span className="ml-2 text-xs font-normal text-gray-400">you</span> : null}
+            {isSelf ? <span className="ml-2 text-xs font-normal text-ink-muted/70">you</span> : null}
           </p>
-          <p className="truncate text-xs text-gray-500">
+          <p className="truncate text-xs text-ink-muted">
             {account.is_admin ? "Administrator" : "Reviewer"} - added{" "}
             {account.created_at?.slice(0, 10) ?? "—"}
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Badge variant={account.is_admin ? "default" : "neutral"}>
+        <Badge variant={account.is_admin ? "primary" : "neutral"}>
           {account.is_admin ? "Admin" : "Reviewer"}
         </Badge>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="group size-8 p-0 hover:border hover:border-gray-300 hover:bg-gray-50 data-[state=open]:border-gray-300 data-[state=open]:bg-gray-50"
+              className="group size-8 p-0 hover:border hover:border-line hover:bg-surface-muted data-[state=open]:border-line data-[state=open]:bg-surface-muted"
             >
-              <MoreHorizontal className="size-4 shrink-0 text-gray-500 group-hover:text-gray-700" />
+              <MoreHorizontal className="size-4 shrink-0 text-ink-muted group-hover:text-ink" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
@@ -212,7 +212,7 @@ function UserRow({
             <DropdownMenuItem
               onSelect={onDelete}
               disabled={isSelf}
-              className="text-red-600"
+              className="text-danger"
             >
               Delete
             </DropdownMenuItem>

@@ -5,7 +5,7 @@ import React from "react"
 
 import { cx } from "../../lib/format"
 
-const focusRing = "outline outline-offset-2 outline-0 focus-visible:outline-2 outline-gray-900"
+const focusRing = ""
 
 interface SubtreeOptions {
   asChild?: boolean
@@ -51,7 +51,7 @@ const TabNavigation = React.forwardRef<
         // base
         "flex items-center justify-start whitespace-nowrap border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         // border color
-        "border-gray-200 dark:border-gray-800",
+        "border-line",
         className,
       )}
     >
@@ -87,17 +87,16 @@ const TabNavigationLink = React.forwardRef<
             // base
             "flex items-center justify-center whitespace-nowrap border-b-2 border-transparent px-3 pb-2 text-sm font-medium transition-all",
             // text color
-            "text-gray-500 dark:text-gray-500",
+            "text-ink-muted dark:text-ink-muted",
             // hover
-            "group-hover:text-gray-700 group-hover:dark:text-gray-400",
+            "group-hover:text-ink group-hover:dark:text-ink-muted/70",
             // border hover
-            "group-hover:border-gray-300 group-hover:dark:border-gray-400",
+            "group-hover:border-line group-hover:border-line",
             // selected
-            "group-data-[active]:border-gray-900 group-data-[active]:text-gray-900",
-            "group-data-[active]:dark:border-gray-100 group-data-[active]:dark:text-gray-100",
+            "group-data-[active]:border-ink group-data-[active]:text-ink",
             // disabled
             disabled
-              ? "pointer-events-none text-gray-300 dark:text-gray-700"
+              ? "pointer-events-none text-ink-muted/50 dark:text-ink"
               : "",
             focusRing,
             className,

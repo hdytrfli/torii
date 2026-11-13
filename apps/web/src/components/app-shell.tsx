@@ -5,8 +5,10 @@ import {
   Link2,
   ListChecks,
   LogOut,
+  Moon,
   ScrollText,
   Settings,
+  Sun,
   Tags,
   type LucideIcon,
 } from "lucide-react"
@@ -17,8 +19,10 @@ import { useAuth } from "../lib/auth"
 import { api } from "../lib/api"
 import { cn } from "../lib/format"
 import { useServerEvents } from "../lib/server-events"
+import { useTheme } from "../lib/theme"
 import { RouteSkeleton } from "./loading"
 import { QueueStatus } from "./queue-status"
+import { Switch } from "./ui"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +48,7 @@ const navigation: Array<{
 
 export function AppShell() {
   const { user, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   useServerEvents()
@@ -69,16 +74,16 @@ export function AppShell() {
   }, [location.pathname])
 
   return (
-    <div className="mx-auto min-h-screen max-w-screen-2xl bg-white">
+    <div className="mx-auto min-h-screen max-w-screen-2xl">
       <nav className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <aside className="flex grow flex-col gap-y-6 overflow-y-auto border-r border-gray-200 bg-white p-4">
+        <aside className="flex grow flex-col gap-y-6 overflow-y-auto border-r border-line bg-canvas p-4">
           <div className="flex items-center gap-2.5 px-2 py-1.5">
-            <span className="flex size-9 items-center justify-center rounded-md bg-gray-900 text-white">
+            <span className="flex size-9 items-center justify-center rounded-md bg-canvas text-ink">
               <Landmark className="size-5" />
             </span>
             <span>
-              <span className="block text-sm font-semibold text-gray-900">Torii</span>
-              <span className="block text-xs text-gray-500">media workspace</span>
+              <span className="block text-sm font-semibold text-ink">Torii</span>
+              <span className="block text-xs text-ink-muted">media workspace</span>
             </span>
           </div>
 
@@ -93,8 +98,8 @@ export function AppShell() {
                       end={item.end}
                       className={({ isActive }) =>
                         cn(
-                          isActive ? "text-gray-900" : "text-gray-700 hover:text-gray-900",
-                          "flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition hover:bg-gray-100",
+                          isActive ? "text-ink" : "text-ink hover:text-ink",
+                          "flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition hover:bg-surface-muted",
                         )
                       }
                     >
@@ -105,7 +110,7 @@ export function AppShell() {
                 ))}
             </ul>
             <div>
-              <span className="px-2 text-xs font-medium leading-6 text-gray-500">Shortcuts</span>
+              <span className="px-2 text-xs font-medium leading-6 text-ink-muted">Shortcuts</span>
               <ul aria-label="shortcuts" role="list" className="mt-1 space-y-0.5">
                 {shortcuts.map((item) => {
                   const external =
@@ -118,7 +123,7 @@ export function AppShell() {
                     </>
                   )
                   const className =
-                    "flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-gray-900"
+                    "flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-ink transition hover:bg-surface-muted hover:text-ink"
                   return (
                     <li key={item.id}>
                       {external ? (
@@ -139,11 +144,30 @@ export function AppShell() {
                   )
                 })}
                 {shortcuts.length === 0 ? (
-                  <li className="px-2 py-1.5 text-xs text-gray-400">
+                  <li className="px-2 py-1.5 text-xs text-ink-muted/70">
                     No shortcuts configured.
                   </li>
                 ) : null}
               </ul>
+            </div>
+            <div>
+              <span className="px-2 text-xs font-medium leading-6 text-ink-muted">
+                Actions
+              </span>
+              <div className="mt-1 flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-ink">
+                <span className="flex items-center gap-x-2.5">
+                  {theme === "dark" ? (
+                    <Moon className="size-4 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <Sun className="size-4 shrink-0" aria-hidden="true" />
+                  )}
+                  Dark mode
+                </span>
+                <Switch
+                  checked={theme === "dark"}
+                  onChange={(checked) => setTheme(checked ? "dark" : "light")}
+                />
+              </div>
             </div>
           </nav>
 
@@ -151,19 +175,19 @@ export function AppShell() {
             <QueueStatus />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-gray-100">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-xs font-medium uppercase text-gray-700">
+                <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface-muted">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-xs font-medium uppercase text-ink">
                     {user?.username.slice(0, 2)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-gray-900">
+                    <span className="block truncate text-sm font-medium text-ink">
                       {user?.username}
                     </span>
-                    <span className="block text-xs text-gray-500">
+                    <span className="block text-xs text-ink-muted">
                       {user?.is_admin ? "Administrator" : "Reviewer"}
                     </span>
                   </span>
-                  <ChevronDown className="size-4 text-gray-400" />
+                  <ChevronDown className="size-4 text-ink-muted/70" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
@@ -189,12 +213,12 @@ export function AppShell() {
         </aside>
       </nav>
 
-      <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-card lg:hidden">
+      <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-line bg-canvas px-4 shadow-card lg:hidden">
         <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-md bg-gray-900 text-xs font-semibold text-white">
+          <span className="flex size-8 items-center justify-center rounded-md bg-canvas text-xs font-semibold text-ink">
             T
           </span>
-          <span className="text-sm font-semibold text-gray-900">torii</span>
+          <span className="text-sm font-semibold text-ink">torii</span>
         </div>
         <nav className="flex items-center gap-2">
           {navigation
@@ -205,7 +229,7 @@ export function AppShell() {
                 to={item.href}
                 end={item.end}
                 className={({ isActive }) =>
-                  cn("rounded-md px-2 py-1 text-xs font-medium", isActive ? "text-gray-900" : "text-gray-600")
+                  cn("rounded-md px-2 py-1 text-xs font-medium", isActive ? "text-ink" : "text-ink-muted")
                 }
               >
                 {item.name}

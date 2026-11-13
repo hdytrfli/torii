@@ -42,18 +42,18 @@ export function QueueStatus() {
       ? {
           label: "Processing",
           dot: running
-            ? "bg-blue-500 animate-pulse"
-            : "bg-yellow-500",
+            ? "bg-info animate-pulse"
+            : "bg-warning",
         }
       : last?.status === "failed"
-        ? { label: "Error", dot: "bg-red-500" }
-        : { label: "Idle", dot: "bg-gray-400" }
+        ? { label: "Error", dot: "bg-danger" }
+        : { label: "Idle", dot: "bg-ink-muted" }
 
   return (
     <Card className="overflow-hidden p-0">
       <div className="px-3 pb-3 pt-3">
-        <div className="text-xs font-medium text-gray-900">Queue status</div>
-        <p className="mt-1 text-[11px] leading-4 text-gray-500">
+        <div className="text-xs font-medium text-ink">Queue status</div>
+        <p className="mt-1 text-[11px] leading-4 text-ink-muted">
           {running
             ? `${running.kind === "copy" ? "Copying" : "Applying"} ${running.job_title ?? basename(running.source_path)}`
             : queued > 0
@@ -64,12 +64,12 @@ export function QueueStatus() {
         </p>
         {running ? (
           <>
-            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-gray-500">
+            <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-ink-muted">
               <span className="capitalize">{running.kind}</span>
               <span className="tabular-nums">{percent}%</span>
             </div>
             <ProgressBar value={percent} className="mt-1.5 h-1.5" />
-            <div className="mt-1 text-[10px] tabular-nums text-gray-400">
+            <div className="mt-1 text-[10px] tabular-nums text-ink-muted/70">
               {formatBytes(running.progress_done)} /{" "}
               {formatBytes(running.progress_total)}
             </div>
@@ -77,7 +77,7 @@ export function QueueStatus() {
         ) : null}
       </div>
 
-      <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-3 py-2 text-[10px] text-gray-500">
+      <div className="flex items-center justify-between border-t border-line bg-surface-muted px-3 py-2 text-[10px] text-ink-muted">
         <span className="inline-flex items-center gap-1.5">
           <span
             className={`size-1.5 rounded-full ${queueState.dot}`}

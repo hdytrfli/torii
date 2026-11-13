@@ -4,15 +4,15 @@ import { forwardRef, useState, type InputHTMLAttributes } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { cn } from "../../lib/format"
 
-const focusInput = "focus:border-gray-900 focus:ring-2 focus:ring-gray-200"
-const hasErrorInput = "border-red-500 ring-2 ring-red-200"
+const focusInput = ""
+const hasErrorInput = "border-danger ring-2 ring-danger/30"
 
 const inputStyles = tv({
   base: [
-    "relative block w-full min-w-0 appearance-none truncate rounded-md border px-2.5 py-2 shadow-card outline-none transition sm:text-sm",
-    "border-gray-300 text-gray-900 placeholder-gray-400 bg-white",
-    "disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400",
-    "file:-my-2 file:-ml-2.5 file:cursor-pointer file:rounded-l-[5px] file:rounded-r-none file:border-0 file:px-3 file:py-2 file:outline-none file:border-solid file:border-gray-300 file:bg-gray-50 file:text-gray-500 file:hover:bg-gray-100",
+    "relative block w-full min-w-0 appearance-none truncate rounded-md border px-2.5 py-2 shadow-card transition sm:text-sm",
+    "border-line text-ink placeholder:text-ink-muted/70 bg-surface",
+    "disabled:border-line disabled:bg-surface-muted disabled:text-ink-muted/70",
+    "file:-my-2 file:-ml-2.5 file:cursor-pointer file:rounded-l-[5px] file:rounded-r-none file:border-0 file:px-3 file:py-2 file:outline-none file:border-solid file:border-line file:bg-surface-muted file:text-ink-muted file:hover:bg-surface-muted",
     focusInput,
     "[&::--webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden",
   ],
@@ -45,7 +45,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {isSearch ? (
-          <div className="pointer-events-none absolute bottom-0 left-2 flex h-full items-center justify-center text-gray-400">
+          <div className="pointer-events-none absolute bottom-0 left-2 flex h-full items-center justify-center text-ink-muted/70">
             <Search className="size-[1.125rem] shrink-0" aria-hidden="true" />
           </div>
         ) : null}
@@ -53,7 +53,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <div className="absolute bottom-0 right-0 flex h-full items-center justify-center px-3">
             <button
               aria-label="Change password visibility"
-              className="h-fit w-fit rounded-sm text-gray-400 outline-none transition-all hover:text-gray-500 focus-visible:outline-2 focus-visible:outline-gray-900"
+              className="h-fit w-fit rounded-sm text-ink-muted/70 transition-all hover:text-ink-muted"
               type="button"
               onClick={() => setTypeState(typeState === "password" ? "text" : "password")}
             >

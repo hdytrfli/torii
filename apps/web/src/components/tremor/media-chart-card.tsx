@@ -1,4 +1,3 @@
-import { Badge } from "./badge"
 import { LineChartSupport } from "./line-chart-support"
 import type { AvailableChartColorsKeys } from "../../lib/chart-utils"
 
@@ -6,7 +5,6 @@ export function MediaChartCard({
   title,
   value,
   previous,
-  change,
   data,
   categories,
   colors = ["blue", "gray"] as AvailableChartColorsKeys[],
@@ -14,7 +12,6 @@ export function MediaChartCard({
   title: string
   value: string
   previous?: string
-  change?: string
   data: Array<Record<string, string | number>>
   categories: string[]
   colors?: AvailableChartColorsKeys[]
@@ -23,13 +20,12 @@ export function MediaChartCard({
     <div className="transition">
       <div className="flex items-center justify-between gap-x-2">
         <div className="flex items-center gap-x-2">
-          <dt className="font-bold text-gray-900 sm:text-sm">{title}</dt>
-          {change ? <Badge variant="neutral">{change}</Badge> : null}
+          <dt className="font-bold text-ink sm:text-sm">{title}</dt>
         </div>
       </div>
       <div className="mt-2 flex items-baseline justify-between">
-        <dd className="text-xl text-gray-900">{value}</dd>
-        {previous ? <dd className="text-sm text-gray-500">from {previous}</dd> : null}
+        <dd className="text-xl text-ink">{value}</dd>
+        {previous ? <dd className="text-sm text-ink-muted">from {previous}</dd> : null}
       </div>
       <LineChartSupport
         className="mt-6 h-32"

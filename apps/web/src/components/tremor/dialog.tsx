@@ -6,7 +6,7 @@ import React from "react"
 
 import { cx } from "../../lib/format"
 
-const focusRing = "outline outline-offset-2 outline-0 focus-visible:outline-2 outline-gray-900"
+const focusRing = ""
 
 const Dialog = (
   props: React.ComponentPropsWithoutRef<typeof DialogPrimitives.Root>,
@@ -38,7 +38,7 @@ const DialogOverlay = React.forwardRef<
         // base
         "fixed inset-0 z-50 overflow-y-auto",
         // background color
-        "bg-black/70",
+        "bg-overlay/70",
         // transition
         "torii-overlay",
         className,
@@ -63,9 +63,9 @@ const DialogContent = React.forwardRef<
             // base
             "fixed left-1/2 top-1/2 z-50 w-[95vw] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border p-6 shadow-lg",
             // border color
-            "border-gray-200 dark:border-gray-900",
+            "border-line",
             // background color
-            "bg-white dark:bg-[#090E1A]",
+            "bg-surface dark:bg-surface",
             // transition
             "torii-dialog",
             focusRing,
@@ -99,7 +99,7 @@ const DialogTitle = React.forwardRef<
       // base
       "text-lg font-semibold",
       // text color
-      "text-gray-900 dark:text-gray-50",
+      "text-ink dark:text-ink",
       className,
     )}
     {...props}
@@ -115,7 +115,7 @@ const DialogDescription = React.forwardRef<
   return (
     <DialogPrimitives.Description
       ref={forwardedRef}
-      className={cx("text-gray-500 dark:text-gray-500", className)}
+      className={cx("text-ink-muted dark:text-ink-muted", className)}
       {...props}
     />
   )

@@ -6,11 +6,11 @@ export const SOURCE_META: Record<
   SourceKey,
   { label: string; level: "high" | "medium" | "low" | "none"; bar: string; dot: string }
 > = {
-  jellyfin: { label: "Jellyfin", level: "medium", bar: "bg-emerald-500", dot: "bg-emerald-500" },
-  guessit: { label: "Filename", level: "none", bar: "bg-gray-500", dot: "bg-gray-400" },
-  nfo: { label: "Local NFO", level: "high", bar: "bg-blue-500", dot: "bg-blue-500" },
-  llm: { label: "AI fallback", level: "low", bar: "bg-yellow-500", dot: "bg-yellow-500" },
-  manual: { label: "Manual", level: "medium", bar: "bg-gray-500", dot: "bg-gray-500" },
+  jellyfin: { label: "Jellyfin", level: "medium", bar: "bg-success", dot: "bg-success" },
+  guessit: { label: "Filename", level: "none", bar: "bg-ink-muted/60", dot: "bg-ink-muted/40" },
+  nfo: { label: "Local NFO", level: "high", bar: "bg-info", dot: "bg-info" },
+  llm: { label: "AI fallback", level: "low", bar: "bg-warning", dot: "bg-warning" },
+  manual: { label: "Manual", level: "medium", bar: "bg-ink-muted/60", dot: "bg-ink-muted/60" },
 }
 
 export const SOURCE_CHART_COLORS = ["blue", "gray"] as const

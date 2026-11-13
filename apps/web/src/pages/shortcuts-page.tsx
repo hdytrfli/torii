@@ -101,7 +101,7 @@ export function ShortcutsPage() {
   }
 
   if (!user?.is_admin) {
-    return <p className="text-sm text-gray-500">Administrator access required.</p>
+    return <p className="text-sm text-ink-muted">Administrator access required.</p>
   }
 
   const shortcuts = Array.isArray(shortcutsQuery.data)
@@ -119,10 +119,10 @@ export function ShortcutsPage() {
           className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3"
         >
           <div>
-            <h2 className="font-semibold text-gray-900">
+            <h2 className="font-semibold text-ink">
               {editing === null ? "Add a shortcut" : "Edit shortcut"}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
               Links shown in the sidebar for quick access.
             </p>
           </div>
@@ -156,7 +156,7 @@ export function ShortcutsPage() {
                 required
               />
             </Field>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
+            <label className="flex items-center gap-2 text-sm text-ink">
               <Switch
                 checked={form.adminOnly}
                 onChange={(checked) =>
@@ -168,7 +168,7 @@ export function ShortcutsPage() {
               />
               Administrators only
             </label>
-            {error ? <p className="text-xs text-red-600">{error}</p> : null}
+            {error ? <p className="text-xs text-danger">{error}</p> : null}
             <div className="flex items-center justify-end gap-3 pt-1">
               {editing !== null ? (
                 <Button type="button" variant="secondary" onClick={reset}>
@@ -191,8 +191,8 @@ export function ShortcutsPage() {
 
         <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
           <div>
-            <h2 className="font-semibold text-gray-900">Sidebar links</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
+            <h2 className="font-semibold text-ink">Sidebar links</h2>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
               These shortcuts appear in the sidebar for everyone allowed to see
               them.
             </p>
@@ -205,49 +205,42 @@ export function ShortcutsPage() {
                 No shortcuts yet. Add one above to place it in the sidebar.
               </div>
             ) : (
-              <ul role="list" className="divide-y divide-gray-200">
+              <ul role="list" className="divide-y divide-line">
                 {shortcuts.map((shortcut) => (
                   <li
                     key={shortcut.id}
                     className="flex items-center justify-between gap-x-6 py-2.5"
                   >
                     <div className="flex min-w-0 items-center gap-x-4">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-500">
+                      <a
+                        href={shortcut.url}
+                        target={isExternal(shortcut.url) ? "_blank" : undefined}
+                        rel={isExternal(shortcut.url) ? "noreferrer" : undefined}
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink"
+                        aria-label={`Open ${shortcut.title}`}
+                      >
                         <Link2 className="size-4" aria-hidden="true" />
-                      </span>
+                      </a>
                       <div className="min-w-0">
-                        <p className="flex items-center gap-2 truncate text-sm font-medium text-gray-900">
-                          <a
-                            href={shortcut.url}
-                            target={
-                              isExternal(shortcut.url) ? "_blank" : undefined
-                            }
-                            rel={
-                              isExternal(shortcut.url)
-                                ? "noreferrer"
-                                : undefined
-                            }
-                            className="truncate hover:underline"
-                          >
-                            {shortcut.title}
-                          </a>
+                        <p className="truncate text-sm font-medium text-ink">
+                          {shortcut.title}
                         </p>
-                        <p className="truncate font-mono text-xs text-gray-500">
+                        <p className="truncate text-xs text-ink-muted">
                           {shortcut.url}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {shortcut.admin_only ? (
-                        <Badge variant="neutral">Admin</Badge>
+                        <Badge variant="primary">Admin</Badge>
                       ) : null}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
-                            className="group size-8 p-0 hover:border hover:border-gray-300 hover:bg-gray-50 data-[state=open]:border-gray-300 data-[state=open]:bg-gray-50"
+                            className="group size-8 p-0 hover:border hover:border-line hover:bg-surface-muted data-[state=open]:border-line data-[state=open]:bg-surface-muted"
                           >
-                            <MoreHorizontal className="size-4 shrink-0 text-gray-500 group-hover:text-gray-700" />
+                            <MoreHorizontal className="size-4 shrink-0 text-ink-muted group-hover:text-ink" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-40">
@@ -264,7 +257,7 @@ export function ShortcutsPage() {
                                 remove.mutate(shortcut.id)
                               }
                             }}
-                            className="text-red-600"
+                            className="text-danger"
                           >
                             Delete
                           </DropdownMenuItem>

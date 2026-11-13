@@ -15,6 +15,7 @@ export function DashboardPage() {
   const groupsQuery = useQuery({ queryKey: ["groups", "all"], queryFn: () => api.groups("all") })
   const queryClient = useQueryClient()
   const [sourceFilter, setSourceFilter] = useState("all")
+  const [rangeFilter, setRangeFilter] = useState("7d")
   const [scanAnimating, setScanAnimating] = useState(false)
   const scanTimer = useRef<number | null>(null)
   useEffect(() => {
@@ -115,35 +116,32 @@ export function DashboardPage() {
   })
 
   const trend = useMemo(() => {
-    const days = Array.from({ length: 7 }, (_, index) => {
+    const days = rangeFilter === "90d" ? 90 : rangeFilter === "30d" ? 30 : 7
+    const dates = Array.from({ length: days }, (_, index) => {
       const date = new Date()
-      date.setDate(date.getDate() - (6 - index))
+      date.setDate(date.getDate() - (days - 1 - index))
       return date.toISOString().slice(0, 10)
     })
-    return days.map((date) => ({
+    return dates.map((date) => ({
       date: date.slice(5),
       Matched: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source !== "guessit").length,
       Review: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "guessit").length,
     }))
-  }, [filteredJobs])
+  }, [filteredJobs, rangeFilter])
 
   const sourceTrend = useMemo(() => {
-    const days = Array.from({ length: 7 }, (_, index) => {
+    const days = rangeFilter === "90d" ? 90 : rangeFilter === "30d" ? 30 : 7
+    const dates = Array.from({ length: days }, (_, index) => {
       const date = new Date()
-      date.setDate(date.getDate() - (6 - index))
+      date.setDate(date.getDate() - (days - 1 - index))
       return date.toISOString().slice(0, 10)
     })
-    return days.map((date) => ({
+    return dates.map((date) => ({
       date: date.slice(5),
       Jellyfin: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "jellyfin").length,
       Filename: filteredJobs.filter((job) => (job.updated_at ?? "").startsWith(date) && job.source === "guessit").length,
     }))
-  }, [filteredJobs])
-
-  const filteredGroups =
-    sourceFilter === "all"
-      ? groups
-      : groups.filter((group) => group.jobs.some((job) => (job.source ?? "guessit") === sourceFilter))
+  }, [filteredJobs, rangeFilter])
 
   return (
     <main>
@@ -157,7 +155,6 @@ export function DashboardPage() {
           <div>
             <ProgressBarCard
               title="Review health"
-              change={review ? `${review} waiting` : "clear"}
               value={`${total}`}
               valueDescription="files in the current scan"
               ctaDescription="Files are grouped before review."
@@ -168,7 +165,6 @@ export function DashboardPage() {
           <div>
             <ProgressBarCard
               title="Match quality"
-              change={`${confidence}% strong`}
               value={`${confidence}%`}
               valueDescription="at or above 85% confidence"
               ctaDescription="Jellyfin and NFO are preferred."
@@ -179,7 +175,6 @@ export function DashboardPage() {
           <div>
             <CategoryBarCard
               title="Match sources"
-              change="last scan"
               value={`${total}`}
               valueDescription="matched jobs"
               subtitle="Where the metadata came from"
@@ -192,23 +187,21 @@ export function DashboardPage() {
       </section>
 
       <section aria-labelledby="usage-overview">
-        <div className="mt-16 flex items-center justify-between">
-          <h2 id="usage-overview" className="scroll-mt-8 text-lg font-semibold text-gray-900 sm:text-xl">
-            Overview
-          </h2>
-          <Button
-            variant="secondary"
-            onClick={() => void runScan()}
-            disabled={scanAnimating}
-            className="disabled:bg-white disabled:text-gray-900"
+        <div className="mt-16">
+          <div className="text-xs font-medium text-ink-muted">Overview</div>
+          <h2
+            id="usage-overview"
+            className="mt-1 scroll-mt-8 text-lg font-semibold text-ink sm:text-xl"
           >
-            <RefreshCw size={15} className={scanAnimating ? "animate-spin" : ""} />
-            Scan now
-          </Button>
+            Activity at a glance.
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
+            Compare scan activity, source mix, and apply progress across the selected range.
+          </p>
         </div>
 
-        <div className="sticky top-16 z-20 flex items-center justify-between border-b border-gray-200 bg-white pb-4 pt-4 sm:pt-6 lg:top-0 lg:pt-8">
-          <div className="flex items-center gap-2">
+        <div className="sticky top-16 z-20 flex items-center justify-between bg-canvas pb-4 pt-4 sm:pt-6 lg:top-0 lg:pt-8">
+          <div className="flex flex-wrap items-center gap-2">
             <DropdownSelect
               value={sourceFilter}
               onChange={setSourceFilter}
@@ -221,13 +214,34 @@ export function DashboardPage() {
                 { value: "llm", label: "AI fallback" },
               ]}
             />
+            <DropdownSelect
+              value={rangeFilter}
+              onChange={setRangeFilter}
+              className="w-32"
+              options={[
+                { value: "7d", label: "Last 7 days" },
+                { value: "30d", label: "Last 30 days" },
+                { value: "90d", label: "Last 90 days" },
+              ]}
+            />
             <Button asChild variant="primary">
               <Link to="/review">Review table</Link>
             </Button>
           </div>
-          <p className="hidden text-sm text-gray-500 sm:block">
-            {filteredGroups.length} groups - {jobs.length} jobs
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="hidden text-sm text-ink-muted sm:block">
+              {filteredJobs.length} job{filteredJobs.length === 1 ? "" : "s"}
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => void runScan()}
+              disabled={scanAnimating}
+              className="disabled:bg-surface disabled:text-ink"
+            >
+              <RefreshCw size={15} className={scanAnimating ? "animate-spin" : ""} />
+              Scan now
+            </Button>
+          </div>
         </div>
 
         <dl className="mt-10 grid grid-cols-1 gap-14 md:grid-cols-2 xl:grid-cols-3">
@@ -235,7 +249,6 @@ export function DashboardPage() {
             title="Scan activity"
             value={`${filteredJobs.length}`}
             previous={`${review}`}
-            change="7 days"
             data={trend}
             categories={["Matched", "Review"]}
           />
@@ -243,7 +256,6 @@ export function DashboardPage() {
             title="Source split"
             value={`${sourceCounts.jellyfin ?? 0}`}
             previous={`${sourceCounts.guessit ?? 0}`}
-            change="Jellyfin / filename"
             data={sourceTrend}
             categories={["Jellyfin", "Filename"]}
             colors={[...SOURCE_CHART_COLORS]}
@@ -252,7 +264,6 @@ export function DashboardPage() {
             title="Apply progress"
             value={`${moved}`}
             previous={`${ready}`}
-            change="moved / ready"
             data={trend}
             categories={["Matched", "Review"]}
           />

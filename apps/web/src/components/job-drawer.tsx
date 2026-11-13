@@ -12,7 +12,7 @@ import { api } from "../lib/api"
 import { pct, providerLabel, sourceLabel } from "../lib/format"
 import { blockedReasonLabel, isReviewable } from "../lib/job-state"
 import { useToast } from "./toast"
-import { Badge, Button, Card, Field, Input, SourceBadge, StatusBadge } from "./ui"
+import { Alert, Badge, Button, Card, Field, Input, SourceBadge, StatusBadge } from "./ui"
 import { DropdownSelect } from "./tremor/dropdown-select"
 import {
   DropdownMenu,
@@ -246,42 +246,42 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
     <Drawer open onOpenChange={(open) => { if (!open) onClose() }}>
       <DrawerContent className="sm:max-w-4xl">
         {!job ? (
-          <DrawerBody className="text-sm text-gray-500">Loading job…</DrawerBody>
+          <DrawerBody className="text-sm text-ink-muted">Loading job…</DrawerBody>
         ) : (
           <>
             <DrawerHeader>
               <DrawerTitle>{job.title || "Untitled"}</DrawerTitle>
             </DrawerHeader>
 
-            <DrawerBody className="-mx-6 overflow-y-auto border-t border-gray-200 px-6">
-              <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-gray-500">
+            <DrawerBody className="-mx-6 overflow-y-auto border-t border-line px-6">
+              <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-ink-muted">
                 <StatusBadge status={job.status} />
-                <span className="text-gray-300">·</span>
+                <span className="text-ink-muted/50">·</span>
                 <span>{job.media_type === "tv" ? "Shows" : "Movie"}</span>
-                <span className="text-gray-300">·</span>
+                <span className="text-ink-muted/50">·</span>
                 <SourceBadge source={job.source} />
-                <span className="text-gray-300">·</span>
+                <span className="text-ink-muted/50">·</span>
                 <span>{pct(job.confidence)} match</span>
               </div>
 
               <div className="mb-6 grid gap-3 sm:grid-cols-2">
                 <Card className="flex min-w-0 flex-col overflow-hidden p-0">
                   <div className="flex-1 px-4 pb-4 pt-4">
-                    <p className="break-all font-mono text-[11px] leading-5 text-gray-700">
+                    <p className="break-all font-mono text-[11px] leading-5 text-ink">
                       {job.source_path}
                     </p>
                   </div>
-                  <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500">
+                  <div className="border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                     Original path
                   </div>
                 </Card>
                 <Card className="flex min-w-0 flex-col overflow-hidden p-0">
                   <div className="flex-1 px-4 pb-4 pt-4">
-                    <p className="break-all font-mono text-[11px] leading-5 text-gray-700">
+                    <p className="break-all font-mono text-[11px] leading-5 text-ink">
                       {target || job.target_path || "—"}
                     </p>
                   </div>
-                  <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500">
+                  <div className="border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                     Target path
                   </div>
                 </Card>
@@ -290,13 +290,13 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               <div className="grid min-w-0 gap-8 md:grid-cols-[minmax(0,1fr)_20rem]">
                 <div className="min-w-0 space-y-5">
                 {job.reason ? (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-ink-muted">
                     Matched with {sourceLabel(job.source)}: {job.reason}
                   </p>
                 ) : null}
 
                 {job.status === "moved" ? (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-ink-muted">
                     This job is read-only. Undo restores the source or removes the copy/link.
                   </p>
                 ) : null}
@@ -304,7 +304,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 {editable ? (
                   <>
                     <section className="space-y-2">
-                      <div className="text-xs font-medium text-gray-500">Identify by provider ID</div>
+                      <div className="text-xs font-medium text-ink-muted">Identify by provider ID</div>
                       <div className="grid grid-cols-[110px_minmax(0,1fr)_auto] gap-2">
                         <DropdownSelect
                           value={provider}
@@ -328,7 +328,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                           Apply
                         </Button>
                       </div>
-                      <p className="text-[10.5px] text-gray-500">
+                      <p className="text-[10.5px] text-ink-muted">
                         Resolved through Jellyfin, so no extra TMDb/TVDB key is needed.
                       </p>
                     </section>
@@ -399,21 +399,22 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                 ) : null}
 
                 {showBlockedMessage ? (
-                  <div className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger">
-                    {job.blocked_reason ? (
-                      <div className="font-medium">
-                        {blockedReasonLabel(job.blocked_reason)}
-                      </div>
-                    ) : null}
+                  <Alert
+                    title={
+                      job.blocked_reason
+                        ? blockedReasonLabel(job.blocked_reason)
+                        : undefined
+                    }
+                  >
                     {error ?? job.error}
-                  </div>
+                  </Alert>
                 ) : null}
               </div>
 
               <aside className="min-w-0 space-y-4">
                 {job.status !== "moved" && job.candidates_json && job.candidates_json.length > 0 ? (
                   <section>
-                    <div className="mb-2 text-xs font-medium text-gray-500">Provider candidates</div>
+                    <div className="mb-2 text-xs font-medium text-ink-muted">Provider candidates</div>
                     <div className="flex flex-col gap-2">
                       {job.candidates_json.map((candidate, index) => (
                         <Card
@@ -422,19 +423,19 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                         >
                           <div className="px-4 pb-4 pt-4">
                             <div className="flex items-center justify-between gap-3">
-                              <span className="text-xs font-medium text-gray-900">
+                              <span className="text-xs font-medium text-ink">
                                 {candidate.title} {candidate.year ? `(${candidate.year})` : ""}
                               </span>
                               <Badge variant="default">{pct(candidate.score / 100)}</Badge>
                             </div>
                             {candidate.overview ? (
-                              <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                              <p className="mt-1 line-clamp-2 text-[11px] text-ink-muted">
                                 {candidate.overview}
                               </p>
                             ) : null}
                           </div>
-                          <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-2">
-                            <span className="text-[11px] text-gray-500">
+                          <div className="flex items-center justify-between border-t border-line bg-surface-muted px-4 py-2">
+                            <span className="text-[11px] text-ink-muted">
                               {providerLabel(candidate.provider)}
                             </span>
                             <Button
@@ -502,7 +503,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={requestReject}
-                          className="gap-2 text-red-700 focus-visible:bg-red-50"
+                          className="gap-2 text-danger focus-visible:bg-danger-soft"
                         >
                           <X size={14} /> Reject
                         </DropdownMenuItem>

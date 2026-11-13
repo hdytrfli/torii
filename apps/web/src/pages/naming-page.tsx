@@ -85,8 +85,8 @@ export function NamingPage() {
       </div>
 
       <div className="mt-10 flex items-center justify-end gap-3">
-        {message ? <span className="text-xs text-gray-500">{message}</span> : null}
-        {error ? <span className="text-xs text-red-700">{error}</span> : null}
+        {message ? <span className="text-xs text-ink-muted">{message}</span> : null}
+        {error ? <span className="text-xs text-danger">{error}</span> : null}
         <Button onClick={() => save.mutate()} disabled={save.isPending}>
           <Save size={14} /> {save.isPending ? "Saving…" : "Save layouts"}
         </Button>

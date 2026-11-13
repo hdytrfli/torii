@@ -1,4 +1,3 @@
-import { Badge } from "./badge"
 import { ProgressBar } from "./progress-bar"
 
 export type KpiEntry = {
@@ -11,7 +10,6 @@ export type KpiEntry = {
 
 export function ProgressBarCard({
   title,
-  change,
   value,
   valueDescription,
   ctaDescription,
@@ -19,7 +17,6 @@ export function ProgressBarCard({
   data,
 }: {
   title: string
-  change: string
   value: string
   valueDescription: string
   ctaDescription: string
@@ -30,21 +27,20 @@ export function ProgressBarCard({
     <div className="flex flex-col justify-between">
       <div>
         <div className="flex items-center gap-2">
-          <dt className="font-bold text-gray-900 sm:text-sm">{title}</dt>
-          <Badge variant="neutral">{change}</Badge>
+          <dt className="font-bold text-ink sm:text-sm">{title}</dt>
         </div>
         <dd className="mt-2 flex items-baseline gap-2">
-          <span className="text-xl text-gray-900">{value}</span>
-          <span className="text-sm text-gray-500">{valueDescription}</span>
+          <span className="text-xl text-ink">{value}</span>
+          <span className="text-sm text-ink-muted">{valueDescription}</span>
         </dd>
         <ul role="list" className="mt-4 space-y-5">
           {data.map((item) => (
             <li key={item.title}>
               <p className="flex justify-between text-sm">
-                <span className="font-medium text-gray-900">{item.title}</span>
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-ink">{item.title}</span>
+                <span className="font-medium text-ink">
                   {item.current}
-                  <span className="font-normal text-gray-500">
+                  <span className="font-normal text-ink-muted">
                     /{item.allowed}
                     {item.unit}
                   </span>
@@ -55,8 +51,8 @@ export function ProgressBarCard({
           ))}
         </ul>
       </div>
-      <p className="mt-6 text-xs text-gray-500">
-        {ctaDescription} <span className="font-medium text-gray-900">{ctaText}</span>
+      <p className="mt-6 text-xs text-ink-muted">
+        {ctaDescription} <span className="font-medium text-ink">{ctaText}</span>
       </p>
     </div>
   )
@@ -71,7 +67,6 @@ export type KpiEntryExtended = {
 
 export function CategoryBarCard({
   title,
-  change,
   value,
   valueDescription,
   subtitle,
@@ -80,7 +75,6 @@ export function CategoryBarCard({
   data,
 }: {
   title: string
-  change: string
   value: string
   valueDescription: string
   subtitle: string
@@ -92,15 +86,14 @@ export function CategoryBarCard({
     <div className="flex flex-col justify-between">
       <div>
         <div className="flex items-center gap-2">
-          <h3 className="font-bold text-gray-900 sm:text-sm">{title}</h3>
-          <Badge variant="neutral">{change}</Badge>
+          <h3 className="font-bold text-ink sm:text-sm">{title}</h3>
         </div>
         <p className="mt-2 flex items-baseline gap-2">
-          <span className="text-xl text-gray-900">{value}</span>
-          <span className="text-sm text-gray-500">{valueDescription}</span>
+          <span className="text-xl text-ink">{value}</span>
+          <span className="text-sm text-ink-muted">{valueDescription}</span>
         </p>
         <div className="mt-4">
-          <p className="text-sm font-medium text-gray-900">{subtitle}</p>
+          <p className="text-sm font-medium text-ink">{subtitle}</p>
           <div className="mt-2 flex items-center gap-0.5">
             {data.map((item) => (
               <div
@@ -115,16 +108,16 @@ export function CategoryBarCard({
           {data.map((item) => (
             <li key={item.title} className="flex items-center gap-2 text-xs">
               <span className={`${item.color} size-2.5 rounded-sm`} aria-hidden="true" />
-              <span className="text-gray-900">{item.title}</span>
-              <span className="text-gray-600">
+              <span className="text-ink">{item.title}</span>
+              <span className="text-ink-muted">
                 ({item.value} / {Math.round(item.percentage)}%)
               </span>
             </li>
           ))}
         </ul>
       </div>
-      <p className="mt-6 text-xs text-gray-500">
-        {ctaDescription} <span className="font-medium text-gray-900">{ctaText}</span>
+      <p className="mt-6 text-xs text-ink-muted">
+        {ctaDescription} <span className="font-medium text-ink">{ctaText}</span>
       </p>
     </div>
   )

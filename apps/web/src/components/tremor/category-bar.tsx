@@ -1,11 +1,11 @@
 import { cn } from "../../lib/format"
 
 const colors: Record<string, string> = {
-  blue: "bg-gray-900",
-  lightGray: "bg-gray-400",
-  red: "bg-gray-200",
-  emerald: "bg-gray-600",
-  yellow: "bg-gray-300",
+  blue: "bg-brand",
+  lightGray: "bg-ink-muted/50",
+  red: "bg-danger",
+  emerald: "bg-success",
+  yellow: "bg-warning",
 }
 
 export function CategoryBar({
@@ -23,7 +23,7 @@ export function CategoryBar({
       {values.map((value, index) => (
         <div
           key={index}
-          className={cn("h-full", colors[keys[index] ?? "lightGray"] ?? "bg-gray-400")}
+          className={cn("h-full", colors[keys[index] ?? "lightGray"] ?? "bg-ink-muted")}
           style={{ width: `${(value / total) * 100}%` }}
         />
       ))}

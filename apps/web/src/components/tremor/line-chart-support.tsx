@@ -54,7 +54,7 @@ const LegendItem = ({
         // base
         "group inline-flex flex-nowrap items-center gap-1.5 whitespace-nowrap rounded px-2 py-1 transition",
         hasOnValueChange
-          ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+          ? "cursor-pointer hover:bg-surface-muted dark:hover:bg-surface-muted"
           : "cursor-default",
       )}
       onClick={(e) => {
@@ -75,9 +75,9 @@ const LegendItem = ({
           // base
           "truncate whitespace-nowrap text-xs",
           // text color
-          "text-gray-700 dark:text-gray-300",
+          "text-ink dark:text-ink-muted/50",
           hasOnValueChange &&
-            "group-hover:text-gray-900 dark:group-hover:text-gray-50",
+            "group-hover:text-ink dark:group-hover:text-brand-ink",
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
       >
@@ -123,8 +123,8 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
         // base
         "group inline-flex size-5 items-center truncate rounded transition",
         disabled
-          ? "cursor-not-allowed text-gray-400 dark:text-gray-600"
-          : "cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50",
+          ? "cursor-not-allowed text-ink-muted/70 dark:text-ink-muted"
+          : "cursor-pointer text-ink hover:bg-surface-muted hover:text-ink dark:text-ink-muted/50 dark:hover:bg-surface-muted dark:hover:text-ink",
       )}
       disabled={disabled}
       onClick={(e) => {
@@ -288,7 +288,7 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
               // base
               "absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1",
               // background color
-              "bg-white dark:bg-gray-950",
+              "bg-surface dark:bg-surface",
             )}
           >
             <ScrollButton
@@ -397,12 +397,12 @@ const ChartTooltip = ({
           // base
           "overflow-hidden rounded-md text-sm shadow-md",
           // background color
-          "bg-gray-900 dark:bg-gray-800",
+          "bg-brand text-brand-ink",
         )}
       >
         <div
           className={cx(
-            "border-b border-gray-700 px-4 py-2 dark:border-gray-700",
+            "border-b border-brand-ink/15 px-4 py-2",
           )}
         >
           <p
@@ -410,13 +410,13 @@ const ChartTooltip = ({
               // base
               "font-medium",
               // text color
-              "text-gray-50",
+              "text-brand-ink",
             )}
           >
             Total Requests
           </p>
         </div>
-        <div className={cx("space-y-1 bg-gray-800 px-4 py-2 dark:bg-gray-800")}>
+        <div className={cx("space-y-1 bg-brand-ink/5 px-4 py-2")}>
           {legendPayload.map(({ value, category, color }, index) => (
             <div
               key={`id-${index}`}
@@ -435,7 +435,7 @@ const ChartTooltip = ({
                     // base
                     "whitespace-nowrap text-right",
                     // text color
-                    "text-gray-400 dark:text-gray-400",
+                    "text-brand-ink/70",
                   )}
                 >
                   {category}
@@ -446,7 +446,7 @@ const ChartTooltip = ({
                   // base
                   "whitespace-nowrap text-right tabular-nums",
                   // text color
-                  "text-gray-50 dark:text-gray-50",
+                  "text-brand-ink",
                 )}
               >
                 {valueFormatter(value)}
@@ -574,14 +574,14 @@ export const LineChartSupport = React.forwardRef<
         />
         <g transform={`translate(${translateX}, ${y + height + 6})`}>
           <rect
-            className="fill-gray-200 dark:fill-gray-800"
+            className="fill-line dark:fill-line"
             width={textWidth + 2 * padding}
             height={textHeight + 2 * padding}
             rx={4}
             ry={4}
           />
           <text
-            className="fill-gray-700 text-xs dark:fill-gray-300"
+            className="fill-ink-muted text-xs dark:fill-ink-muted/70"
             x={textWidth / 2 + padding}
             y={textHeight / 2 + padding + 5}
             textAnchor="middle"
@@ -680,7 +680,7 @@ export const LineChartSupport = React.forwardRef<
         >
           {showGridLines ? (
             <CartesianGrid
-              className={cx("stroke-gray-200 stroke-1 dark:stroke-gray-800")}
+              className={cx("stroke-line stroke-1 dark:stroke-line")}
               horizontal={true}
               vertical={false}
             />
@@ -702,7 +702,7 @@ export const LineChartSupport = React.forwardRef<
               // base
               "text-xs",
               // text fill
-              "fill-gray-500 dark:fill-gray-500",
+              "fill-ink-muted/70 dark:fill-ink-muted/70",
             )}
             tickLine={false}
             axisLine={false}
@@ -712,7 +712,7 @@ export const LineChartSupport = React.forwardRef<
               <Label
                 position="insideBottom"
                 offset={-20}
-                className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                className="fill-ink text-sm font-medium dark:fill-line"
               >
                 {xAxisLabel}
               </Label>
@@ -732,7 +732,7 @@ export const LineChartSupport = React.forwardRef<
               // base
               "text-xs",
               // text fill
-              "fill-gray-500 dark:fill-gray-500",
+              "fill-ink-muted/70 dark:fill-ink-muted/70",
             )}
             tickFormatter={valueFormatter}
             allowDecimals={allowDecimals}
@@ -743,7 +743,7 @@ export const LineChartSupport = React.forwardRef<
                 style={{ textAnchor: "middle" }}
                 angle={-90}
                 offset={-15}
-                className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                className="fill-ink text-sm font-medium dark:fill-line"
               >
                 {yAxisLabel}
               </Label>
@@ -846,7 +846,7 @@ export const LineChartSupport = React.forwardRef<
                 return (
                   <Dot
                     className={cx(
-                      "stroke-white dark:stroke-gray-950",
+                      "stroke-canvas dark:stroke-canvas",
                       onValueChange ? "cursor-pointer" : "",
                       getColorClassName(
                         categoryColors.get(dataKey) as AvailableChartColorsKeys,
@@ -898,7 +898,7 @@ export const LineChartSupport = React.forwardRef<
                       strokeLinejoin={strokeLinejoin}
                       strokeWidth={strokeWidth}
                       className={cx(
-                        "stroke-white dark:stroke-gray-950",
+                        "stroke-canvas dark:stroke-canvas",
                         onValueChange ? "cursor-pointer" : "",
                         getColorClassName(
                           categoryColors.get(

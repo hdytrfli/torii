@@ -5,10 +5,10 @@ import * as React from "react"
 
 import { cx } from "../../lib/format"
 
-const focusRing = "outline outline-offset-2 outline-0 focus-visible:outline-2 outline-gray-900"
+const focusRing = ""
 
 const shortcutStyles = cx(
-  "hidden h-6 select-none items-center justify-center rounded-md bg-gray-800 px-2 font-mono text-xs text-gray-400 ring-1 ring-inset ring-gray-700 transition sm:flex",
+  "hidden h-6 select-none items-center justify-center rounded-md bg-brand-ink/10 px-2 font-mono text-xs text-brand-ink/70 ring-1 ring-inset ring-brand-ink/20 transition sm:flex",
 )
 
 interface CommandBarProps extends React.PropsWithChildren {
@@ -67,7 +67,7 @@ const CommandBarValue = React.forwardRef<
     <div
       ref={ref}
       className={cx(
-        "px-3 py-2.5 text-sm tabular-nums text-gray-300",
+        "px-3 py-2.5 text-sm tabular-nums text-brand-ink/70",
         className,
       )}
       {...props}
@@ -84,7 +84,7 @@ const CommandBarBar = React.forwardRef<
     <div
       ref={ref}
       className={cx(
-        "relative flex items-center rounded-lg bg-gray-900 px-1 shadow-lg shadow-black/30 dark:ring-1 dark:ring-white/10",
+        "relative flex items-center rounded-lg bg-brand px-1 text-brand-ink shadow-lg shadow-black/20 ring-1 ring-brand-ink/10",
         className,
       )}
       {...props}
@@ -100,7 +100,7 @@ const CommandBarSeperator = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cx("h-4 w-px bg-gray-700", className)}
+      className={cx("h-4 w-px bg-brand-ink/30", className)}
       {...props}
     />
   )
@@ -151,7 +151,7 @@ const CommandBarCommand = React.forwardRef<HTMLButtonElement, CommandProps>(
     return (
       <span
         className={cx(
-          "flex items-center gap-x-2 rounded-lg bg-gray-900 p-1 text-base font-medium text-gray-50 outline-none transition focus:z-10 sm:text-sm",
+          "flex items-center gap-x-2 rounded-lg bg-brand p-1 text-base font-medium text-brand-ink outline-none transition focus:z-10 sm:text-sm",
           "sm:last-of-type:-mr-1",
           className,
         )}
@@ -163,10 +163,10 @@ const CommandBarCommand = React.forwardRef<HTMLButtonElement, CommandProps>(
           disabled={disabled}
           className={cx(
             // base
-            "flex items-center gap-x-2 rounded-md px-1 py-1 hover:bg-gray-800",
+            "flex items-center gap-x-2 rounded-md px-1 py-1 hover:bg-brand-ink/10",
             // focus
-            "focus-visible:bg-gray-800 focus-visible:hover:bg-gray-800",
-            "disabled:text-gray-500",
+            "focus-visible:bg-brand-ink/10 focus-visible:hover:bg-brand-ink/10",
+            "disabled:text-brand-ink/40",
             focusRing,
           )}
           {...props}

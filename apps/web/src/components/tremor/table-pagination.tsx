@@ -31,17 +31,17 @@ export function TablePagination({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm tabular-nums text-gray-500">
+      <p className="text-sm tabular-nums text-ink-muted">
         {selectedCount} of {total} row(s) selected.
         <span className="ml-4 hidden sm:inline">
-          Showing <span className="font-medium text-gray-900">{first}-{last}</span> of{" "}
-          <span className="font-medium text-gray-900">{total}</span>
+          Showing <span className="font-medium text-ink">{first}-{last}</span> of{" "}
+          <span className="font-medium text-ink">{total}</span>
         </span>
       </p>
       <div className="flex items-center gap-4">
         {onPageSizeChange ? (
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500">Rows</span>
+            <span className="text-xs text-ink-muted">Rows</span>
             <DropdownSelect
               value={String(pageSize)}
               onChange={onPageSizeChange}

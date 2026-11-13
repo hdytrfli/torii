@@ -53,16 +53,16 @@ export function LayoutBuilder({
     <div className="min-w-0 space-y-10">
       <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
         <div>
-          <h2 className="font-semibold text-gray-900">Tokens</h2>
-          <p className="mt-1 text-sm leading-6 text-gray-500">
+          <h2 className="font-semibold text-ink">Tokens</h2>
+          <p className="mt-1 text-sm leading-6 text-ink-muted">
             Drag a token into a layout, or click to insert it into the last focused template.
           </p>
         </div>
         <div className="md:col-span-2">
           <Card className="overflow-hidden p-0">
-            <div className="border-b border-gray-200 px-4 py-3">
-              <div className="text-sm font-medium text-gray-900">Token palette</div>
-              <p className="mt-0.5 text-xs text-gray-500">
+            <div className="border-b border-line px-4 py-3">
+              <div className="text-sm font-medium text-ink">Token palette</div>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Chips become real values in the preview.
               </p>
             </div>
@@ -70,7 +70,7 @@ export function LayoutBuilder({
             <div className="space-y-4 px-4 py-4">
               {TOKEN_GROUPS.map((group) => (
                 <div key={group.label}>
-                  <div className="mb-2 text-[11px] font-medium text-gray-500">{group.label}</div>
+                  <div className="mb-2 text-[11px] font-medium text-ink-muted">{group.label}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {group.tokens.map((token) => (
                       <TokenButton key={token} token={token} onInsert={() => insert(token)} />
@@ -80,7 +80,7 @@ export function LayoutBuilder({
               ))}
             </div>
 
-            <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
+            <div className="border-t border-line bg-surface-muted px-4 py-2 text-[11px] text-ink-muted">
               Adding to {active === "movie" ? "Movie layout" : "Show layout"}
             </div>
           </Card>
@@ -91,8 +91,8 @@ export function LayoutBuilder({
 
       <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
         <div>
-          <h2 className="font-semibold text-gray-900">Movie layout</h2>
-          <p className="mt-1 text-sm leading-6 text-gray-500">
+          <h2 className="font-semibold text-ink">Movie layout</h2>
+          <p className="mt-1 text-sm leading-6 text-ink-muted">
             Folder and filename pattern for movies. Type separators and drag tokens into place.
           </p>
         </div>
@@ -121,8 +121,8 @@ export function LayoutBuilder({
 
       <section className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
         <div>
-          <h2 className="font-semibold text-gray-900">Show layout</h2>
-          <p className="mt-1 text-sm leading-6 text-gray-500">
+          <h2 className="font-semibold text-ink">Show layout</h2>
+          <p className="mt-1 text-sm leading-6 text-ink-muted">
             Folder and filename pattern for episodes. Type separators and drag tokens into place.
           </p>
         </div>
@@ -164,10 +164,10 @@ function TokenButton({ token, onInsert }: { token: TokenName; onInsert: () => vo
       content={
         <>
           <div className="p-3">
-            <div className="text-xs font-medium text-gray-900">{definition.label}</div>
-            <p className="mt-1 text-xs leading-5 text-gray-500">{definition.hint}</p>
+            <div className="text-xs font-medium text-ink">{definition.label}</div>
+            <p className="mt-1 text-xs leading-5 text-ink-muted">{definition.hint}</p>
           </div>
-          <div className="border-t border-gray-200 bg-gray-50 px-3 py-2 font-mono text-[10px] text-gray-500">
+          <div className="border-t border-line bg-surface-muted px-3 py-2 font-mono text-[10px] text-ink-muted">
             {`{${token}}`}
           </div>
         </>
@@ -181,10 +181,10 @@ function TokenButton({ token, onInsert }: { token: TokenName; onInsert: () => vo
           event.dataTransfer.effectAllowed = "copy"
         }}
         onClick={onInsert}
-        className="group inline-flex cursor-grab items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 active:cursor-grabbing"
+        className="group inline-flex cursor-grab items-center gap-1.5 rounded-md border border-line bg-surface px-2 py-1 text-xs font-medium text-ink-muted transition hover:border-line hover:bg-surface-muted hover:text-ink active:cursor-grabbing"
       >
         <GripVertical
-          className="size-3 text-gray-300 transition group-hover:text-gray-400"
+          className="size-3 text-ink-muted/50 transition group-hover:text-ink-muted/70"
           aria-hidden="true"
         />
         {tokenLabel(token)}
@@ -211,24 +211,24 @@ function Preview({
     <Card className="min-w-0 overflow-hidden p-0">
       <div className="px-4 pb-4 pt-4">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-medium text-gray-500">Generated path</span>
-          {pending ? <span className="text-[11px] text-gray-400">Updating…</span> : null}
+          <span className="text-xs font-medium text-ink-muted">Generated path</span>
+          {pending ? <span className="text-[11px] text-ink-muted/70">Updating…</span> : null}
         </div>
         {error ? (
-          <p className="mt-3 text-xs text-red-700">{error.message}</p>
+          <p className="mt-3 text-xs text-danger">{error.message}</p>
         ) : parts.length ? (
           <div className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1 font-mono text-xs leading-5">
             {parts.map((part, index) => (
               <span key={`${part}-${index}`} className="inline-flex min-w-0 items-center gap-x-1">
                 {index > 0 ? (
-                  <ChevronRight className="size-3 shrink-0 text-gray-300" aria-hidden="true" />
+                  <ChevronRight className="size-3 shrink-0 text-ink-muted/50" aria-hidden="true" />
                 ) : null}
                 <span
                   className={cn(
                     "break-all",
                     index === parts.length - 1
-                      ? "font-medium text-gray-900"
-                      : "text-gray-500",
+                      ? "font-medium text-ink"
+                      : "text-ink-muted",
                   )}
                 >
                   {part}
@@ -237,12 +237,12 @@ function Preview({
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-xs text-gray-400">Output appears when the layout is valid.</p>
+          <p className="mt-3 text-xs text-ink-muted/70">Output appears when the layout is valid.</p>
         )}
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-4 py-2">
-        <span className="text-[11px] font-medium text-gray-500">{label}</span>
-        <span className="truncate text-[11px] text-gray-500">Input example: {example}</span>
+      <div className="flex items-center justify-between gap-3 border-t border-line bg-surface-muted px-4 py-2">
+        <span className="text-[11px] font-medium text-ink-muted">{label}</span>
+        <span className="truncate text-[11px] text-ink-muted">Input example: {example}</span>
       </div>
     </Card>
   )

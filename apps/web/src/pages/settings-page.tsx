@@ -111,8 +111,8 @@ export function SettingsPage() {
           className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3"
         >
           <div>
-            <h2 className="font-semibold text-gray-900">Scanning</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
+            <h2 className="font-semibold text-ink">Scanning</h2>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
               Control which files are picked up and how quickly.
             </p>
           </div>
@@ -170,8 +170,8 @@ export function SettingsPage() {
           className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3"
         >
           <div>
-            <h2 className="font-semibold text-gray-900">Apply</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
+            <h2 className="font-semibold text-ink">Apply</h2>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
               Choose the file action and automation boundary.
             </p>
           </div>
@@ -229,8 +229,8 @@ export function SettingsPage() {
           className="grid min-w-0 grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3"
         >
           <div>
-            <h2 className="font-semibold text-gray-900">Queues</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
+            <h2 className="font-semibold text-ink">Queues</h2>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">
               Tune how often each durable worker polls for pending work. File
               workers still process one job at a time.
             </p>
@@ -302,17 +302,17 @@ export function SettingsPage() {
 
 function AutoApplySummary({ form }: { form: Settings }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
       <span>
         {form.auto_apply ? "Auto-apply" : "If enabled"}:{" "}
-        <span className="font-medium text-gray-700">
+        <span className="font-medium text-ink">
           {form.auto_apply_eligible}
         </span>{" "}
         eligible
       </span>
       {form.auto_apply_blocked > 0 ? (
         <span>
-          <span className="font-medium text-gray-700">
+          <span className="font-medium text-ink">
             {form.auto_apply_blocked}
           </span>{" "}
           blocked
@@ -320,7 +320,7 @@ function AutoApplySummary({ form }: { form: Settings }) {
       ) : null}
       {form.auto_apply_below_threshold > 0 ? (
         <span>
-          <span className="font-medium text-gray-700">
+          <span className="font-medium text-ink">
             {form.auto_apply_below_threshold}
           </span>{" "}
           below threshold
@@ -341,8 +341,8 @@ function SaveRow({
 }) {
   return (
     <div className="flex items-center justify-end gap-3 pt-1">
-      {message ? <span className="text-xs text-gray-500">{message}</span> : null}
-      {error ? <span className="text-xs text-red-700">{error}</span> : null}
+      {message ? <span className="text-xs text-ink-muted">{message}</span> : null}
+      {error ? <span className="text-xs text-danger">{error}</span> : null}
       <Button type="submit" disabled={pending}>
         <Save size={14} /> {pending ? "Saving…" : "Save changes"}
       </Button>
@@ -412,8 +412,8 @@ function ExtensionsPicker({
     <>
       <Card className="overflow-hidden p-0">
         <div className="px-4 pb-4 pt-4">
-          <div className="text-sm font-medium text-gray-900">File extensions</div>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <div className="text-sm font-medium text-ink">File extensions</div>
+          <p className="mt-0.5 text-xs text-ink-muted">
             Choose which file types the scanner should pick up.
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -421,18 +421,18 @@ function ExtensionsPicker({
               value.map((extension) => (
                 <span
                   key={extension}
-                  className="rounded border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-[11px] text-gray-700"
+                  className="rounded border border-line bg-surface-muted px-2 py-1 font-mono text-[11px] text-ink"
                 >
                   {extension}
                 </span>
               ))
             ) : (
-              <span className="text-xs text-gray-400">No extensions selected.</span>
+              <span className="text-xs text-ink-muted/70">No extensions selected.</span>
             )}
           </div>
         </div>
-        <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-2">
-          <span className="text-xs text-gray-500">
+        <div className="flex items-center justify-between border-t border-line bg-surface-muted px-4 py-2">
+          <span className="text-xs text-ink-muted">
             {value.length} format{value.length === 1 ? "" : "s"} selected
           </span>
           <Button
@@ -458,7 +458,7 @@ function ExtensionsPicker({
         }}
       >
         <DialogContent className="max-w-xl p-0">
-          <DialogHeader className="border-b border-gray-200 px-5 py-4">
+          <DialogHeader className="border-b border-line px-5 py-4">
             <DialogTitle className="text-base">File extensions</DialogTitle>
             <DialogDescription className="text-sm">
               Choose which file types the scanner should pick up.
@@ -468,7 +468,7 @@ function ExtensionsPicker({
           <div className="max-h-[60vh] space-y-5 overflow-y-auto px-5 py-4">
             {EXTENSION_GROUPS.map((group) => (
               <div key={group.label}>
-                <div className="text-xs font-medium text-gray-500">{group.label}</div>
+                <div className="text-xs font-medium text-ink-muted">{group.label}</div>
                 <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                   {group.extensions.map((extension) => {
                     const id = `extension-${extension}`
@@ -481,7 +481,7 @@ function ExtensionsPicker({
                         />
                         <label
                           htmlFor={id}
-                          className="cursor-pointer font-mono text-xs text-gray-700"
+                          className="cursor-pointer font-mono text-xs text-ink"
                         >
                           {extension}
                         </label>
@@ -492,8 +492,8 @@ function ExtensionsPicker({
               </div>
             ))}
 
-            <div className="border-t border-gray-200 pt-4">
-              <label htmlFor="custom-extension" className="text-xs font-medium text-gray-500">
+            <div className="border-t border-line pt-4">
+              <label htmlFor="custom-extension" className="text-xs font-medium text-ink-muted">
                 Add custom extension
               </label>
               <div className="mt-2 flex items-start gap-2">
@@ -524,13 +524,13 @@ function ExtensionsPicker({
                 </Button>
               </div>
               {customError ? (
-                <p className="mt-1.5 text-xs text-red-700">{customError}</p>
+                <p className="mt-1.5 text-xs text-danger">{customError}</p>
               ) : null}
             </div>
 
           </div>
 
-          <DialogFooter className="border-t border-gray-200 bg-gray-50 px-5 py-3">
+          <DialogFooter className="border-t border-line bg-surface-muted px-5 py-3">
             <DialogClose asChild>
               <Button type="button" variant="secondary">
                 Cancel

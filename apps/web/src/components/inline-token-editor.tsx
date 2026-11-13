@@ -37,7 +37,7 @@ function createChip(name: string) {
   chip.contentEditable = "false"
   chip.title = `{${name}}`
   chip.className =
-    "mx-0.5 inline-flex select-none items-center rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 align-middle text-[11px] font-medium leading-4 text-gray-700"
+    "mx-0.5 inline-flex select-none items-center rounded border border-line bg-surface-muted px-1.5 py-0.5 align-middle text-[11px] font-medium leading-4 text-ink"
   chip.textContent = tokenLabel(name)
   return chip
 }
@@ -215,10 +215,10 @@ export const InlineTokenEditor = forwardRef<
         }}
         onDrop={handleDrop}
         onPaste={handlePaste}
-        className="min-h-10 w-full whitespace-pre-wrap break-words rounded-md border border-gray-300 bg-white px-2.5 py-2 text-sm shadow-card outline-none transition focus:border-gray-900 focus:ring-2 focus:ring-gray-200"
+        className="min-h-10 w-full whitespace-pre-wrap break-words rounded-md border border-line bg-surface px-2.5 py-2 text-sm shadow-card outline-none transition"
       />
       {!value ? (
-        <span className="pointer-events-none absolute left-2.5 top-2 text-sm text-gray-400">
+        <span className="pointer-events-none absolute left-2.5 top-2 text-sm text-ink-muted/70">
           {placeholder}
         </span>
       ) : null}

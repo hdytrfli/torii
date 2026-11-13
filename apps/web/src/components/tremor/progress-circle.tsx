@@ -33,7 +33,7 @@ export function ProgressCircle({
         cy={radius}
         strokeWidth={strokeWidth}
         fill="transparent"
-        className="stroke-gray-100"
+        className="stroke-line"
       />
       <circle
         r={normalizedRadius}
@@ -44,7 +44,7 @@ export function ProgressCircle({
         strokeDashoffset={offset}
         fill="transparent"
         strokeLinecap="round"
-        className="stroke-gray-900 transition-all duration-300 ease-in-out"
+        className="stroke-brand transition-all duration-300 ease-in-out"
       />
     </svg>
   )

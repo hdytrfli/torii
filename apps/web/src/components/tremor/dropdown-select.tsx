@@ -26,7 +26,7 @@ export function DropdownSelect<T extends string>({
       <DropdownMenuTrigger asChild>
         <Button variant="secondary" className={cn("w-full justify-between font-normal", className)}>
           <span className="truncate">{selected?.label ?? value}</span>
-          <ChevronDown className="size-4 shrink-0 text-gray-400" />
+          <ChevronDown className="size-4 shrink-0 text-ink-muted/70" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">

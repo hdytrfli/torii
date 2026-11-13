@@ -3,7 +3,7 @@ import { Landmark, Loader } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { useAuth } from "../lib/auth"
-import { Button, Field, Input } from "../components/ui"
+import { Alert, Button, Field, Input } from "../components/ui"
 
 export function LoginPage() {
   const { login, setup } = useAuth()
@@ -122,11 +122,7 @@ export function LoginPage() {
                     />
                   </Field>
                 ) : null}
-                {error ? (
-                  <div className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-xs text-danger">
-                    {error}
-                  </div>
-                ) : null}
+                {error ? <Alert>{error}</Alert> : null}
                 <Button type="submit" disabled={busy} className="mt-1">
                   {busy ? <Loader size={14} className="animate-spin" /> : null}
                   {needsSetup ? "Create administrator" : "Sign in"}

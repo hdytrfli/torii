@@ -5,7 +5,7 @@ import React from "react"
 
 import { cx } from "../../lib/format"
 
-const focusRing = "outline outline-offset-2 outline-0 focus-visible:outline-2 outline-gray-900"
+const focusRing = ""
 
 const Checkbox = React.forwardRef<
   React.ComponentRef<typeof CheckboxPrimitives.Root>,
@@ -18,19 +18,17 @@ const Checkbox = React.forwardRef<
       checked={checked}
       className={cx(
         // base
-        "relative inline-flex size-4 shrink-0 appearance-none items-center justify-center rounded shadow-card outline-none ring-1 ring-inset transition duration-100 enabled:cursor-pointer",
+        "relative inline-flex size-4 shrink-0 appearance-none items-center justify-center rounded border border-line shadow-card transition duration-100 ease-in-out enabled:cursor-pointer",
         // text color
         "text-brand-ink",
         // background color
         "bg-surface",
-        // ring color
-        "ring-line",
         // disabled
-        "data-[disabled]:bg-surface-muted data-[disabled]:text-ink-muted data-[disabled]:ring-line",
+        "data-[disabled]:bg-surface-muted data-[disabled]:text-ink-muted data-[disabled]:border-line",
         // checked and enabled
-        "enabled:data-[state=checked]:bg-brand enabled:data-[state=checked]:ring-0 enabled:data-[state=checked]:ring-transparent",
+        "enabled:data-[state=checked]:border-brand enabled:data-[state=checked]:bg-brand",
         // indeterminate
-        "enabled:data-[state=indeterminate]:bg-brand enabled:data-[state=indeterminate]:ring-0 enabled:data-[state=indeterminate]:ring-transparent",
+        "enabled:data-[state=indeterminate]:border-brand enabled:data-[state=indeterminate]:bg-brand",
         // focus
         focusRing,
         className,

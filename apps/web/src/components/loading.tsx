@@ -15,7 +15,7 @@ function HeaderSkeleton() {
 function TableSkeleton() {
   return (
     <div className="mt-8 space-y-3">
-      <div className="border-b border-gray-200 pb-3">
+      <div className="border-b border-line pb-3">
         <div className="grid grid-cols-[1fr_7rem_5rem_5rem] gap-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} className="h-3" />
@@ -23,7 +23,7 @@ function TableSkeleton() {
         </div>
       </div>
       {Array.from({ length: 8 }).map((_, index) => (
-        <div key={index} className="grid grid-cols-[1fr_7rem_5rem_5rem] items-center gap-4 border-b border-gray-100 pb-3">
+        <div key={index} className="grid grid-cols-[1fr_7rem_5rem_5rem] items-center gap-4 border-b border-line pb-3">
           <Skeleton className="h-4" />
           <Skeleton className="h-4" />
           <Skeleton className="h-4" />
@@ -73,7 +73,7 @@ function QueueSkeleton() {
   return (
     <div className="space-y-5">
       <HeaderSkeleton />
-      <div className="flex gap-4 border-b border-gray-200 pb-2">
+      <div className="flex gap-4 border-b border-line pb-2">
         {Array.from({ length: 5 }).map((_, index) => (
           <Skeleton key={index} className="h-4 w-20" />
         ))}
@@ -87,7 +87,7 @@ function SettingsSkeleton() {
   return (
     <div className="max-w-5xl space-y-8">
       <HeaderSkeleton />
-      <div className="flex gap-4 border-b border-gray-200 pb-2">
+      <div className="flex gap-4 border-b border-line pb-2">
         <Skeleton className="h-4 w-16" />
         <Skeleton className="h-4 w-14" />
       </div>
@@ -140,10 +140,10 @@ export function RouteSkeleton() {
 
 export function AppLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white">
+    <div className="flex min-h-screen items-center justify-center bg-canvas">
       <div className="flex items-center gap-2">
-        <Loader className="size-4 animate-spin text-gray-900" aria-hidden="true" />
-        <p className="text-sm text-gray-500">Loading Torii</p>
+        <Loader className="size-4 animate-spin text-ink" aria-hidden="true" />
+        <p className="text-sm text-ink-muted">Loading Torii</p>
       </div>
     </div>
   )

@@ -41,10 +41,10 @@ const LEVEL_OPTIONS = [
 ]
 
 function levelDot(level: string) {
-  if (level === "ERROR") return "bg-red-500"
-  if (level === "WARNING") return "bg-yellow-500"
-  if (level === "INFO") return "bg-blue-500"
-  return "bg-gray-400"
+  if (level === "ERROR") return "bg-danger"
+  if (level === "WARNING") return "bg-warning"
+  if (level === "INFO") return "bg-info"
+  return "bg-ink-muted"
 }
 
 function formatContext(context: string | null) {
@@ -125,8 +125,8 @@ export function LogsPage() {
       type="button"
       onClick={() => updateSort(column)}
       className={cn(
-        "-mx-2 inline-flex cursor-pointer select-none items-center gap-1.5 rounded-md px-2 py-1 hover:bg-gray-50",
-        sort === column && "text-gray-900",
+        "-mx-2 inline-flex cursor-pointer select-none items-center gap-1.5 rounded-md px-2 py-1 hover:bg-surface-muted",
+        sort === column && "text-ink",
       )}
       aria-label={`Sort by ${label}`}
     >
@@ -193,7 +193,7 @@ export function LogsPage() {
       <div className="relative overflow-hidden overflow-x-auto">
         <Table>
           <TableHead>
-            <TableRow className="border-y border-gray-200">
+            <TableRow className="border-y border-line">
               <TableHeaderCell className="w-10 whitespace-nowrap py-1 sm:text-xs">
                 <Checkbox
                   checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -238,13 +238,13 @@ export function LogsPage() {
                   key={log.id}
                   onClick={() => setSelectedLog(log)}
                   className={cn(
-                    "group cursor-pointer hover:bg-gray-50",
-                    selected.has(log.id) && "bg-gray-50",
+                    "group cursor-pointer hover:bg-surface-muted",
+                    selected.has(log.id) && "bg-surface-muted",
                   )}
                 >
                   <TableCell className="relative w-10 py-1">
                     {selected.has(log.id) ? (
-                      <div className="absolute inset-y-0 left-0 w-0.5 bg-gray-900" />
+                      <div className="absolute inset-y-0 left-0 w-0.5 bg-ink" />
                     ) : null}
                     <Checkbox
                       checked={selected.has(log.id)}
@@ -254,11 +254,11 @@ export function LogsPage() {
                       aria-label={`Select log ${log.id}`}
                     />
                   </TableCell>
-                  <TableCell className="whitespace-nowrap py-1 text-xs tabular-nums text-gray-500">
+                  <TableCell className="whitespace-nowrap py-1 text-xs tabular-nums text-ink-muted">
                     {new Date(log.created_at).toLocaleString()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap py-1">
-                    <span className="inline-flex items-center gap-1.5 text-xs capitalize text-gray-600">
+                    <span className="inline-flex items-center gap-1.5 text-xs capitalize text-ink-muted">
                       <span
                         className={`size-2 shrink-0 rounded-sm ${levelDot(log.level)}`}
                         aria-hidden="true"
@@ -266,16 +266,16 @@ export function LogsPage() {
                       {log.level.toLowerCase()}
                     </span>
                   </TableCell>
-                  <TableCell className="max-w-56 truncate py-1 font-mono text-xs text-gray-500">
+                  <TableCell className="max-w-56 truncate py-1 font-mono text-xs text-ink-muted">
                     {log.source}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap py-1 text-xs text-gray-600">
+                  <TableCell className="whitespace-nowrap py-1 text-xs text-ink-muted">
                     {log.actor ?? "system"}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap py-1 font-mono text-xs text-gray-500">
+                  <TableCell className="whitespace-nowrap py-1 font-mono text-xs text-ink-muted">
                     {log.job_id ? `#${log.job_id}` : "—"}
                   </TableCell>
-                  <TableCell className="py-1 text-xs text-gray-700">
+                  <TableCell className="py-1 text-xs text-ink">
                     <span
                       className="block max-w-[40rem] truncate"
                       title={log.detail ?? log.message}
@@ -299,7 +299,7 @@ export function LogsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-gray-500">
+                <TableCell colSpan={8} className="h-24 text-center text-ink-muted">
                   {logsQuery.isLoading ? "Loading events…" : "No events match these filters."}
                 </TableCell>
               </TableRow>
@@ -353,17 +353,17 @@ export function LogsPage() {
           <DrawerHeader>
             <DrawerTitle>Log #{selectedLog?.id}</DrawerTitle>
           </DrawerHeader>
-          <DrawerBody className="-mx-6 space-y-4 overflow-y-auto border-t border-gray-200 px-6">
+          <DrawerBody className="-mx-6 space-y-4 overflow-y-auto border-t border-line px-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <div className="text-[11px] font-medium text-gray-500">Time</div>
-                <p className="mt-1 text-xs text-gray-700">
+                <div className="text-[11px] font-medium text-ink-muted">Time</div>
+                <p className="mt-1 text-xs text-ink">
                   {selectedLog ? new Date(selectedLog.created_at).toLocaleString() : ""}
                 </p>
               </div>
               <div>
-                <div className="text-[11px] font-medium text-gray-500">Level</div>
-                <p className="mt-1 inline-flex items-center gap-1.5 text-xs capitalize text-gray-700">
+                <div className="text-[11px] font-medium text-ink-muted">Level</div>
+                <p className="mt-1 inline-flex items-center gap-1.5 text-xs capitalize text-ink">
                   {selectedLog ? (
                     <>
                       <span
@@ -376,22 +376,22 @@ export function LogsPage() {
                 </p>
               </div>
               <div>
-                <div className="text-[11px] font-medium text-gray-500">Source</div>
-                <p className="mt-1 break-all font-mono text-xs text-gray-700">
+                <div className="text-[11px] font-medium text-ink-muted">Source</div>
+                <p className="mt-1 break-all font-mono text-xs text-ink">
                   {selectedLog?.source}
                 </p>
               </div>
               <div>
-                <div className="text-[11px] font-medium text-gray-500">
+                <div className="text-[11px] font-medium text-ink-muted">
                   Dispatched by
                 </div>
-                <p className="mt-1 text-xs text-gray-700">
+                <p className="mt-1 text-xs text-ink">
                   {selectedLog?.actor ?? "system"}
                 </p>
               </div>
               <div>
-                <div className="text-[11px] font-medium text-gray-500">Job</div>
-                <p className="mt-1 font-mono text-xs text-gray-700">
+                <div className="text-[11px] font-medium text-ink-muted">Job</div>
+                <p className="mt-1 font-mono text-xs text-ink">
                   {selectedLog?.job_id ? `#${selectedLog.job_id}` : "—"}
                 </p>
               </div>
@@ -400,7 +400,7 @@ export function LogsPage() {
             <Card className="flex max-h-[min(80rem,80vh)] min-w-0 flex-col overflow-hidden p-0">
               <pre
                 className={cn(
-                  "min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 font-mono text-xs leading-5 text-gray-700",
+                  "min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 font-mono text-xs leading-5 text-ink",
                   wrapDetail
                     ? "whitespace-pre-wrap break-words"
                     : "whitespace-pre overflow-x-auto",
@@ -408,7 +408,7 @@ export function LogsPage() {
               >
                 {formatContext(selectedDetail) ?? selectedDetail}
               </pre>
-              <div className="flex items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500">
+              <div className="flex items-center justify-between gap-3 border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                 <span>Message</span>
                 <label className="flex items-center gap-2">
                   <span>Wrap</span>
@@ -419,16 +419,18 @@ export function LogsPage() {
                     aria-label="Toggle text wrapping"
                     onClick={() => setWrapDetail((current) => !current)}
                     className={cn(
-                      "relative h-5 w-9 shrink-0 rounded-full border transition-colors",
+                      "relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-150 ease-in-out",
                       wrapDetail
-                        ? "border-gray-900 bg-gray-900"
-                        : "border-gray-300 bg-gray-200",
+                        ? "border-brand bg-brand"
+                        : "border-line bg-line",
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-card transition-transform",
-                        wrapDetail ? "left-[18px]" : "left-0.5",
+                        "absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-150 ease-in-out",
+                        wrapDetail
+                          ? "left-[18px] bg-brand-ink shadow-none"
+                          : "left-0.5 bg-surface shadow-card",
                       )}
                     />
                   </button>
@@ -438,10 +440,10 @@ export function LogsPage() {
 
             {selectedLog?.context ? (
               <Card className="flex max-h-[min(80rem,80vh)] min-w-0 flex-col overflow-hidden p-0">
-                <pre className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words px-4 pb-4 pt-4 font-mono text-xs leading-5 text-gray-700">
+                <pre className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words px-4 pb-4 pt-4 font-mono text-xs leading-5 text-ink">
                   {formatContext(selectedLog.context)}
                 </pre>
-                <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500">
+                <div className="border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                   Context
                 </div>
               </Card>

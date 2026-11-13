@@ -111,16 +111,16 @@ function DataTableColumnHeader({
       type="button"
       onClick={column.getToggleSortingHandler()}
       className={cn(
-        "-mx-2 inline-flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1 hover:bg-gray-50",
+        "-mx-2 inline-flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1 hover:bg-surface-muted",
         className,
       )}
       aria-label={`Sort by ${title}`}
     >
       <span>{title}</span>
       {column.getIsSorted() === "asc" ? (
-        <ChevronUp className="size-3.5 shrink-0 text-gray-900" aria-hidden="true" />
+        <ChevronUp className="size-3.5 shrink-0 text-ink" aria-hidden="true" />
       ) : column.getIsSorted() === "desc" ? (
-        <ChevronDown className="size-3.5 shrink-0 text-gray-900" aria-hidden="true" />
+        <ChevronDown className="size-3.5 shrink-0 text-ink" aria-hidden="true" />
       ) : null}
     </button>
   )
@@ -160,7 +160,7 @@ function DataTableFilter({
           variant="secondary"
           className={cn(
             "w-full justify-between gap-x-1.5 font-normal sm:w-fit",
-            active ? "" : "border-dashed text-gray-600",
+            active ? "" : "border-dashed text-ink-muted",
           )}
         >
           <span className="flex min-w-0 items-center gap-x-1.5">
@@ -177,7 +177,7 @@ function DataTableFilter({
               <Plus
                 className={cn(
                   "size-4 shrink-0 transition",
-                  active && "rotate-45 hover:text-red-500",
+                  active && "rotate-45 hover:text-danger",
                 )}
                 aria-hidden="true"
               />
@@ -185,14 +185,14 @@ function DataTableFilter({
             {active ? (
               <>
                 <span>{title}</span>
-                <span className="h-4 w-px bg-gray-300" aria-hidden="true" />
-                <span className="truncate font-medium text-gray-900">{labelText}</span>
+                <span className="h-4 w-px bg-line" aria-hidden="true" />
+                <span className="truncate font-medium text-ink">{labelText}</span>
               </>
             ) : (
               <span>{title}</span>
             )}
           </span>
-          <ChevronDown className="size-4 shrink-0 text-gray-400" aria-hidden="true" />
+          <ChevronDown className="size-4 shrink-0 text-ink-muted/70" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -202,7 +202,7 @@ function DataTableFilter({
       >
         <div className="space-y-2">
           <div>
-            <span className="text-base font-medium text-gray-900 sm:text-sm">
+            <span className="text-base font-medium text-ink sm:text-sm">
               Filter by {title}
             </span>
             <div className="mt-2 space-y-2 overflow-y-auto sm:max-h-36">
@@ -218,7 +218,7 @@ function DataTableFilter({
                       )
                     }}
                   />
-                  <span className="text-base text-gray-900 sm:text-sm">{option.label}</span>
+                  <span className="text-base text-ink sm:text-sm">{option.label}</span>
                 </label>
               ))}
             </div>
@@ -263,14 +263,14 @@ function ViewOptions({ table }: { table: TanStackTable<Job> }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={7} className="z-50 w-60 p-1">
-        <div className="px-2 py-2 text-xs font-medium tracking-wide text-gray-500">
+        <div className="px-2 py-2 text-xs font-medium tracking-wide text-ink-muted">
           Display properties
         </div>
         <div className="flex flex-col">
           {columns.map((column) => (
             <label
               key={column.id}
-              className="flex cursor-pointer items-center gap-2 rounded py-1.5 pl-2 pr-1 text-sm text-gray-900 hover:bg-gray-100"
+              className="flex cursor-pointer items-center gap-2 rounded py-1.5 pl-2 pr-1 text-sm text-ink hover:bg-surface-muted"
             >
               <Checkbox
                 checked={column.getIsVisible()}
@@ -341,13 +341,21 @@ function Filterbar({
 function MatchIndicator({ value }: { value: number }) {
   const percentage = Math.round((value ?? 0) * 100)
   const bars = percentage >= 85 ? 3 : percentage >= 60 ? 2 : percentage > 0 ? 1 : 0
+  const tone =
+    percentage >= 85
+      ? "bg-success"
+      : percentage >= 60
+        ? "bg-warning"
+        : percentage >= 35
+          ? "bg-caution"
+          : "bg-danger"
 
   return (
     <div
       className="flex items-center gap-2"
       aria-label={`${percentage}% match`}
     >
-      <span className="w-8 text-xs font-medium tabular-nums text-gray-600">
+      <span className="w-8 text-xs font-medium tabular-nums text-ink-muted">
         {percentage}%
       </span>
       <div className="flex gap-0.5" aria-hidden="true">
@@ -356,7 +364,7 @@ function MatchIndicator({ value }: { value: number }) {
             key={index}
             className={cn(
               "h-3.5 w-1 rounded-sm",
-              index < bars ? "bg-brand" : "bg-gray-300",
+              index < bars ? tone : "bg-line",
             )}
           />
         ))}
@@ -596,13 +604,13 @@ export function MediaDataTable({
                 event.stopPropagation()
                 onOpen?.(job)
               }}
-              className="truncate text-left text-gray-900"
+              className="truncate text-left text-ink"
             >
               {job.title ?? job.source_path}
               {job.error ? (
                 <span
                   title={blockedReasonLabel(job.blocked_reason) ?? job.error}
-                  className="ml-1.5 inline-block size-1.5 rounded-full bg-red-500 align-middle"
+                  className="ml-1.5 inline-block size-1.5 rounded-full bg-danger align-middle"
                   aria-label={blockedReasonLabel(job.blocked_reason) ?? job.error}
                 />
               ) : null}
@@ -634,10 +642,10 @@ export function MediaDataTable({
           const year = row.original.year
           const episode = episodeLabel(row.original)
           if (!year && !episode) {
-            return <span className="text-xs text-gray-400">—</span>
+            return <span className="text-xs text-ink-muted/70">—</span>
           }
           return (
-            <span className="text-xs tabular-nums text-gray-600">
+            <span className="text-xs tabular-nums text-ink-muted">
               {[year, episode].filter(Boolean).join(" · ")}
             </span>
           )
@@ -678,7 +686,7 @@ export function MediaDataTable({
           <DataTableColumnHeader column={column} title="Created" />
         ),
         cell: ({ row }) => (
-          <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
+          <span className="whitespace-nowrap text-xs tabular-nums text-ink-muted">
             {new Date(row.original.created_at).toLocaleString()}
           </span>
         ),
@@ -692,7 +700,7 @@ export function MediaDataTable({
           <DataTableColumnHeader column={column} title="Updated" />
         ),
         cell: ({ row }) => (
-          <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
+          <span className="whitespace-nowrap text-xs tabular-nums text-ink-muted">
             {new Date(row.original.updated_at).toLocaleString()}
           </span>
         ),
@@ -717,7 +725,7 @@ export function MediaDataTable({
             {onDeleteJob ? (
               <Button
                 variant="ghost"
-                className="size-8 p-0 text-gray-500 hover:text-red-700"
+                className="size-8 p-0 text-ink-muted hover:text-danger"
                 aria-label={`Delete ${row.original.title ?? "job"}`}
                 onClick={(event) => {
                   event.stopPropagation()
@@ -796,7 +804,7 @@ export function MediaDataTable({
         <Table>
           <TableHead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-y border-gray-200">
+              <TableRow key={headerGroup.id} className="border-y border-line">
                 {headerGroup.headers.map((header) => (
                   <TableHeaderCell
                     key={header.id}
@@ -824,25 +832,25 @@ export function MediaDataTable({
                     <>
                       <div className="space-y-3 p-4">
                         <div>
-                          <div className="text-[11px] font-medium text-gray-500">
+                          <div className="text-[11px] font-medium text-ink-muted">
                             Original filename
                           </div>
-                          <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+                          <p className="mt-1 break-all font-mono text-[11px] leading-5 text-ink">
                             {basename(row.original.source_path) || row.original.source_path}
                           </p>
                         </div>
                         <div>
-                          <div className="text-[11px] font-medium text-gray-500">
+                          <div className="text-[11px] font-medium text-ink-muted">
                             Target path
                           </div>
-                          <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+                          <p className="mt-1 break-all font-mono text-[11px] leading-5 text-ink">
                             {row.original.target_path
                               ? targetSubpath(row.original.target_path, row.original.media_type)
                               : "Not calculated yet"}
                           </p>
                         </div>
                       </div>
-                      <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
+                      <div className="border-t border-line bg-surface-muted px-4 py-2 text-[11px] text-ink-muted">
                         {mediaTypeLabel(row.original.media_type)} ·{" "}
                         {statusLabel(row.original.status)}
                         {row.original.blocked_reason
@@ -854,19 +862,19 @@ export function MediaDataTable({
                 >
                   <TableRow
                     onClick={() => onOpen?.(row.original)}
-                    className="group cursor-pointer select-none hover:bg-gray-50"
+                    className="group cursor-pointer select-none hover:bg-surface-muted"
                   >
                     {row.getVisibleCells().map((cell, index) => (
                       <TableCell
                         key={cell.id}
                         className={cn(
-                          row.getIsSelected() ? "bg-gray-50" : "",
-                          "relative whitespace-nowrap py-1 text-gray-600 first:w-10",
+                          row.getIsSelected() ? "bg-surface-muted" : "",
+                          "relative whitespace-nowrap py-1 text-ink-muted first:w-10",
                           cell.column.columnDef.meta?.className,
                         )}
                       >
                         {index === 0 && row.getIsSelected() ? (
-                          <div className="absolute inset-y-0 left-0 w-0.5 bg-gray-900" />
+                          <div className="absolute inset-y-0 left-0 w-0.5 bg-ink" />
                         ) : null}
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
@@ -876,7 +884,7 @@ export function MediaDataTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-gray-500">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-ink-muted">
                   {jobsQuery.isLoading
                     ? "Loading jobs…"
                     : jobsQuery.isError
@@ -920,7 +928,7 @@ export function MediaDataTable({
         }}
       >
         <DialogContent className="max-w-md p-0">
-          <DialogHeader className="border-b border-gray-200 px-5 py-4">
+          <DialogHeader className="border-b border-line px-5 py-4">
             <DialogTitle className="text-base">
               {deleteCandidate?.status === "moved" ? "Remove job" : "Delete job"}
             </DialogTitle>
@@ -932,18 +940,18 @@ export function MediaDataTable({
           </DialogHeader>
           <div className="space-y-3 px-5 py-4">
             <div>
-              <div className="text-[11px] font-medium text-gray-500">
+              <div className="text-[11px] font-medium text-ink-muted">
                 {deleteCandidate?.status === "moved" ? "Library file" : "Source file"}
               </div>
-              <p className="mt-1 break-all font-mono text-[11px] leading-5 text-gray-700">
+              <p className="mt-1 break-all font-mono text-[11px] leading-5 text-ink">
                 {deleteCandidate?.status === "moved"
                   ? deleteCandidate?.target_path || "No target path"
                   : deleteCandidate?.source_path}
               </p>
             </div>
-            {deleteError ? <p className="text-xs text-red-700">{deleteError}</p> : null}
+            {deleteError ? <p className="text-xs text-danger">{deleteError}</p> : null}
           </div>
-          <DialogFooter className="border-t border-gray-200 bg-gray-50 px-5 py-3">
+          <DialogFooter className="border-t border-line bg-surface-muted px-5 py-3">
             <DialogClose asChild>
               <Button type="button" variant="secondary" disabled={deletePending}>
                 Cancel

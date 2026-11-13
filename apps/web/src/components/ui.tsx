@@ -1,4 +1,5 @@
 import { type ReactNode } from "react"
+import { AlertCircle, CircleCheck, Info, TriangleAlert } from "lucide-react"
 import { cn, sourceLabel, statusLabel } from "../lib/format"
 import type { Source } from "../lib/types"
 import { Badge } from "./tremor/badge"
@@ -18,14 +19,14 @@ export function AssessedBadge({
 }) {
   const dot =
     level === "high"
-      ? "bg-red-500"
+      ? "bg-danger"
       : level === "medium"
-        ? "bg-emerald-500"
+        ? "bg-success"
         : level === "low"
-          ? "bg-yellow-500"
-          : "bg-gray-400"
+          ? "bg-warning"
+          : "bg-ink-muted"
   return (
-    <Badge variant="neutral" className="gap-1.5 font-normal capitalize text-gray-700">
+    <Badge variant="neutral" className="gap-1.5 font-normal capitalize text-ink">
       <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />
       {label}
     </Badge>
@@ -35,16 +36,16 @@ export function AssessedBadge({
 export function StatusBadge({ status }: { status: string }) {
   const dot =
     status === "ready"
-      ? "bg-emerald-500"
+      ? "bg-success"
       : status === "needs_review"
-        ? "bg-yellow-500"
+        ? "bg-warning"
         : status === "waiting_revert"
-          ? "bg-violet-500"
+          ? "bg-pending"
           : status === "failed" || status === "rejected"
-            ? "bg-red-500"
-            : "bg-gray-400"
+            ? "bg-danger"
+            : "bg-ink-muted"
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs capitalize text-gray-600">
+    <span className="inline-flex items-center gap-1.5 text-xs capitalize text-ink-muted">
       <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />
       {statusLabel(status)}
     </span>
@@ -54,14 +55,14 @@ export function StatusBadge({ status }: { status: string }) {
 export function SourceBadge({ source }: { source: Source }) {
   const dot =
     source === "jellyfin"
-      ? "bg-emerald-500"
+      ? "bg-success"
       : source === "nfo"
-        ? "bg-blue-500"
+        ? "bg-info"
         : source === "llm"
-          ? "bg-yellow-500"
-          : "bg-gray-400"
+          ? "bg-warning"
+          : "bg-ink-muted"
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-gray-600">
+    <span className="inline-flex items-center gap-1.5 text-xs text-ink-muted">
       <span className={`size-2 shrink-0 rounded-sm ${dot}`} aria-hidden="true" />
       {sourceLabel(source)}
     </span>
@@ -100,11 +101,11 @@ export function Toggle({
   return (
     <Card className="overflow-hidden p-0">
       <div className="px-4 pb-5 pt-4">
-        <div className="text-sm font-semibold text-gray-900">{label}</div>
-        {hint ? <p className="mt-1 text-sm leading-6 text-gray-500">{hint}</p> : null}
+        <div className="text-sm font-semibold text-ink">{label}</div>
+        {hint ? <p className="mt-1 text-sm leading-6 text-ink-muted">{hint}</p> : null}
       </div>
-      <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-4 py-3">
-        <span className="text-xs font-medium text-gray-600">
+      <div className="flex items-center justify-between border-t border-line bg-surface-muted px-4 py-3">
+        <span className="text-xs font-medium text-ink-muted">
           {checked ? "Enabled" : "Disabled"}
         </span>
         <button
@@ -113,14 +114,14 @@ export function Toggle({
           aria-checked={checked}
           onClick={() => onChange(!checked)}
           className={cn(
-            "relative h-5 w-9 shrink-0 rounded-full border transition-colors",
-            checked ? "border-gray-900 bg-gray-900" : "border-gray-300 bg-gray-200",
+            "relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-150 ease-in-out",
+            checked ? "border-brand bg-brand" : "border-line bg-line",
           )}
         >
           <span
             className={cn(
-              "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-card transition-transform",
-              checked ? "left-[18px]" : "left-0.5",
+              "absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-150 ease-in-out",
+              checked ? "left-[18px] bg-brand-ink shadow-none" : "left-0.5 bg-surface shadow-card",
             )}
           />
         </button>
@@ -148,18 +149,81 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-5 w-9 shrink-0 rounded-full border transition-colors disabled:pointer-events-none disabled:opacity-50",
-        checked ? "border-gray-900 bg-gray-900" : "border-gray-300 bg-gray-200",
+        "relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-150 ease-in-out disabled:pointer-events-none disabled:opacity-50",
+        checked ? "border-brand bg-brand" : "border-line bg-line",
         className,
       )}
     >
       <span
         className={cn(
-          "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-card transition-transform",
-          checked ? "left-[18px]" : "left-0.5",
+          "absolute top-0.5 h-3.5 w-3.5 rounded-full transition-all duration-150 ease-in-out",
+          checked ? "left-[18px] bg-brand-ink shadow-none" : "left-0.5 bg-surface shadow-card",
         )}
       />
     </button>
+  )
+}
+
+export function Alert({
+  variant = "error",
+  title,
+  children,
+  className,
+}: {
+  variant?: "error" | "warning" | "info" | "success"
+  title?: ReactNode
+  children: ReactNode
+  className?: string
+}) {
+  const Icon =
+    variant === "success"
+      ? CircleCheck
+      : variant === "warning"
+        ? TriangleAlert
+        : variant === "info"
+          ? Info
+          : AlertCircle
+  const footer =
+    variant === "success"
+      ? "border-success/40 bg-success-soft text-success"
+      : variant === "warning"
+        ? "border-warning/40 bg-warning-soft text-warning"
+        : variant === "info"
+          ? "border-info/40 bg-info-soft text-info"
+          : "border-danger/40 bg-danger-soft text-danger"
+  const label =
+    variant === "success"
+      ? "Success"
+      : variant === "warning"
+        ? "Warning"
+        : variant === "info"
+          ? "Info"
+          : "Error"
+
+  return (
+    <div
+      role="alert"
+      className={cn(
+        "overflow-hidden rounded-card bg-surface text-left shadow-card",
+        className,
+      )}
+    >
+      <div className="rounded-t-card border border-b-0 border-line px-4 py-3 text-xs">
+        {title ? (
+          <div className="font-medium text-ink">{title}</div>
+        ) : null}
+        <div className={cn("text-ink-muted", title && "mt-1")}>{children}</div>
+      </div>
+      <div
+        className={cn(
+          "flex items-center gap-1.5 rounded-b-card border px-4 py-2 text-xs font-medium",
+          footer,
+        )}
+      >
+        <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+        {label}
+      </div>
+    </div>
   )
 }
 
@@ -198,7 +262,7 @@ export function StatCard({
 }) {
   return (
     <Card className="p-4">
-      <div className="text-xs font-medium text-gray-500">{label}</div>
+      <div className="text-xs font-medium text-ink-muted">{label}</div>
       <div
         className={cn(
           "mt-2 text-3xl font-semibold tracking-tight",
