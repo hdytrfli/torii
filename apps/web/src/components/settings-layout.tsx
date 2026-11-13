@@ -3,9 +3,15 @@ import { TabNavigation, TabNavigationLink } from "./tremor/tab-navigation"
 import { useAuth } from "../lib/auth"
 import { PageHeader } from "./page-header"
 
-const tabs = [
-  { to: "/settings", label: "General", end: true },
-  { to: "/settings/users", label: "Users" },
+const tabs: Array<{
+  to: string
+  label: string
+  end?: boolean
+  admin?: boolean
+}> = [
+  { to: "/settings", label: "General", end: true, admin: true },
+  { to: "/settings/shortcuts", label: "Shortcuts", admin: true },
+  { to: "/settings/users", label: "Users", admin: true },
 ]
 
 export function SettingsLayout() {
@@ -17,11 +23,11 @@ export function SettingsLayout() {
       <PageHeader
         eyebrow="Settings"
         title="Configure torii."
-        description="Scanning, apply behavior, and account access."
+        description="Scanning, apply behavior, shortcuts, and account access."
       />
       <TabNavigation className="mt-6" aria-label="Settings sections">
         {tabs
-          .filter((tab) => tab.label !== "Users" || user?.is_admin)
+          .filter((tab) => !tab.admin || user?.is_admin)
           .map((tab) => (
             <TabNavigationLink
               key={tab.to}

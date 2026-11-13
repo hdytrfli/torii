@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react"
-import { createParser, parseAsString, useQueryStates } from "nuqs"
+import { useQuery } from "@tanstack/react-query"
+import {
+  createParser,
+  parseAsInteger,
+  parseAsString,
+  useQueryStates,
+} from "nuqs"
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
   type Column,
   type ColumnDef,
@@ -18,6 +21,7 @@ import {
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronUp, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
 import type { Job } from "../../lib/types"
+import { api } from "../../lib/api"
 import { basename, cn, episodeLabel, statusLabel } from "../../lib/format"
 import { blockedReasonLabel, isReviewable } from "../../lib/job-state"
 import { BulkBar } from "../bulk-bar"
@@ -103,14 +107,14 @@ function DataTableColumnHeader({
   }
 
   return (
-    <div
+    <button
+      type="button"
       onClick={column.getToggleSortingHandler()}
       className={cn(
-        column.columnDef.enableSorting === true
-          ? "-mx-2 inline-flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1 hover:bg-gray-50"
-          : "",
+        "-mx-2 inline-flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1 hover:bg-gray-50",
         className,
       )}
+      aria-label={`Sort by ${title}`}
     >
       <span>{title}</span>
       {column.getIsSorted() === "asc" ? (
@@ -118,7 +122,7 @@ function DataTableColumnHeader({
       ) : column.getIsSorted() === "desc" ? (
         <ChevronDown className="size-3.5 shrink-0 text-gray-900" aria-hidden="true" />
       ) : null}
-    </div>
+    </button>
   )
 }
 
@@ -383,7 +387,6 @@ function filterValues(filters: ColumnFiltersState, id: string) {
 }
 
 export function MediaDataTable({
-  jobs,
   selected,
   onSelectionChange,
   onOpen,
@@ -393,9 +396,7 @@ export function MediaDataTable({
   onDeleteJob,
   busy = false,
   defaultStatus = "needs_review",
-  pageSize = 20,
 }: {
-  jobs: Job[]
   selected?: Set<number>
   onSelectionChange?: (selected: Set<number>) => void
   onOpen?: (job: Job) => void
@@ -405,10 +406,7 @@ export function MediaDataTable({
   onDeleteJob?: (job: Job) => Promise<void>
   busy?: boolean
   defaultStatus?: string
-  pageSize?: number
 }) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize })
   const [deleteCandidate, setDeleteCandidate] = useState<Job | null>(null)
   const [deletePending, setDeletePending] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -435,6 +433,10 @@ export function MediaDataTable({
       source: parseAsCommaList(),
       type: parseAsCommaList(),
       q: parseAsString.withDefault(""),
+      page: parseAsInteger.withDefault(1),
+      size: parseAsInteger.withDefault(20),
+      sort: parseAsString.withDefault("updated_at"),
+      dir: parseAsString.withDefault("desc"),
     }),
     [defaultStatus],
   )
@@ -452,25 +454,90 @@ export function MediaDataTable({
   }, [query.status, query.source, query.type])
 
   const searchTerm = query.q
+  const sort = query.sort
+  const direction = query.dir === "asc" ? "asc" : "desc"
+  const sorting = useMemo<SortingState>(
+    () => [{ id: sort, desc: direction === "desc" }],
+    [sort, direction],
+  )
+
+  const jobsQuery = useQuery({
+    queryKey: [
+      "review-jobs",
+      query.status,
+      query.source,
+      query.type,
+      query.q,
+      sort,
+      direction,
+      query.page,
+      query.size,
+    ],
+    queryFn: () =>
+      api.reviewJobs({
+        status: query.status.length ? query.status.join(",") : "all",
+        source: query.source.length ? query.source.join(",") : undefined,
+        media_type: query.type.length ? query.type.join(",") : undefined,
+        q: query.q || undefined,
+        sort,
+        direction,
+        page: query.page,
+        page_size: query.size,
+      }),
+    placeholderData: (previous) => previous,
+  })
+  const jobs = jobsQuery.data?.items ?? []
+
+  useEffect(() => {
+    const pages = jobsQuery.data?.pages
+    if (pages && query.page > pages) {
+      void setQuery({ page: pages })
+    }
+  }, [jobsQuery.data?.pages, query.page, setQuery])
+
+  const resetSelection = () => onSelectionChange?.(new Set())
 
   const updateFilters = (updater: Updater<ColumnFiltersState>) => {
     const next = typeof updater === "function" ? updater(columnFilters) : updater
-    setPagination((current) => ({ ...current, pageIndex: 0 }))
+    resetSelection()
     void setQuery({
       status: filterValues(next, "status"),
       source: filterValues(next, "source"),
       type: filterValues(next, "type"),
+      page: 1,
     })
   }
 
   const updateSearch = (value: string) => {
-    setPagination((current) => ({ ...current, pageIndex: 0 }))
-    void setQuery({ q: value })
+    resetSelection()
+    void setQuery({ q: value, page: 1 })
   }
 
   const clearFilters = () => {
-    setPagination((current) => ({ ...current, pageIndex: 0 }))
-    void setQuery({ status: [], source: [], type: [], q: "" })
+    resetSelection()
+    void setQuery({ status: [], source: [], type: [], q: "", page: 1 })
+  }
+
+  const updatePageSize = (value: string) => {
+    resetSelection()
+    void setQuery({ size: Number(value), page: 1 })
+  }
+
+  const updatePage = (page: number) => {
+    resetSelection()
+    void setQuery({ page: page + 1 })
+  }
+
+  const updateSorting = (updater: Updater<SortingState>) => {
+    resetSelection()
+    const next =
+      typeof updater === "function" ? updater(sorting) : updater
+    const first = next[0]
+    void setQuery({
+      sort: first?.id ?? "updated_at",
+      dir: first ? (first.desc ? "desc" : "asc") : "desc",
+      page: 1,
+    })
   }
 
   const isFiltered =
@@ -605,6 +672,34 @@ export function MediaDataTable({
         meta: { displayName: "Status" },
       },
       {
+        id: "created_at",
+        accessorKey: "created_at",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Created" />
+        ),
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
+            {new Date(row.original.created_at).toLocaleString()}
+          </span>
+        ),
+        enableSorting: true,
+        meta: { displayName: "Created at" },
+      },
+      {
+        id: "updated_at",
+        accessorKey: "updated_at",
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title="Updated" />
+        ),
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap text-xs tabular-nums text-gray-500">
+            {new Date(row.original.updated_at).toLocaleString()}
+          </span>
+        ),
+        enableSorting: true,
+        meta: { displayName: "Updated at" },
+      },
+      {
         id: "edit",
         header: "Actions",
         cell: ({ row }) => (
@@ -649,26 +744,24 @@ export function MediaDataTable({
     state: {
       sorting,
       columnFilters,
-      globalFilter: searchTerm,
       rowSelection,
-      pagination,
+      pagination: { pageIndex: Math.max(0, query.page - 1), pageSize: query.size },
     },
+    initialState: {
+      columnVisibility: {
+        created_at: false,
+        updated_at: false,
+      },
+    },
+    pageCount: jobsQuery.data?.pages ?? 1,
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
     enableRowSelection: true,
     getRowId: (row) => String(row.id),
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: (row, _columnId, value) => {
-      const needle = String(value ?? "").toLowerCase()
-      if (!needle) return true
-      return `${row.original.title ?? ""} ${row.original.source_path}`
-        .toLowerCase()
-        .includes(needle)
-    },
-    onSortingChange: setSorting,
+    onSortingChange: updateSorting,
     onColumnFiltersChange: updateFilters,
-    onPaginationChange: setPagination,
     onRowSelectionChange: (updater) => {
       const next = typeof updater === "function" ? updater(rowSelection) : updater
       onSelectionChange?.(
@@ -690,7 +783,7 @@ export function MediaDataTable({
     selectedJobs.length > 0 && selectedJobs.every((job) => job.status === "moved")
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <Filterbar
         table={table}
         searchTerm={searchTerm}
@@ -760,8 +853,8 @@ export function MediaDataTable({
                   }
                 >
                   <TableRow
-                    onClick={() => row.toggleSelected(!row.getIsSelected())}
-                    className="group select-none hover:bg-gray-50"
+                    onClick={() => onOpen?.(row.original)}
+                    className="group cursor-pointer select-none hover:bg-gray-50"
                   >
                     {row.getVisibleCells().map((cell, index) => (
                       <TableCell
@@ -783,8 +876,12 @@ export function MediaDataTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                <TableCell colSpan={columns.length} className="h-24 text-center text-gray-500">
+                  {jobsQuery.isLoading
+                    ? "Loading jobs…"
+                    : jobsQuery.isError
+                      ? "Could not load jobs."
+                      : "No results."}
                 </TableCell>
               </TableRow>
             )}
@@ -804,15 +901,13 @@ export function MediaDataTable({
       </div>
 
       <TablePagination
-        page={table.getState().pagination.pageIndex}
-        pages={Math.max(1, table.getPageCount())}
-        total={table.getFilteredRowModel().rows.length}
-        pageSize={table.getState().pagination.pageSize}
+        page={Math.max(0, query.page - 1)}
+        pages={jobsQuery.data?.pages ?? 1}
+        total={jobsQuery.data?.total ?? 0}
+        pageSize={query.size}
         selectedCount={selectedJobs.length}
-        onPage={(page) => {
-          onSelectionChange?.(new Set())
-          table.setPageIndex(page)
-        }}
+        onPage={updatePage}
+        onPageSizeChange={updatePageSize}
       />
 
       <Dialog

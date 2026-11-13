@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import logging
 import threading
 import time
 import uuid
 from pathlib import Path
+from typing import Any
 
 from ..domain import lifecycle, pipeline
 from ..domain import settings as settings_mod
@@ -98,12 +100,51 @@ class OperationQueue:
             )
             heartbeat_thread.start()
             try:
-                error = self._handle(kind, item)
+                error, detail = self._handle(kind, item)
                 self.db.complete_work(
                     int(item["id"]),
                     "failed" if error else "completed",
                     error,
                 )
+                context = {
+                    "queue": kind,
+                    "work_id": item["id"],
+                    "job_id": item["job_id"],
+                    "attempt": item["attempts"],
+                }
+                detail_text = json.dumps(
+                    {
+                        "queue": kind,
+                        "job_id": item["job_id"],
+                        "work_item": item["id"],
+                        "attempt": item["attempts"],
+                        "error": error,
+                        "result": detail or {},
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                    default=str,
+                )
+                if error:
+                    logger.warning(
+                        "%s queue failed",
+                        kind,
+                        extra={
+                            "job_id": item["job_id"],
+                            "detail": detail_text,
+                            "context": context,
+                        },
+                    )
+                else:
+                    logger.info(
+                        "%s queue completed",
+                        kind,
+                        extra={
+                            "job_id": item["job_id"],
+                            "detail": detail_text,
+                            "context": context,
+                        },
+                    )
             except Exception as exc:
                 logger.exception("%s worker failed", kind)
                 self.db.complete_work(int(item["id"]), "failed", str(exc))
@@ -119,10 +160,10 @@ class OperationQueue:
                 heartbeat_stop.set()
                 heartbeat_thread.join(timeout=2)
 
-    def _handle(self, kind: str, item: dict) -> str | None:
+    def _handle(self, kind: str, item: dict) -> tuple[str | None, dict[str, Any] | None]:
         job = self.db.get_job(int(item["job_id"]))
         if job is None:
-            return None
+            return None, {"message": "Job no longer exists."}
         settings = settings_mod.load(self.db)
 
         if kind == "metadata":
@@ -131,11 +172,66 @@ class OperationQueue:
             return self._handle_execution(job, settings)
         if kind == "revert":
             return self._handle_revert(job, settings)
-        return f"Unknown queue kind: {kind}"
+        return f"Unknown queue kind: {kind}", None
 
-    def _handle_metadata(self, job: dict, settings) -> str | None:
+    def _metadata_detail(self, updated: dict) -> dict[str, Any]:
+        try:
+            parsed = json.loads(updated.get("parsed_json") or "{}")
+        except (TypeError, ValueError):
+            parsed = {}
+        parsed_preview = None
+        nfo_payload = None
+        if isinstance(parsed, dict):
+            parsed_preview = {
+                key: parsed.get(key)
+                for key in ("title", "year", "kind", "season", "episode", "confidence")
+                if parsed.get(key) is not None
+            }
+            nfo = parsed.get("nfo")
+            if nfo:
+                nfo_payload = {
+                    "path": nfo.get("path"),
+                    "title": nfo.get("title"),
+                    "year": nfo.get("year"),
+                    "provider_ids": nfo.get("provider_ids"),
+                }
+
+        try:
+            candidates = json.loads(updated.get("candidates_json") or "[]")
+        except (TypeError, ValueError):
+            candidates = []
+        try:
+            decision = json.loads(updated.get("llm_json") or "null")
+        except (TypeError, ValueError):
+            decision = None
+
+        return {
+            "method": updated.get("source"),
+            "selected": {
+                "title": updated.get("title"),
+                "year": updated.get("year"),
+                "media_type": updated.get("media_type"),
+                "season": updated.get("season"),
+                "episode": updated.get("episode"),
+                "confidence": updated.get("confidence"),
+                "reason": updated.get("reason"),
+                "target_path": updated.get("target_path"),
+                "error": updated.get("error"),
+            },
+            "filename_parse": parsed_preview,
+            "nfo": nfo_payload,
+            "candidates": candidates if isinstance(candidates, list) else [],
+            "ai_response": decision,
+        }
+
+    def _handle_metadata(
+        self, job: dict, settings
+    ) -> tuple[str | None, dict[str, Any] | None]:
         if job.get("status") in {"moved", "rejected", "waiting_revert"}:
-            return None
+            return None, {
+                "skipped": True,
+                "reason": f"Job status is {job.get('status')}.",
+            }
         source = Path(job["source_path"])
         if not source.exists():
             lifecycle.release(self.db, int(job["id"]))
@@ -146,7 +242,10 @@ class OperationQueue:
                 "Source file is missing.",
                 status="failed",
             )
-            return "Source file is missing."
+            return "Source file is missing.", {
+                "source": str(source),
+                "result": "source_missing",
+            }
 
         if self.jellyfin is None or self.llm is None:
             from ..api import deps
@@ -169,19 +268,27 @@ class OperationQueue:
                 "operation_failed",
                 "Metadata analysis produced no job.",
             )
-            return "Metadata analysis produced no job."
+            return "Metadata analysis produced no job.", {
+                "source": str(source),
+                "result": "no_job",
+            }
 
         if updated.get("target_path"):
             lifecycle.set_target(
                 self.db, int(job["id"]), updated.get("target_path")
             )
-        return None
+        return None, self._metadata_detail(updated)
 
-    def _handle_execution(self, job: dict, settings) -> str | None:
+    def _handle_execution(
+        self, job: dict, settings
+    ) -> tuple[str | None, dict[str, Any] | None]:
         if job.get("status") == "moved":
-            return None
+            return None, {"skipped": True, "reason": "Job is already moved."}
         if job.get("status") != "ready":
-            return None
+            return None, {
+                "skipped": True,
+                "reason": f"Job status is {job.get('status')}, not ready.",
+            }
 
         source = Path(job["source_path"])
         target = Path(job.get("target_path") or "")
@@ -199,9 +306,22 @@ class OperationQueue:
                     blocked_reason=None,
                     reason="Recovered completed apply.",
                 )
-                return None
+                return None, {
+                    "recovered": True,
+                    "source": str(source),
+                    "target": str(target),
+                    "operation": (
+                        {
+                            "id": operation["id"],
+                            "kind": operation["kind"],
+                            "status": "committed",
+                        }
+                        if operation
+                        else None
+                    ),
+                }
 
-        ok, message, _ = apply.apply_job(
+        ok, message, applied_target = apply.apply_job(
             self.cfg,
             settings,
             self.db,
@@ -212,13 +332,49 @@ class OperationQueue:
             job["season"],
             job["episode"],
         )
-        return None if ok else message
+        operation = self.db.latest_operation(int(job["id"]))
+        return (None if ok else message), {
+            "ok": ok,
+            "message": message,
+            "configured_action": settings.action,
+            "source": str(source),
+            "target": str(applied_target or target or job.get("target_path") or ""),
+            "operation": (
+                {
+                    "id": operation["id"],
+                    "kind": operation["kind"],
+                    "status": operation["status"],
+                }
+                if operation
+                else None
+            ),
+        }
 
-    def _handle_revert(self, job: dict, settings) -> str | None:
+    def _handle_revert(
+        self, job: dict, settings
+    ) -> tuple[str | None, dict[str, Any] | None]:
         if job.get("status") not in {"moved", "waiting_revert"}:
-            return None
+            return None, {
+                "skipped": True,
+                "reason": f"Job status is {job.get('status')}, not moved.",
+            }
         ok, message = apply.undo_job(self.cfg, settings, self.db, job)
-        return None if ok else message
+        operation = self.db.latest_operation(int(job["id"]))
+        return (None if ok else message), {
+            "ok": ok,
+            "message": message,
+            "source": job.get("source_path"),
+            "target": job.get("target_path"),
+            "operation": (
+                {
+                    "id": operation["id"],
+                    "kind": operation["kind"],
+                    "status": operation["status"],
+                }
+                if operation
+                else None
+            ),
+        }
 
     def _scheduler_loop(self) -> None:
         while not self._stop.is_set():

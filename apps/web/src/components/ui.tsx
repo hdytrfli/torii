@@ -129,6 +129,40 @@ export function Toggle({
   )
 }
 
+export function Switch({
+  checked,
+  onChange,
+  disabled = false,
+  className,
+}: {
+  checked: boolean
+  onChange: (checked: boolean) => void
+  disabled?: boolean
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative h-5 w-9 shrink-0 rounded-full border transition-colors disabled:pointer-events-none disabled:opacity-50",
+        checked ? "border-gray-900 bg-gray-900" : "border-gray-300 bg-gray-200",
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-card transition-transform",
+          checked ? "left-[18px]" : "left-0.5",
+        )}
+      />
+    </button>
+  )
+}
+
 export function EmptyState({
   title,
   description,

@@ -113,11 +113,28 @@ class JellyfinProvider:
                     },
                 )
             if response.status_code >= 400:
-                logger.warning("Jellyfin search failed: %s %s", response.status_code, response.text[:200])
+                logger.warning(
+                    "Jellyfin search failed",
+                    extra={
+                        "detail": {
+                            "url": f"{self.base_url}/Items/RemoteSearch/{endpoint}",
+                            "status": response.status_code,
+                            "response": response.text[:2000],
+                        }
+                    },
+                )
                 return []
             data = response.json()
         except (httpx.HTTPError, ValueError) as exc:
-            logger.warning("Jellyfin search error: %s", exc)
+            logger.warning(
+                "Jellyfin search error",
+                extra={
+                    "detail": {
+                        "error_type": type(exc).__name__,
+                        "message": str(exc),
+                    }
+                },
+            )
             return []
 
         if not isinstance(data, list):
@@ -165,11 +182,27 @@ class JellyfinProvider:
                     },
                 )
             if response.status_code >= 400:
-                logger.warning("Jellyfin ID lookup failed: %s %s", response.status_code, response.text[:200])
+                logger.warning(
+                    "Jellyfin ID lookup failed",
+                    extra={
+                        "detail": {
+                            "status": response.status_code,
+                            "response": response.text[:2000],
+                        }
+                    },
+                )
                 return None
             data = response.json()
         except (httpx.HTTPError, ValueError) as exc:
-            logger.warning("Jellyfin ID lookup error: %s", exc)
+            logger.warning(
+                "Jellyfin ID lookup error",
+                extra={
+                    "detail": {
+                        "error_type": type(exc).__name__,
+                        "message": str(exc),
+                    }
+                },
+            )
             return None
 
         if not isinstance(data, list) or not data:
@@ -282,11 +315,22 @@ class LLM:
             except ValueError:
                 pass
             self.last_error = detail
-            logger.warning("LLM request failed: %s", detail)
+            logger.warning(
+                "LLM request failed",
+                extra={"detail": {"response": detail}},
+            )
             return None
         except (httpx.HTTPError, KeyError, ValueError) as exc:
             self.last_error = str(exc)
-            logger.warning("LLM request failed: %s", exc)
+            logger.warning(
+                "LLM request failed",
+                extra={
+                    "detail": {
+                        "error_type": type(exc).__name__,
+                        "message": str(exc),
+                    }
+                },
+            )
             return None
 
         result = _extract_json(content)

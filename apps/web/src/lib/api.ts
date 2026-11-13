@@ -2,10 +2,13 @@ import { http } from "./http"
 import type {
   Group,
   Job,
+  LogsResponse,
   OperationRow,
+  ReviewJobsResponse,
   SessionResponse,
   Settings,
   SettingsInput,
+  Shortcut,
   Stats,
   User,
 } from "./types"
@@ -26,6 +29,26 @@ export const api = {
     (await http.get<Job[]>("/api/jobs", { params: { status, limit: 1000 } })).data,
   groups: async (status = "needs_review") =>
     (await http.get<Group[]>("/api/groups", { params: { status, limit: 2000 } })).data,
+  logs: async (params: {
+    level?: string
+    q?: string
+    sort?: string
+    direction?: "asc" | "desc"
+    page?: number
+    page_size?: number
+  }) => (await http.get<LogsResponse>("/api/logs", { params })).data,
+  deleteLogs: async (ids: number[]) =>
+    (await http.post<{ ok: boolean; deleted: number }>("/api/logs/delete", { ids })).data,
+  reviewJobs: async (params: {
+    status?: string
+    source?: string
+    media_type?: string
+    q?: string
+    sort?: string
+    direction?: "asc" | "desc"
+    page?: number
+    page_size?: number
+  }) => (await http.get<ReviewJobsResponse>("/api/jobs/page", { params })).data,
   job: async (id: number) => (await http.get<Job>(`/api/jobs/${id}`)).data,
   scan: async () => (await http.post<{ ok: boolean }>("/api/scan")).data,
   scanStatus: async () =>
@@ -142,6 +165,30 @@ export const api = {
   settings: async () => (await http.get<Settings>("/api/settings")).data,
   saveSettings: async (data: SettingsInput) =>
     (await http.put<Settings>("/api/settings", data)).data,
+
+  shortcuts: async () => {
+    const data = (await http.get<Shortcut[] | { items?: Shortcut[] }>(
+      "/api/shortcuts",
+    )).data
+    if (Array.isArray(data)) return data
+    if (data && Array.isArray(data.items)) return data.items
+    return []
+  },
+  createShortcut: async (data: {
+    title: string
+    url: string
+    admin_only: boolean
+  }) => (await http.post<Shortcut>("/api/shortcuts", data)).data,
+  updateShortcut: async (
+    id: number,
+    data: {
+      title: string
+      url: string
+      admin_only: boolean
+    },
+  ) => (await http.put<Shortcut>(`/api/shortcuts/${id}`, data)).data,
+  deleteShortcut: async (id: number) =>
+    (await http.delete<{ ok: boolean }>(`/api/shortcuts/${id}`)).data,
 
   users: async () => (await http.get<User[]>("/api/users")).data,
   createUser: async (username: string, password: string, isAdmin: boolean) =>

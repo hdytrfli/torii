@@ -11,10 +11,6 @@ export function QueueStatus() {
   const operations = useQuery({
     queryKey: ["operations"],
     queryFn: api.operations,
-    refetchInterval: (query) =>
-      query.state.data?.running || (query.state.data?.queued ?? 0) > 0
-        ? 1200
-        : 4000,
   })
 
   const running = operations.data?.running ?? null
@@ -23,6 +19,7 @@ export function QueueStatus() {
 
   useEffect(() => {
     if (previousActive.current > 0 && activeCount === 0) {
+      void queryClient.invalidateQueries({ queryKey: ["review-jobs"] })
       void queryClient.invalidateQueries({ queryKey: ["groups"] })
       void queryClient.invalidateQueries({ queryKey: ["jobs"] })
       void queryClient.invalidateQueries({ queryKey: ["stats"] })

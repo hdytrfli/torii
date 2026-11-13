@@ -27,6 +27,7 @@ export interface Job {
   error: string | null
   blocked_reason?: string | null
   auto_apply_eligible?: number
+  created_at: string
   updated_at: string
   candidates_json: Candidate[] | null
   parsed_json: Record<string, unknown> | null
@@ -91,6 +92,43 @@ export interface Settings {
   queue_revert_poll: number
   movie_preview: string
   tv_preview: string
+}
+
+export interface ReviewJobsResponse {
+  items: Job[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
+}
+
+export interface Shortcut {
+  id: number
+  title: string
+  url: string
+  admin_only: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LogRow {
+  id: number
+  created_at: string
+  level: string
+  source: string
+  actor: string | null
+  message: string
+  detail: string | null
+  job_id: number | null
+  context: string | null
+}
+
+export interface LogsResponse {
+  items: LogRow[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
 }
 
 export interface OperationRow {

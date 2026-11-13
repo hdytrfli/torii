@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Button } from "./button"
+import { DropdownSelect } from "./dropdown-select"
 
 export function TablePagination({
   page,
@@ -8,6 +9,7 @@ export function TablePagination({
   pageSize,
   selectedCount = 0,
   onPage,
+  onPageSizeChange,
 }: {
   page: number
   pages: number
@@ -15,6 +17,7 @@ export function TablePagination({
   pageSize: number
   selectedCount?: number
   onPage: (page: number) => void
+  onPageSizeChange?: (value: string) => void
 }) {
   const first = total === 0 ? 0 : page * pageSize + 1
   const last = Math.min(total, (page + 1) * pageSize)
@@ -27,7 +30,7 @@ export function TablePagination({
   ]
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm tabular-nums text-gray-500">
         {selectedCount} of {total} row(s) selected.
         <span className="ml-4 hidden sm:inline">
@@ -35,19 +38,35 @@ export function TablePagination({
           <span className="font-medium text-gray-900">{total}</span>
         </span>
       </p>
-      <div className="flex items-center gap-x-1.5">
-        {buttons.map((button) => (
-          <Button
-            key={button.label}
-            variant="secondary"
-            className={`${button.mobile} p-1.5`}
-            onClick={button.onClick}
-            disabled={button.disabled}
-          >
-            <span className="sr-only">{button.label}</span>
-            <button.icon className="size-4 shrink-0" aria-hidden="true" />
-          </Button>
-        ))}
+      <div className="flex items-center gap-4">
+        {onPageSizeChange ? (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500">Rows</span>
+            <DropdownSelect
+              value={String(pageSize)}
+              onChange={onPageSizeChange}
+              className="w-20"
+              options={[10, 20, 50, 100].map((value) => ({
+                value: String(value),
+                label: String(value),
+              }))}
+            />
+          </div>
+        ) : null}
+        <div className="flex items-center gap-x-1.5">
+          {buttons.map((button) => (
+            <Button
+              key={button.label}
+              variant="secondary"
+              className={button.mobile}
+              onClick={button.onClick}
+              disabled={button.disabled}
+            >
+              <span className="sr-only">{button.label}</span>
+              <button.icon className="size-4 shrink-0" aria-hidden="true" />
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   )

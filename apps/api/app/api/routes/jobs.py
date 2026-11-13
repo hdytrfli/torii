@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -11,9 +12,10 @@ from ...domain import settings as settings_mod
 from ...services import apply
 from ...services.providers import Candidate
 from .. import deps
-from ..schemas import ApproveBody, BulkBody, IdentifyBody, JobUpdateBody
+from ..schemas import ApproveBody, BulkBody, IdentifyBody, JobUpdateBody, LogDeleteBody
 
 router = APIRouter(prefix="/api", tags=["jobs"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/jobs")
@@ -24,6 +26,96 @@ def list_jobs(
 ):
     deps.current_session(request)
     return [deps.db.job_json(job) for job in deps.db.list_jobs(status, limit=limit)]
+
+
+@router.get("/jobs/page")
+def jobs_page(
+    request: Request,
+    status: str = "all",
+    source: str | None = None,
+    media_type: str | None = None,
+    q: str | None = None,
+    sort: str = "updated_at",
+    direction: str = "desc",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=200),
+):
+    deps.current_session(request)
+    statuses = [
+        item for item in status.split(",") if item and item != "all"
+    ]
+    sources = [item for item in (source or "").split(",") if item]
+    media_types = [item for item in (media_type or "").split(",") if item]
+    rows, total = deps.db.query_jobs(
+        statuses=statuses,
+        sources=sources,
+        media_types=media_types,
+        query=q,
+        sort=sort,
+        direction=direction,
+        page=page,
+        page_size=page_size,
+    )
+    pages = max(1, (total + page_size - 1) // page_size)
+    return {
+        "items": [deps.db.job_json(row) for row in rows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
+    }
+
+
+@router.get("/logs")
+def logs(
+    request: Request,
+    level: str = "all",
+    q: str | None = None,
+    sort: str = "created_at",
+    direction: str = "desc",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=200),
+):
+    deps.require_admin(request)
+    rows, total = deps.db.list_logs(
+        level=level,
+        query=q,
+        page=page,
+        page_size=page_size,
+        sort=sort,
+        direction=direction,
+    )
+    pages = max(1, (total + page_size - 1) // page_size)
+    return {
+        "items": rows,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
+    }
+
+
+@router.post("/logs/delete")
+def delete_logs(request: Request, body: LogDeleteBody):
+    session = deps.require_admin(request)
+    deleted = deps.db.delete_logs(body.ids)
+    logger.info(
+        "Deleted %s log row(s)",
+        deleted,
+        extra={
+            "detail": {
+                "requested_ids": body.ids,
+                "deleted": deleted,
+                "username": session.get("username"),
+            },
+            "context": {
+                "requested": len(body.ids),
+                "deleted": deleted,
+                "username": session.get("username"),
+            },
+        },
+    )
+    return {"ok": True, "deleted": deleted}
 
 
 @router.get("/stats")
@@ -85,6 +177,26 @@ def update_job(request: Request, job_id: int, body: JobUpdateBody):
         source="manual",
         reason="Manually updated.",
         auto_apply_eligible=0,
+    )
+    logger.info(
+        "Saved job metadata for job %s",
+        job_id,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "title": body.title,
+                "year": body.year,
+                "media_type": body.media_type,
+                "season": body.season,
+                "episode": body.episode,
+                "target": target,
+            },
+            "context": {
+                "title": body.title,
+                "year": body.year,
+                "media_type": body.media_type,
+            },
+        },
     )
     if target.startswith("Invalid layout:"):
         lifecycle.block(deps.db, job_id, "invalid_layout", target)
@@ -149,6 +261,25 @@ def approve(request: Request, job_id: int, body: ApproveBody):
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    logger.info(
+        "Queued apply for job %s",
+        job_id,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "action": body.action or "configured default",
+                "target": target,
+                "work_item": operation_id,
+                "title": body.title,
+                "year": body.year,
+            },
+            "context": {
+                "operation_id": operation_id,
+                "title": body.title,
+                "action": body.action,
+            },
+        },
+    )
     return {
         "ok": True,
         "queued": True,
@@ -253,6 +384,27 @@ def identify(request: Request, job_id: int, body: IdentifyBody):
     else:
         lifecycle.clear_block(deps.db, job_id)
         lifecycle.set_target(deps.db, job_id, target)
+    logger.info(
+        "Identified job %s via %s",
+        job_id,
+        body.provider,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "provider": body.provider,
+                "provider_id": body.id,
+                "title": title,
+                "year": year,
+                "media_type": media_type,
+                "target": target,
+            },
+            "context": {
+                "provider": body.provider,
+                "provider_id": body.id,
+                "title": title,
+            },
+        },
+    )
     return deps.db.job_json(deps.db.get_job(job_id) or job)
 
 
@@ -318,6 +470,21 @@ def ask_ai(request: Request, job_id: int):
     else:
         lifecycle.clear_block(deps.db, job_id)
         lifecycle.set_target(deps.db, job_id, target)
+    logger.info(
+        "AI suggestion applied to job %s",
+        job_id,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "title": title,
+                "year": year,
+                "media_type": media_type,
+                "target": target,
+                "ai_response": decision,
+            },
+            "context": {"title": title, "media_type": media_type},
+        },
+    )
     return deps.db.job_json(deps.db.get_job(job_id) or job)
 
 
@@ -331,6 +498,20 @@ def undo(request: Request, job_id: int):
         deps.operations.enqueue_revert(job)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    logger.info(
+        "Queued revert for job %s",
+        job_id,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "queued": "revert",
+                "source": job.get("source_path"),
+                "target": job.get("target_path"),
+                "previous_status": job.get("status"),
+            },
+            "context": {"status": "waiting_revert"},
+        },
+    )
     return {
         "ok": True,
         "queued": True,
@@ -351,6 +532,18 @@ def reject(request: Request, job_id: int):
     if active is not None and active["status"] == "running":
         raise HTTPException(status_code=409, detail="Job is currently processing.")
     lifecycle.reject(deps.db, job_id)
+    logger.info(
+        "Rejected job %s",
+        job_id,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "rejected": True,
+                "source": job.get("source_path"),
+                "previous_status": job.get("status"),
+            },
+        },
+    )
     return {"ok": True}
 
 
@@ -368,6 +561,19 @@ def delete(request: Request, job_id: int):
     )
     if not ok:
         raise HTTPException(status_code=400, detail=message)
+    logger.info(
+        "Deleted job %s",
+        job_id,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "message": message,
+                "source": job.get("source_path"),
+                "status": job.get("status"),
+            },
+            "context": {"message": message},
+        },
+    )
     return {"ok": True, "message": message}
 
 
@@ -397,6 +603,21 @@ def retry(request: Request, job_id: int):
         else:
             lifecycle.set_target(deps.db, job_id, updated.get("target_path"))
         updated = deps.db.get_job(job_id) or updated
+    logger.info(
+        "Retried job %s",
+        job_id,
+        extra={
+            "job_id": job_id,
+            "detail": {
+                "analyzed": True,
+                "method": (updated or {}).get("source"),
+                "title": (updated or {}).get("title"),
+                "year": (updated or {}).get("year"),
+                "confidence": (updated or {}).get("confidence"),
+                "target": (updated or {}).get("target_path"),
+            },
+        },
+    )
     return {"ok": True, "job": deps.db.job_json(updated)}
 
 
@@ -463,13 +684,42 @@ def bulk(request: Request, body: BulkBody):
             )
         except ValueError as exc:
             results.append({"id": job_id, "ok": False, "message": str(exc)})
+    logger.info(
+        "Bulk %s completed for %s job(s)",
+        body.action,
+        len(body.ids),
+        extra={
+            "detail": {
+                "action": body.action,
+                "requested": len(body.ids),
+                "succeeded": sum(1 for item in results if item["ok"]),
+                "results": results,
+            },
+            "context": {
+                "action": body.action,
+                "requested": len(body.ids),
+                "ok": sum(1 for item in results if item["ok"]),
+            },
+        },
+    )
     return {"results": results}
 
 
 @router.post("/scan")
 def scan(request: Request):
-    deps.current_session(request)
+    session = deps.current_session(request)
     deps.scanner.trigger()
+    logger.info(
+        "Scan requested by %s",
+        session.get("username"),
+        extra={
+            "detail": {
+                "username": session.get("username"),
+                "action": "manual_scan_trigger",
+            },
+            "context": {"username": session.get("username")},
+        },
+    )
     return {"ok": True, "message": "Scan requested"}
 
 

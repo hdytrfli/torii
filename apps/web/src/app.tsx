@@ -14,9 +14,11 @@ import { LoginPage } from "./pages/login-page"
 
 const DashboardPage = lazy(() => import("./pages/dashboard-page").then((m) => ({ default: m.DashboardPage })))
 const ReviewPage = lazy(() => import("./pages/review-page").then((m) => ({ default: m.ReviewPage })))
+const LogsPage = lazy(() => import("./pages/logs-page").then((m) => ({ default: m.LogsPage })))
 const NamingPage = lazy(() => import("./pages/naming-page").then((m) => ({ default: m.NamingPage })))
 const SettingsLayout = lazy(() => import("./components/settings-layout").then((m) => ({ default: m.SettingsLayout })))
 const SettingsPage = lazy(() => import("./pages/settings-page").then((m) => ({ default: m.SettingsPage })))
+const ShortcutsPage = lazy(() => import("./pages/shortcuts-page").then((m) => ({ default: m.ShortcutsPage })))
 const UsersPage = lazy(() => import("./pages/users-page").then((m) => ({ default: m.UsersPage })))
 
 function LegacyQueueRedirect() {
@@ -42,9 +44,21 @@ function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="review" element={<ReviewPage />} />
         <Route path="queue" element={<LegacyQueueRedirect />} />
+        <Route
+          path="logs"
+          element={
+            user.is_admin ? <LogsPage /> : <Navigate to="/" replace />
+          }
+        />
         <Route path="naming" element={<NamingPage />} />
-        <Route path="settings" element={<SettingsLayout />}>
+        <Route
+          path="settings"
+          element={
+            user.is_admin ? <SettingsLayout /> : <Navigate to="/" replace />
+          }
+        >
           <Route index element={<SettingsPage />} />
+          <Route path="shortcuts" element={<ShortcutsPage />} />
           <Route path="users" element={<UsersPage />} />
         </Route>
         <Route path="users" element={<Navigate to="/settings/users" replace />} />

@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/tremor/dialog"
-import { Badge, Button, Checkbox, Field, Input, Skeleton } from "../components/ui"
+import { Badge, Button, Field, Input, Skeleton, Switch } from "../components/ui"
 
 export function UsersPage() {
   const { user } = useAuth()
@@ -119,7 +119,7 @@ export function UsersPage() {
                     </Field>
                   </div>
                   <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
-                    <Checkbox checked={isAdmin} onCheckedChange={(value) => setIsAdmin(value === true)} />
+                    <Switch checked={isAdmin} onChange={setIsAdmin} />
                     Administrator
                   </label>
                   {error ? <p className="mt-3 text-xs text-red-600">{error}</p> : null}

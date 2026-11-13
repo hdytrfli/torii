@@ -54,6 +54,16 @@ class SettingsBody(BaseModel):
     queue_revert_poll: int = Field(ge=1)
 
 
+class LogDeleteBody(BaseModel):
+    ids: list[int] = Field(min_length=1)
+
+
+class ShortcutBody(BaseModel):
+    title: str = Field(min_length=1, max_length=80)
+    url: str = Field(min_length=1, max_length=2000)
+    admin_only: bool = False
+
+
 class UserCreateBody(BaseModel):
     username: str
     password: str

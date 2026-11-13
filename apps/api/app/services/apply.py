@@ -343,7 +343,17 @@ def apply_job(cfg, settings: Settings, db, job: dict[str, Any],
     })
 
     verb = {"move": "Moved", "copy": "Copied", "hardlink": "Linked"}[chosen_action]
-    logger.info("%s %s to %s", verb, source, target)
+    logger.info(
+        f"File {verb.lower()}",
+        extra={
+            "job_id": int(job["id"]),
+            "detail": {
+                "action": chosen_action,
+                "source": str(source),
+                "target": str(target),
+            },
+        },
+    )
     return True, f"{verb} to {target}", target
 
 

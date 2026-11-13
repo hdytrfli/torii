@@ -80,6 +80,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
   }, [job, title, payload])
 
   const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ["review-jobs"] })
     void queryClient.invalidateQueries({ queryKey: ["groups"] })
     void queryClient.invalidateQueries({ queryKey: ["jobs"] })
     void queryClient.invalidateQueries({ queryKey: ["job", jobId] })

@@ -230,6 +230,14 @@ class Scanner:
                 auto_apply_eligible=1,
             )
             self.db.enqueue_work("metadata", int(existing["id"]), 3)
+            logger.info(
+                "Source changed; metadata queued",
+                extra={
+                    "job_id": int(existing["id"]),
+                    "detail": {"source_path": str(path)},
+                    "context": {"source_path": str(path)},
+                },
+            )
             return True
 
         job_id = self.db.create_job(
@@ -238,6 +246,14 @@ class Scanner:
             stat.st_mtime,
             status="analyzing",
             media_type="tv" if forced_kind == "tv" else "movie",
+        )
+        logger.info(
+            "Source discovered; metadata queued",
+            extra={
+                "job_id": job_id,
+                "detail": {"source_path": str(path)},
+                "context": {"source_path": str(path)},
+            },
         )
         self.db.enqueue_work("metadata", job_id, 3)
         return True

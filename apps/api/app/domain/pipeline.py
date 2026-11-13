@@ -240,5 +240,8 @@ def analyze(cfg, settings: settings_mod.Settings, db, path: Path,
         stat.st_mtime,
         **payload,
     )
-    logger.info("Created job %s for %s", job_id, path)
+    logger.info(
+        "Job created",
+        extra={"job_id": job_id, "detail": {"source_path": str(path)}},
+    )
     return db.get_job(job_id) or {}

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Request
 
 from ...domain import naming
@@ -8,6 +10,7 @@ from .. import deps
 from ..schemas import LayoutPreviewBody, SettingsBody
 
 router = APIRouter(prefix="/api", tags=["settings"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/settings")
@@ -18,7 +21,7 @@ def get_settings(request: Request):
 
 @router.put("/settings")
 def update_settings(request: Request, body: SettingsBody):
-    deps.current_session(request)
+    session = deps.current_session(request)
     data = body.model_dump()
     form = {
         **data,
@@ -34,6 +37,31 @@ def update_settings(request: Request, body: SettingsBody):
         settings_mod.save(deps.db, form)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    logger.info(
+        "Settings updated",
+        extra={
+            "detail": {
+                "username": session.get("username"),
+                "action": data["action"],
+                "auto_apply": data["auto_apply"],
+                "auto_apply_confidence": data["auto_apply_confidence"],
+                "extensions": data["extensions"],
+                "movie_template": data["movie_template"],
+                "tv_template": data["tv_template"],
+                "queue_polls": {
+                    "metadata": data["queue_metadata_poll"],
+                    "promotion": data["queue_promotion_poll"],
+                    "execution": data["queue_execution_poll"],
+                    "revert": data["queue_revert_poll"],
+                },
+            },
+            "context": {
+                "username": session.get("username"),
+                "action": data["action"],
+                "auto_apply": data["auto_apply"],
+            },
+        },
+    )
     deps.scanner.trigger()
     return deps.settings_payload()
 

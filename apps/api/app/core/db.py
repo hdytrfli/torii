@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import time
 from datetime import datetime, timezone
@@ -106,6 +107,20 @@ ON work_items(kind, job_id) WHERE status IN ('queued', 'running');
 CREATE INDEX IF NOT EXISTS work_items_kind_status_idx
 ON work_items(kind, status, available_at);
 
+CREATE TABLE IF NOT EXISTS logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL,
+    level TEXT NOT NULL,
+    source TEXT NOT NULL,
+    message TEXT NOT NULL,
+    detail TEXT,
+    job_id INTEGER,
+    actor TEXT,
+    context TEXT
+);
+
+CREATE INDEX IF NOT EXISTS logs_created_idx ON logs(created_at);
+
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -116,6 +131,16 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     is_admin INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS shortcuts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    url TEXT NOT NULL,
+    logo TEXT,
+    admin_only INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -187,6 +212,99 @@ class DB:
                 )
             if "message" not in operation_columns:
                 conn.execute("ALTER TABLE job_operations ADD COLUMN message TEXT")
+            log_columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(logs)")
+            }
+            if "actor" not in log_columns:
+                conn.execute("ALTER TABLE logs ADD COLUMN actor TEXT")
+            if "detail" not in log_columns:
+                conn.execute("ALTER TABLE logs ADD COLUMN detail TEXT")
+            conn.execute(
+                "UPDATE logs SET actor = 'system' WHERE actor IS NULL"
+            )
+            conn.execute(
+                "UPDATE logs SET detail = message WHERE detail IS NULL"
+            )
+            rows = conn.execute(
+                "SELECT id, message FROM logs WHERE job_id IS NULL"
+            ).fetchall()
+            for row in rows:
+                match = re.search(r"\bjob\s+#?(\d+)\b", row["message"], re.IGNORECASE)
+                if match:
+                    conn.execute(
+                        "UPDATE logs SET job_id = ? WHERE id = ?",
+                        (int(match.group(1)), row["id"]),
+                    )
+            seeded = conn.execute(
+                "SELECT value FROM settings WHERE key = 'shortcuts_seeded'"
+            ).fetchone()
+            if seeded is None:
+                if conn.execute("SELECT COUNT(*) AS total FROM shortcuts").fetchone()[
+                    "total"
+                ] == 0:
+                    timestamp = now()
+                    conn.executemany(
+                        "INSERT INTO shortcuts "
+                        "(title, url, logo, admin_only, created_at, updated_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?)",
+                        [
+                            (
+                                "Needs review",
+                                "/review?status=needs_review",
+                                "search",
+                                0,
+                                timestamp,
+                                timestamp,
+                            ),
+                            (
+                                "Ready to apply",
+                                "/review?status=ready",
+                                "check",
+                                0,
+                                timestamp,
+                                timestamp,
+                            ),
+                            (
+                                "Applied",
+                                "/review?status=moved",
+                                "folder",
+                                0,
+                                timestamp,
+                                timestamp,
+                            ),
+                            (
+                                "Add new user",
+                                "/settings/users",
+                                "user",
+                                1,
+                                timestamp,
+                                timestamp,
+                            ),
+                            (
+                                "Naming layouts",
+                                "/naming",
+                                "tags",
+                                0,
+                                timestamp,
+                                timestamp,
+                            ),
+                        ],
+                    )
+                conn.execute(
+                    "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                    ("shortcuts_seeded", "1"),
+                )
+            legacy_logos = {
+                "🔍": "search",
+                "✅": "check",
+                "📁": "folder",
+                "👤": "user",
+                "🏷️": "tags",
+            }
+            for old, new in legacy_logos.items():
+                conn.execute(
+                    "UPDATE shortcuts SET logo = ? WHERE logo = ?", (new, old)
+                )
 
     # settings ---------------------------------------------------------
 
@@ -272,6 +390,72 @@ class DB:
     def delete_user(self, user_id: int) -> None:
         with self._connect() as conn:
             conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    # shortcuts -------------------------------------------------------
+
+    def list_shortcuts(self) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM shortcuts ORDER BY id"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_shortcut(self, shortcut_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM shortcuts WHERE id = ?", (shortcut_id,)
+            ).fetchone()
+        return dict(row) if row else None
+
+    def create_shortcut(
+        self,
+        title: str,
+        url: str,
+        admin_only: bool = False,
+    ) -> dict[str, Any]:
+        timestamp = now()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO shortcuts "
+                "(title, url, logo, admin_only, created_at, updated_at) "
+                "VALUES (?, ?, NULL, ?, ?, ?)",
+                (
+                    title,
+                    url,
+                    1 if admin_only else 0,
+                    timestamp,
+                    timestamp,
+                ),
+            )
+            shortcut_id = int(cursor.lastrowid)
+        shortcut = self.get_shortcut(shortcut_id)
+        if shortcut is None:
+            raise RuntimeError("Created shortcut could not be read back")
+        return shortcut
+
+    def update_shortcut(
+        self,
+        shortcut_id: int,
+        title: str,
+        url: str,
+        admin_only: bool = False,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE shortcuts SET title = ?, url = ?, logo = NULL, "
+                "admin_only = ?, updated_at = ? WHERE id = ?",
+                (
+                    title,
+                    url,
+                    1 if admin_only else 0,
+                    now(),
+                    shortcut_id,
+                ),
+            )
+
+    def delete_shortcut(self, shortcut_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute("DELETE FROM shortcuts WHERE id = ?", (shortcut_id,))
 
     def create_session(
         self, user_id: int, token_hash: str, csrf_token: str, expires_at: int
@@ -602,6 +786,140 @@ class DB:
                 (time.time(), now()),
             )
 
+    def jobs_fingerprint(self) -> tuple[int, str, int]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS total, COALESCE(MAX(updated_at), '') AS updated, "
+                "COALESCE(MAX(id), 0) AS max_id FROM jobs"
+            ).fetchone()
+        return int(row["total"]), str(row["updated"]), int(row["max_id"])
+
+    def jobs_after(self, job_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM jobs WHERE id > ? ORDER BY id LIMIT ?",
+                (job_id, limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def delete_logs(self, ids: list[int]) -> int:
+        if not ids:
+            return 0
+        placeholders = ", ".join("?" for _ in ids)
+        with self._connect() as conn:
+            cursor = conn.execute(
+                f"DELETE FROM logs WHERE id IN ({placeholders})", ids
+            )
+            return int(cursor.rowcount)
+
+    def max_log_id(self) -> int:
+        with self._connect() as conn:
+            row = conn.execute("SELECT COALESCE(MAX(id), 0) AS max_id FROM logs").fetchone()
+        return int(row["max_id"])
+
+    def logs_after(self, log_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM logs WHERE id > ? ORDER BY id LIMIT ?",
+                (log_id, limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def add_log(
+        self,
+        level: str,
+        source: str,
+        message: str,
+        detail: str | None = None,
+        job_id: int | None = None,
+        actor: str | None = None,
+        context: str | None = None,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT INTO logs (created_at, level, source, message, detail, job_id, actor, context) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    now(),
+                    level,
+                    source,
+                    message,
+                    detail or message,
+                    job_id,
+                    actor or "system",
+                    context,
+                ),
+            )
+
+    def list_logs(
+        self,
+        level: str | None = None,
+        query: str | None = None,
+        page: int = 1,
+        page_size: int = 50,
+        sort: str = "created_at",
+        direction: str = "desc",
+    ) -> tuple[list[dict[str, Any]], int]:
+        clauses: list[str] = []
+        args: list[Any] = []
+        if level and level != "all":
+            clauses.append("level = ?")
+            args.append(level.upper())
+        if query:
+            clauses.append(
+                "LOWER(message || ' ' || COALESCE(detail, '') || ' ' || source || ' ' || COALESCE(actor, '')) LIKE ?"
+            )
+            args.append(f"%{query.lower()}%")
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sort_columns = {
+            "created_at": "created_at",
+            "time": "created_at",
+            "level": "level",
+            "source": "source",
+            "actor": "actor",
+            "job_id": "job_id",
+            "message": "message",
+        }
+        order = sort_columns.get(sort, "created_at")
+        order_direction = "ASC" if direction.lower() == "asc" else "DESC"
+        offset = max(0, (page - 1) * page_size)
+        with self._connect() as conn:
+            total = int(
+                conn.execute(
+                    f"SELECT COUNT(*) AS total FROM logs{where}", args
+                ).fetchone()["total"]
+            )
+            rows = conn.execute(
+                f"SELECT * FROM logs{where} ORDER BY {order} {order_direction}, id DESC "
+                "LIMIT ? OFFSET ?",
+                [*args, page_size, offset],
+            ).fetchall()
+        return [dict(row) for row in rows], total
+
+    def jobs_after(self, job_id: int, limit: int = 50) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM jobs WHERE id > ? ORDER BY id LIMIT ?",
+                (job_id, limit),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def jobs_fingerprint(self) -> dict[str, Any]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS total, "
+                "COALESCE(MAX(id), 0) AS max_id, "
+                "COALESCE(MAX(updated_at), '') AS max_updated, "
+                "COALESCE(SUM(CASE status "
+                "WHEN 'needs_review' THEN 1 WHEN 'ready' THEN 2 "
+                "WHEN 'moved' THEN 3 WHEN 'waiting_revert' THEN 4 "
+                "WHEN 'rejected' THEN 5 WHEN 'failed' THEN 6 ELSE 0 END), 0) AS status_sum, "
+                "COALESCE(SUM(LENGTH(COALESCE(title, ''))), 0) AS title_len, "
+                "COALESCE(SUM(LENGTH(COALESCE(target_path, ''))), 0) AS target_len "
+                "FROM jobs"
+            ).fetchone()
+        return dict(row) if row else {}
+
     def work_counts(self) -> dict[str, dict[str, int]]:
         with self._connect() as conn:
             rows = conn.execute(
@@ -624,6 +942,65 @@ class DB:
         with self._connect() as conn:
             rows = conn.execute(query, args).fetchall()
         return [dict(row) for row in rows]
+
+    def query_jobs(
+        self,
+        statuses: list[str] | None = None,
+        sources: list[str] | None = None,
+        media_types: list[str] | None = None,
+        query: str | None = None,
+        sort: str = "updated_at",
+        direction: str = "desc",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[dict[str, Any]], int]:
+        clauses: list[str] = []
+        args: list[Any] = []
+        if statuses:
+            placeholders = ", ".join("?" for _ in statuses)
+            clauses.append(f"status IN ({placeholders})")
+            args.extend(statuses)
+        if sources:
+            placeholders = ", ".join("?" for _ in sources)
+            clauses.append(f"source IN ({placeholders})")
+            args.extend(sources)
+        if media_types:
+            placeholders = ", ".join("?" for _ in media_types)
+            clauses.append(f"media_type IN ({placeholders})")
+            args.extend(media_types)
+        if query:
+            clauses.append(
+                "LOWER(COALESCE(title, '') || ' ' || source_path) LIKE ?"
+            )
+            args.append(f"%{query.lower()}%")
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+
+        sort_columns = {
+            "title": "LOWER(COALESCE(title, source_path))",
+            "type": "media_type",
+            "year_episode": "year",
+            "source": "source",
+            "confidence": "confidence",
+            "status": "status",
+            "created_at": "created_at",
+            "updated_at": "updated_at",
+        }
+        order = sort_columns.get(sort, "updated_at")
+        order_direction = "ASC" if direction.lower() == "asc" else "DESC"
+        offset = max(0, (page - 1) * page_size)
+
+        with self._connect() as conn:
+            total = int(
+                conn.execute(
+                    f"SELECT COUNT(*) AS total FROM jobs{where}", args
+                ).fetchone()["total"]
+            )
+            rows = conn.execute(
+                f"SELECT * FROM jobs{where} ORDER BY {order} {order_direction}, id DESC "
+                "LIMIT ? OFFSET ?",
+                [*args, page_size, offset],
+            ).fetchall()
+        return [dict(row) for row in rows], total
 
     def stats(self) -> dict[str, int]:
         with self._connect() as conn:

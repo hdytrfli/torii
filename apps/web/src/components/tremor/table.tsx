@@ -32,7 +32,7 @@ export const TableRow = forwardRef<HTMLTableRowElement, ComponentPropsWithoutRef
     <tr
       ref={ref}
       className={cn(
-        "[&_td:last-child]:pr-2 [&_th:last-child]:pr-2 [&_td:first-child]:pl-2 [&_th:first-child]:pl-2",
+        "h-10 [&_td:last-child]:pr-2 [&_th:last-child]:pr-2 [&_td:first-child]:pl-2 [&_th:first-child]:pl-2",
         className,
       )}
       {...props}
@@ -45,7 +45,7 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, ComponentPropsWi
   ({ className, ...props }, ref) => (
     <th
       ref={ref}
-      className={cn("border-b border-gray-200 px-4 py-1 text-left text-sm font-semibold text-gray-900 sm:text-xs", className)}
+      className={cn("h-10 border-b border-gray-200 px-4 py-0 text-left text-sm font-semibold text-gray-900 sm:text-xs", className)}
       {...props}
     />
   ),
@@ -54,7 +54,7 @@ TableHeaderCell.displayName = "TableHeaderCell"
 
 export const TableCell = forwardRef<HTMLTableCellElement, ComponentPropsWithoutRef<"td">>(
   ({ className, ...props }, ref) => (
-    <td ref={ref} className={cn("px-4 py-1 text-sm text-gray-600", className)} {...props} />
+    <td ref={ref} className={cn("h-10 px-4 py-0 text-sm text-gray-600", className)} {...props} />
   ),
 )
 TableCell.displayName = "TableCell"

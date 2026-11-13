@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import sqlite3
 
 from fastapi import APIRouter, HTTPException, Request
@@ -10,6 +11,7 @@ from .. import deps
 from ..schemas import LoginBody, SetupBody
 
 router = APIRouter(prefix="/api", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/setup/status")
@@ -33,6 +35,13 @@ def setup(body: SetupBody):
         raise HTTPException(status_code=409, detail="Username already exists") from exc
 
     raw_token, session = auth.start_session(deps.db, user, deps.cfg.session_days)
+    logger.info(
+        "Initial administrator created",
+        extra={
+            "actor": username,
+            "detail": {"username": username, "role": "administrator"},
+        },
+    )
     return deps.session_token_payload(raw_token, session)
 
 
@@ -43,14 +52,35 @@ async def login(body: LoginBody):
         await asyncio.sleep(0.35)
         raise HTTPException(status_code=401, detail="Invalid username or password")
     raw_token, session = auth.start_session(deps.db, user, deps.cfg.session_days)
+    logger.info(
+        "User logged in",
+        extra={
+            "actor": user["username"],
+            "detail": {
+                "username": user["username"],
+                "administrator": bool(user["is_admin"]),
+            },
+        },
+    )
     return deps.session_token_payload(raw_token, session)
 
 
 @router.post("/logout")
 def logout(request: Request):
+    session = deps.current_session(request)
     token = getattr(request.state, "token", None)
     if token:
         deps.db.delete_session(auth.hash_token(token))
+    logger.info(
+        "User logged out",
+        extra={
+            "detail": {
+                "username": session.get("username"),
+                "session_revoked": True,
+            },
+            "context": {"username": session.get("username")},
+        },
+    )
     return {"ok": True}
 
 

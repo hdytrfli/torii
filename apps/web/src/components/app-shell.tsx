@@ -1,20 +1,22 @@
 import {
   ChevronDown,
-  CircleAlert,
-  CircleCheck,
-  FolderCheck,
   Home,
   Landmark,
+  Link2,
   ListChecks,
   LogOut,
+  ScrollText,
   Settings,
   Tags,
-  Users,
+  type LucideIcon,
 } from "lucide-react"
 import { Suspense, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../lib/auth"
+import { api } from "../lib/api"
 import { cn } from "../lib/format"
+import { useServerEvents } from "../lib/server-events"
 import { RouteSkeleton } from "./loading"
 import { QueueStatus } from "./queue-status"
 import {
@@ -26,33 +28,42 @@ import {
   DropdownMenuTrigger,
 } from "./tremor/dropdown"
 
-const navigation = [
+const navigation: Array<{
+  name: string
+  href: string
+  icon: LucideIcon
+  end?: boolean
+  admin?: boolean
+}> = [
   { name: "Overview", href: "/", icon: Home, end: true },
-  { name: "Review table", href: "/review", icon: ListChecks },
-  { name: "Naming", href: "/naming", icon: Tags },
-  { name: "Settings", href: "/settings", icon: Settings },
-]
-
-const shortcuts = [
-  { name: "Needs review", href: "/review?status=needs_review", icon: CircleAlert },
-  { name: "Ready to apply", href: "/review?status=ready", icon: CircleCheck },
-  { name: "Applied", href: "/review?status=moved", icon: FolderCheck },
-  { name: "Add new user", href: "/settings/users", icon: Users, admin: true },
-  { name: "Naming layouts", href: "/naming", icon: Tags },
+  { name: "Review queue", href: "/review", icon: ListChecks },
+  { name: "Naming rules", href: "/naming", icon: Tags },
+  { name: "Activity log", href: "/logs", icon: ScrollText, admin: true },
+  { name: "Settings", href: "/settings", icon: Settings, admin: true },
 ]
 
 export function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  useServerEvents()
+  const shortcutsQuery = useQuery({
+    queryKey: ["shortcuts"],
+    queryFn: api.shortcuts,
+  })
+  const shortcuts = (
+    Array.isArray(shortcutsQuery.data) ? shortcutsQuery.data : []
+  ).filter((shortcut) => !shortcut.admin_only || user?.is_admin)
   useEffect(() => {
     const title =
       location.pathname === "/" ? "Overview"
       : location.pathname.startsWith("/review") || location.pathname.startsWith("/queue")
-        ? "Review table"
-      : location.pathname.startsWith("/naming") ? "Naming"
+        ? "Review queue"
+      : location.pathname.startsWith("/naming") ? "Naming rules"
+      : location.pathname.startsWith("/settings/shortcuts") ? "Shortcuts"
       : location.pathname.startsWith("/settings/users") ? "Users"
       : location.pathname.startsWith("/settings") ? "Settings"
+      : location.pathname.startsWith("/logs") ? "Activity log"
       : "Torii"
     document.title = `${title} - Torii`
   }, [location.pathname])
@@ -73,7 +84,9 @@ export function AppShell() {
 
           <nav aria-label="core navigation links" className="flex flex-1 flex-col space-y-10">
             <ul role="list" className="space-y-0.5">
-              {navigation.map((item) => (
+              {navigation
+                .filter((item) => !item.admin || user?.is_admin)
+                .map((item) => (
                   <li key={item.name}>
                     <NavLink
                       to={item.href}
@@ -94,19 +107,42 @@ export function AppShell() {
             <div>
               <span className="px-2 text-xs font-medium leading-6 text-gray-500">Shortcuts</span>
               <ul aria-label="shortcuts" role="list" className="mt-1 space-y-0.5">
-                {shortcuts
-                  .filter((item) => !item.admin || user?.is_admin)
-                  .map((item) => (
-                    <li key={item.name}>
-                      <NavLink
-                        to={item.href}
-                        className="flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        <item.icon className="size-4 shrink-0" aria-hidden="true" />
-                        {item.name}
-                      </NavLink>
+                {shortcuts.map((item) => {
+                  const external =
+                    item.url.startsWith("http://") ||
+                    item.url.startsWith("https://")
+                  const content = (
+                    <>
+                      <Link2 className="size-4 shrink-0" aria-hidden="true" />
+                      {item.title}
+                    </>
+                  )
+                  const className =
+                    "flex items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 hover:text-gray-900"
+                  return (
+                    <li key={item.id}>
+                      {external ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={className}
+                        >
+                          {content}
+                        </a>
+                      ) : (
+                        <NavLink to={item.url} className={className}>
+                          {content}
+                        </NavLink>
+                      )}
                     </li>
-                  ))}
+                  )
+                })}
+                {shortcuts.length === 0 ? (
+                  <li className="px-2 py-1.5 text-xs text-gray-400">
+                    No shortcuts configured.
+                  </li>
+                ) : null}
               </ul>
             </div>
           </nav>
@@ -133,9 +169,15 @@ export function AppShell() {
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuLabel>Signed in as {user?.username}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => navigate("/settings")}>Settings</DropdownMenuItem>
                 {user?.is_admin ? (
-                  <DropdownMenuItem onSelect={() => navigate("/users")}>Users</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => navigate("/settings")}>
+                    Settings
+                  </DropdownMenuItem>
+                ) : null}
+                {user?.is_admin ? (
+                  <DropdownMenuItem onSelect={() => navigate("/users")}>
+                    Users
+                  </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => void logout()}>
@@ -155,18 +197,20 @@ export function AppShell() {
           <span className="text-sm font-semibold text-gray-900">torii</span>
         </div>
         <nav className="flex items-center gap-2">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              end={item.end}
-              className={({ isActive }) =>
-                cn("rounded-md px-2 py-1 text-xs font-medium", isActive ? "text-gray-900" : "text-gray-600")
-              }
-            >
-              {item.name}
-            </NavLink>
-          ))}
+          {navigation
+            .filter((item) => !item.admin || user?.is_admin)
+            .map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                end={item.end}
+                className={({ isActive }) =>
+                  cn("rounded-md px-2 py-1 text-xs font-medium", isActive ? "text-gray-900" : "text-gray-600")
+                }
+              >
+                {item.name}
+              </NavLink>
+            ))}
         </nav>
       </div>
 
