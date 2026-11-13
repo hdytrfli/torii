@@ -23,9 +23,11 @@ These values are read as environment variables by the app. Jellyfin is enabled
 when both URL and key are present. The LLM is enabled when base URL, key, and
 model are present.
 
-The LLM is only called when Jellyfin returns no candidates at all. It is not
-used to verify Jellyfin matches. The UI labels each job with its match source:
-filename/guessit, Jellyfin, local NFO, AI fallback, or manual edit.
+The LLM is only called after a provider lookup was actually attempted and
+returned no candidates. When the filename already has enough detail (movie
+title + year, or TV title + season + episode), the provider lookup is skipped
+and the filename result is used directly. The UI labels each job with its match
+source: filename/guessit, Jellyfin, local NFO, AI fallback, or manual edit.
 
 ## `config.yaml`
 

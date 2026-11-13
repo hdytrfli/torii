@@ -14,6 +14,8 @@ server:
 
 session_days: 30
 
+# Bootstrap defaults for the settings table below. Used only on first run.
+# After that, change these from the Settings page in the app.
 queues:
   metadata_poll_seconds: 1
   promotion_poll_seconds: 1
