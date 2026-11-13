@@ -7,6 +7,7 @@ import { api } from "../lib/api"
 import { cn } from "../lib/format"
 import { PageHeader } from "../components/page-header"
 import { Button, Card, Checkbox, Input } from "../components/ui"
+import { CardBody, CardFooter } from "../components/tremor/card"
 import {
   CommandBar,
   CommandBarBar,
@@ -237,15 +238,9 @@ export function LogsPage() {
                 <TableRow
                   key={log.id}
                   onClick={() => setSelectedLog(log)}
-                  className={cn(
-                    "group cursor-pointer hover:bg-surface-muted",
-                    selected.has(log.id) && "bg-surface-muted",
-                  )}
+                  className="group cursor-pointer hover:bg-surface-muted"
                 >
                   <TableCell className="relative w-10 py-1">
-                    {selected.has(log.id) ? (
-                      <div className="absolute inset-y-0 left-0 w-0.5 bg-ink" />
-                    ) : null}
                     <Checkbox
                       checked={selected.has(log.id)}
                       onCheckedChange={() => toggle(log.id)}
@@ -397,18 +392,20 @@ export function LogsPage() {
               </div>
             </div>
 
-            <Card className="flex max-h-[min(80rem,80vh)] min-w-0 flex-col overflow-hidden p-0">
-              <pre
-                className={cn(
-                  "min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 font-mono text-xs leading-5 text-ink",
-                  wrapDetail
-                    ? "whitespace-pre-wrap break-words"
-                    : "whitespace-pre overflow-x-auto",
-                )}
-              >
-                {formatContext(selectedDetail) ?? selectedDetail}
-              </pre>
-              <div className="flex items-center justify-between gap-3 border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
+            <Card className="flex max-h-[min(80rem,80vh)] min-w-0 flex-col overflow-hidden border-0 p-0">
+              <CardBody className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4">
+                <pre
+                  className={cn(
+                    "min-h-0 flex-1 overflow-y-auto font-mono text-xs leading-5 text-ink",
+                    wrapDetail
+                      ? "whitespace-pre-wrap break-words"
+                      : "whitespace-pre overflow-x-auto",
+                  )}
+                >
+                  {formatContext(selectedDetail) ?? selectedDetail}
+                </pre>
+              </CardBody>
+              <CardFooter className="flex items-center justify-between gap-3 bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                 <span>Message</span>
                 <label className="flex items-center gap-2">
                   <span>Wrap</span>
@@ -435,17 +432,19 @@ export function LogsPage() {
                     />
                   </button>
                 </label>
-              </div>
+              </CardFooter>
             </Card>
 
             {selectedLog?.context ? (
-              <Card className="flex max-h-[min(80rem,80vh)] min-w-0 flex-col overflow-hidden p-0">
-                <pre className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words px-4 pb-4 pt-4 font-mono text-xs leading-5 text-ink">
-                  {formatContext(selectedLog.context)}
-                </pre>
-                <div className="border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
+              <Card className="flex max-h-[min(80rem,80vh)] min-w-0 flex-col overflow-hidden border-0 p-0">
+                <CardBody className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-4">
+                  <pre className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words font-mono text-xs leading-5 text-ink">
+                    {formatContext(selectedLog.context)}
+                  </pre>
+                </CardBody>
+                <CardFooter className="bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                   Context
-                </div>
+                </CardFooter>
               </Card>
             ) : null}
           </DrawerBody>

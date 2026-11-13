@@ -6,7 +6,7 @@ import { Badge } from "./tremor/badge"
 import { Checkbox } from "./tremor/checkbox"
 import { Input } from "./tremor/input"
 import { Button } from "./tremor/button"
-import { Card } from "./tremor/card"
+import { Card, CardBody, CardFooter } from "./tremor/card"
 
 export { Badge, Button, Card, Checkbox, Input }
 
@@ -99,12 +99,12 @@ export function Toggle({
   hint?: string
 }) {
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="px-4 pb-5 pt-4">
+    <Card className="overflow-hidden border-0 p-0">
+      <CardBody className="px-4 pb-5 pt-4">
         <div className="text-sm font-semibold text-ink">{label}</div>
         {hint ? <p className="mt-1 text-sm leading-6 text-ink-muted">{hint}</p> : null}
-      </div>
-      <div className="flex items-center justify-between border-t border-line bg-surface-muted px-4 py-3">
+      </CardBody>
+      <CardFooter className="flex items-center justify-between bg-surface-muted px-4 py-3">
         <span className="text-xs font-medium text-ink-muted">
           {checked ? "Enabled" : "Disabled"}
         </span>
@@ -125,7 +125,7 @@ export function Toggle({
             )}
           />
         </button>
-      </div>
+      </CardFooter>
     </Card>
   )
 }
@@ -165,12 +165,12 @@ export function Switch({
 }
 
 export function Alert({
-  variant = "error",
+  variant = "neutral",
   title,
   children,
   className,
 }: {
-  variant?: "error" | "warning" | "info" | "success"
+  variant?: "neutral" | "error" | "warning" | "info" | "success"
   title?: ReactNode
   children: ReactNode
   className?: string
@@ -180,7 +180,7 @@ export function Alert({
       ? CircleCheck
       : variant === "warning"
         ? TriangleAlert
-        : variant === "info"
+        : variant === "info" || variant === "neutral"
           ? Info
           : AlertCircle
   const footer =
@@ -190,7 +190,9 @@ export function Alert({
         ? "border-warning/40 bg-warning-soft text-warning"
         : variant === "info"
           ? "border-info/40 bg-info-soft text-info"
-          : "border-danger/40 bg-danger-soft text-danger"
+          : variant === "neutral"
+            ? "border-line bg-surface-muted text-ink-muted"
+            : "border-danger/40 bg-danger-soft text-danger"
   const label =
     variant === "success"
       ? "Success"
@@ -198,7 +200,9 @@ export function Alert({
         ? "Warning"
         : variant === "info"
           ? "Info"
-          : "Error"
+          : variant === "neutral"
+            ? "Notice"
+            : "Error"
 
   return (
     <div

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "../lib/api"
 import { basename, formatBytes } from "../lib/format"
 import { Card } from "./ui"
+import { CardBody, CardFooter } from "./tremor/card"
 import { ProgressBar } from "./tremor/progress-bar"
 
 export function QueueStatus() {
@@ -50,8 +51,8 @@ export function QueueStatus() {
         : { label: "Idle", dot: "bg-ink-muted" }
 
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="px-3 pb-3 pt-3">
+    <Card className="overflow-hidden border-0 p-0">
+      <CardBody className="px-3 pb-3 pt-3">
         <div className="text-xs font-medium text-ink">Queue status</div>
         <p className="mt-1 text-[11px] leading-4 text-ink-muted">
           {running
@@ -75,9 +76,9 @@ export function QueueStatus() {
             </div>
           </>
         ) : null}
-      </div>
+      </CardBody>
 
-      <div className="flex items-center justify-between border-t border-line bg-surface-muted px-3 py-2 text-[10px] text-ink-muted">
+      <CardFooter className="flex items-center justify-between bg-surface-muted px-3 py-2 text-xs text-ink-muted">
         <span className="inline-flex items-center gap-1.5">
           <span
             className={`size-1.5 rounded-full ${queueState.dot}`}
@@ -92,7 +93,7 @@ export function QueueStatus() {
               ? `${queued} waiting`
               : null}
         </span>
-      </div>
+      </CardFooter>
     </Card>
   )
 }

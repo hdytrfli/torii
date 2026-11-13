@@ -6,7 +6,6 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import { applyFavicon } from "./favicon"
 
 export type Theme = "light" | "dark"
 
@@ -36,7 +35,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = theme
     document.documentElement.style.colorScheme = theme
     localStorage.setItem(THEME_KEY, theme)
-    applyFavicon(theme)
   }, [theme])
 
   useEffect(() => {
@@ -58,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     transitionTimer.current = window.setTimeout(() => {
       transitionTimer.current = null
       root.classList.remove("theme-switching")
-    }, 200)
+    }, 550)
     root.dataset.theme = next
     root.style.colorScheme = next
     localStorage.setItem(THEME_KEY, next)

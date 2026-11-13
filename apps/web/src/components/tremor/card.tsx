@@ -17,3 +17,30 @@ export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ),
 )
 Card.displayName = "Card"
+
+export function CardBody({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-t-card border border-b-0 border-line",
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export function CardFooter({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("rounded-b-card border border-line", className)}
+      {...props}
+    />
+  )
+}

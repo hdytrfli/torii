@@ -864,18 +864,14 @@ export function MediaDataTable({
                     onClick={() => onOpen?.(row.original)}
                     className="group cursor-pointer select-none hover:bg-surface-muted"
                   >
-                    {row.getVisibleCells().map((cell, index) => (
+                    {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
                         className={cn(
-                          row.getIsSelected() ? "bg-surface-muted" : "",
                           "relative whitespace-nowrap py-1 text-ink-muted first:w-10",
                           cell.column.columnDef.meta?.className,
                         )}
                       >
-                        {index === 0 && row.getIsSelected() ? (
-                          <div className="absolute inset-y-0 left-0 w-0.5 bg-ink" />
-                        ) : null}
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}

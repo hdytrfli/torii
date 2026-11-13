@@ -13,6 +13,7 @@ import { pct, providerLabel, sourceLabel } from "../lib/format"
 import { blockedReasonLabel, isReviewable } from "../lib/job-state"
 import { useToast } from "./toast"
 import { Alert, Badge, Button, Card, Field, Input, SourceBadge, StatusBadge } from "./ui"
+import { CardBody, CardFooter } from "./tremor/card"
 import { DropdownSelect } from "./tremor/dropdown-select"
 import {
   DropdownMenu,
@@ -265,25 +266,25 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
               </div>
 
               <div className="mb-6 grid gap-3 sm:grid-cols-2">
-                <Card className="flex min-w-0 flex-col overflow-hidden p-0">
-                  <div className="flex-1 px-4 pb-4 pt-4">
+                <Card className="flex min-w-0 flex-col overflow-hidden border-0 p-0">
+                  <CardBody className="flex-1 px-4 pb-4 pt-4">
                     <p className="break-all font-mono text-[11px] leading-5 text-ink">
                       {job.source_path}
                     </p>
-                  </div>
-                  <div className="border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
+                  </CardBody>
+                  <CardFooter className="bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                     Original path
-                  </div>
+                  </CardFooter>
                 </Card>
-                <Card className="flex min-w-0 flex-col overflow-hidden p-0">
-                  <div className="flex-1 px-4 pb-4 pt-4">
+                <Card className="flex min-w-0 flex-col overflow-hidden border-0 p-0">
+                  <CardBody className="flex-1 px-4 pb-4 pt-4">
                     <p className="break-all font-mono text-[11px] leading-5 text-ink">
                       {target || job.target_path || "—"}
                     </p>
-                  </div>
-                  <div className="border-t border-line bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
+                  </CardBody>
+                  <CardFooter className="bg-surface-muted px-4 py-2 text-xs font-medium text-ink-muted">
                     Target path
-                  </div>
+                  </CardFooter>
                 </Card>
               </div>
 
@@ -400,6 +401,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
 
                 {showBlockedMessage ? (
                   <Alert
+                    variant="error"
                     title={
                       job.blocked_reason
                         ? blockedReasonLabel(job.blocked_reason)
@@ -419,9 +421,9 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                       {job.candidates_json.map((candidate, index) => (
                         <Card
                           key={`${candidate.provider}-${candidate.provider_id}-${index}`}
-                          className="overflow-hidden p-0"
+                          className="overflow-hidden border-0 p-0"
                         >
-                          <div className="px-4 pb-4 pt-4">
+                          <CardBody className="px-4 pb-4 pt-4">
                             <div className="flex items-center justify-between gap-3">
                               <span className="text-xs font-medium text-ink">
                                 {candidate.title} {candidate.year ? `(${candidate.year})` : ""}
@@ -433,8 +435,8 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                                 {candidate.overview}
                               </p>
                             ) : null}
-                          </div>
-                          <div className="flex items-center justify-between border-t border-line bg-surface-muted px-4 py-2">
+                          </CardBody>
+                          <CardFooter className="flex items-center justify-between bg-surface-muted px-4 py-2">
                             <span className="text-[11px] text-ink-muted">
                               {providerLabel(candidate.provider)}
                             </span>
@@ -449,7 +451,7 @@ export function JobDrawer({ jobId, onClose }: { jobId: number; onClose: () => vo
                             >
                               Use
                             </Button>
-                          </div>
+                          </CardFooter>
                         </Card>
                       ))}
                     </div>
